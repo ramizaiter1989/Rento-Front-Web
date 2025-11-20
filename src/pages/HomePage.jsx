@@ -63,90 +63,147 @@ export const HomePage = () => {
   ];
 
   return (
+    
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80"
-            alt="Luxury Car"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/90 via-primary/70 to-transparent" />
-        </div>
+<section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
+  <style jsx>{`
+    .cosmic-sparkle {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
 
-        <div className="container mx-auto px-4 relative z-10 pt-20">
-          <div className="max-w-3xl">
-            <Badge className="mb-6 bg-accent/90 text-accent-foreground backdrop-blur-sm">
-              Premium Car Rental Service
-            </Badge>
-            
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-              Experience Luxury
-              <span className="block mt-2 text-accent">On Every Journey</span>
-            </h1>
-            
-            <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl">
-              Drive the world's most prestigious vehicles. From sports cars to luxury SUVs,
-              find your perfect ride for any occasion.
-            </p>
+    .sparkle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 255, 255, 0.9),
+        transparent
+      );
+      filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.9));
+      animation: sparkleAnimation 1s linear infinite;
+    }
 
-            {/* Search Form */}
-            <Card className="glass-strong backdrop-blur-md border-white/20 p-6">
-              <form onSubmit={handleSearch}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Location"
-                      value={searchData.location}
-                      onChange={(e) => setSearchData({ ...searchData, location: e.target.value })}
-                      className="pl-10 bg-background/50 backdrop-blur-sm"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      placeholder="Pickup Date"
-                      value={searchData.pickupDate}
-                      onChange={(e) => setSearchData({ ...searchData, pickupDate: e.target.value })}
-                      className="pl-10 bg-background/50 backdrop-blur-sm"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      placeholder="Return Date"
-                      value={searchData.returnDate}
-                      onChange={(e) => setSearchData({ ...searchData, returnDate: e.target.value })}
-                      className="pl-10 bg-background/50 backdrop-blur-sm"
-                    />
-                  </div>
-                </div>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-secondary hover:bg-secondary-light text-secondary-foreground font-semibold"
-                >
-                  <Search className="w-5 h-5 mr-2" />
-                  Search Available Cars
-                </Button>
-              </form>
-            </Card>
+    @keyframes sparkleAnimation {
+      0% {
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+      }
+      10% {
+        opacity: 0.9;
+      }
+      100% {
+        transform: translate(200px, 150px) scale(2);
+        opacity: 1;
+      }
+    }
+  `}</style>
+
+  <div className="absolute inset-0 z-0">
+    <img
+      src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80"
+      alt="Luxury Car with Cosmic Sparkle"
+      className="w-full h-full object-cover"
+    />
+    <div className="cosmic-sparkle">
+      {[...Array(30)].map((_, i) => (
+        <div
+          key={i}
+          className="sparkle"
+          style={{
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            width: `${Math.random() * 2 + 0.5}px`,
+            height: `${Math.random() * 3 + 1}px`,
+            animationDelay: `${Math.random() * 4}s`,
+            animationDuration: `${Math.random() * 3 + 2}s`,
+            transform: `rotate(${Math.random() * 360}deg)`,
+          }}
+        />
+      ))}
+    </div>
+    <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/80 via-primary/60 to-transparent" />
+  </div>
+
+  <div className="container mx-auto px-4 relative z-10 pt-20">
+    {/* Rest of your hero section content */}
+    <div className="max-w-3xl">
+      <Badge className="mb-6 bg-accent/90 text-accent-foreground backdrop-blur-sm">
+        Premium Car Rental Service
+      </Badge>
+
+      <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+        Experience Luxury
+        <span className="block mt-2 text-accent">On Every Journey</span>
+      </h1>
+
+      <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl">
+        Drive the world's most prestigious vehicles. From sports cars to luxury SUVs,
+        find your perfect ride for any occasion.
+      </p>
+      {/* Search Form */}
+      <Card className="glass-strong backdrop-blur-md border-white/20 p-6">
+        <form onSubmit={handleSearch}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Location"
+                value={searchData.location}
+                onChange={(e) => setSearchData({ ...searchData, location: e.target.value })}
+                className="pl-10 bg-background/50 backdrop-blur-sm"
+              />
+            </div>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                type="date"
+                placeholder="Pickup Date"
+                value={searchData.pickupDate}
+                onChange={(e) => setSearchData({ ...searchData, pickupDate: e.target.value })}
+                className="pl-10 bg-background/50 backdrop-blur-sm"
+              />
+            </div>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                type="date"
+                placeholder="Return Date"
+                value={searchData.returnDate}
+                onChange={(e) => setSearchData({ ...searchData, returnDate: e.target.value })}
+                className="pl-10 bg-background/50 backdrop-blur-sm"
+              />
+            </div>
           </div>
-        </div>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full bg-secondary hover:bg-secondary-light text-secondary-foreground font-semibold"
+          >
+            <Search className="w-5 h-5 mr-2" />
+            Search Available Cars
+          </Button>
+        </form>
+      </Card>
+    </div>
+    {/* Scroll Indicator */}
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+      <div className="w-6 h-10 rounded-full border-2 border-white/50 flex items-start justify-center p-2">
+        <div className="w-1 h-3 bg-white/50 rounded-full" />
+      </div>
+    </div>
+  </div>
+</section>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 rounded-full border-2 border-white/50 flex items-start justify-center p-2">
-            <div className="w-1 h-3 bg-white/50 rounded-full" />
-          </div>
-        </div>
-      </section>
+
+
 
       {/* Stats Section */}
       <section className="py-12 bg-card border-y border-border">

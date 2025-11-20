@@ -82,13 +82,13 @@ export const Navbar = () => {
 />
 
             </div>
-            <span className="text-xl md:text-2xl font-bold gradient-text hidden sm:block">
+            <span className="text-xl md:text-2xl text-primary-foreground font-bold gradient-text hidden sm:block">
               RENTO LB
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex text-primary-foreground items-center space-x-1">
             {navLinks.map(link => (
               <Link
                 key={link.to}
@@ -166,7 +166,7 @@ export const Navbar = () => {
                 toggleTheme();
                 setIsOpen(false);
               }}
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:bg-muted text-left flex items-center justify-between"
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium text-foreground hover:bg-muted text-left flex items-center justify-between"
             >
               <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
