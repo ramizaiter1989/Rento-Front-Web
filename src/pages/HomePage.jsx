@@ -66,7 +66,7 @@ export const HomePage = () => {
     
     <div className="min-h-screen">
 <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
-  <style jsx>{`
+  <style>{`
     .cosmic-sparkle {
       position: absolute;
       inset: 0;
