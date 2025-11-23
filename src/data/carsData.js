@@ -40,7 +40,7 @@ export const carsData = [
     price: 299,
     rating: 4.8,
     reviews: 127,
-    image: '/ali1new.jpg',
+    image: '/ali1.jpg',
     images: [
       '/ali2.jpg',
       '/ali3.jpg',
