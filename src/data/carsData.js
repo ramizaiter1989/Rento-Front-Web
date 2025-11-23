@@ -40,11 +40,11 @@ export const carsData = [
     price: 299,
     rating: 4.8,
     reviews: 127,
-    image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
+    image: '/ali1new.jpg',
     images: [
-      'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
-      'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&q=80',
-      'https://images.unsplash.com/photo-1619682817481-e994891cd1f5?w=800&q=80'
+      '/ali2.jpg',
+      '/ali3.jpg',
+      '/ali4.jpg'
     ],
     description: 'Experience the perfect blend of luxury and performance with the BMW M5 Competition. This high-performance sedan delivers 617 horsepower and can accelerate from 0-60 mph in just 3.1 seconds.',
     features: ['Sport Mode', 'Leather Interior', 'Premium Sound', 'Navigation', 'Adaptive Cruise Control', 'Parking Assist'],
