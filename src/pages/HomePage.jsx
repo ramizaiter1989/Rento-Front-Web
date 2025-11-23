@@ -28,7 +28,7 @@ export const HomePage = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // In a real app, this would navigate to /cars with search params
+    // In a real app, this would navigate to /cars with search params try
     window.location.href = '/cars';
   };
 
