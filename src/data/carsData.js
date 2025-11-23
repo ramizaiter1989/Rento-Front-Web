@@ -61,7 +61,7 @@ export const carsData = [
     price: 349,
     rating: 4.9,
     reviews: 203,
-    image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80',
+    image: '/ali6.jpg',
     images: [
       'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80',
       'https://images.unsplash.com/photo-1617531653520-bd788a65c79a?w=800&q=80',
