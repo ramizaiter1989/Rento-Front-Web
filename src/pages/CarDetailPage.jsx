@@ -13,8 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { carsData } from '@/data/carsData';
 import { isFavorite, addToFavorites, removeFromFavorites } from '@/utils/localStorage';
+import api from '@/lib/axios';
 import {
   Heart,
   Star,
@@ -31,8 +31,8 @@ import { toast } from 'sonner';
 export const CarDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const car = carsData.find(c => c.id === parseInt(id));
-  
+  const [car, setCar] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [favorite, setFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
@@ -42,18 +42,135 @@ export const CarDetailPage = () => {
     phone: '',
     pickupDate: '',
     returnDate: '',
-    location: ''
+    location: '',
+    reason: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch car from API
   useEffect(() => {
-    if (car) {
-      setFavorite(isFavorite(car.id));
-    }
-  }, [car]);
+    const fetchCar = async () => {
+      try {
+        const res = await api.get(`/cars/${id}`);
+        const carData = res.data.car;
+        const mappedCar = {
+          id: carData.id,
+          brand: carData.make,
+          model: carData.model,
+          type: carData.car_category,
+          year: carData.year,
+          seats: carData.seats,
+          transmission: carData.transmission,
+          fuelType: carData.fuel_type,
+          price: Number(carData.daily_rate),
+          rating: carData.feedbacks?.length ? 4.5 : 4.5,
+          reviews: carData.feedbacks?.length ?? 0,
+          features: carData.features ?? [],
+          description: carData.notes ?? "",
+          images: [
+            carData.main_image_url,
+            carData.front_image_url,
+            carData.back_image_url,
+            carData.left_image_url,
+            carData.right_image_url
+          ].filter(Boolean)
+        };
+        setCar(mappedCar);
+        setFavorite(isFavorite(mappedCar.id));
+      } catch (err) {
+        console.error("Car fetch error:", err);
+        toast.error("Failed to load car details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCar();
+  }, [id]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const toggleFavorite = () => {
+    if (favorite) {
+      removeFromFavorites(car.id);
+      setFavorite(false);
+      toast.success('Removed from favorites');
+    } else {
+      addToFavorites(car.id);
+      setFavorite(true);
+      toast.success('Added to favorites');
+    }
+    window.dispatchEvent(new Event('favoritesUpdated'));
+  };
+
+  const calculateDays = () => {
+    if (bookingData.pickupDate && bookingData.returnDate) {
+      const pickup = new Date(bookingData.pickupDate);
+      const returnDate = new Date(bookingData.returnDate);
+      const days = Math.ceil((returnDate - pickup) / (1000 * 60 * 60 * 24));
+      return days > 0 ? days : 0;
+    }
+    return 0;
+  };
+
+  const days = calculateDays();
+  const totalPrice = car ? days * car.price : 0;
+
+  const handleBooking = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await api.post('/bookings', {
+        car_id: car.id,
+        start_datetime: bookingData.pickupDate,
+        end_datetime: bookingData.returnDate,
+        reason_of_booking: bookingData.reason
+      });
+
+      if (response.status === 201) {
+        toast.success(
+          `Booking request submitted successfully! We'll contact you shortly.`,
+          { duration: 5000 }
+        );
+        setShowBookingDialog(false);
+        setBookingData({
+          name: '',
+          email: '',
+          phone: '',
+          pickupDate: '',
+          returnDate: '',
+          location: '',
+          reason: ''
+        });
+      }
+    } catch (error) {
+      console.error("Booking error:", error);
+      let errorMessage = "Failed to submit booking request. Please try again.";
+
+      if (error.response) {
+        if (error.response.status === 400) {
+          errorMessage = error.response.data.message || errorMessage;
+        } else if (error.response.status === 422) {
+          const errors = error.response.data.errors;
+          errorMessage = Object.values(errors).flat().join('\n');
+        }
+      }
+
+      toast.error(errorMessage, { duration: 5000 });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-20 flex items-center justify-center">
+        <p>Loading car details...</p>
+      </div>
+    );
+  }
 
   if (!car) {
     return (
@@ -70,50 +187,6 @@ export const CarDetailPage = () => {
     );
   }
 
-  const toggleFavorite = () => {
-    if (favorite) {
-      removeFromFavorites(car.id);
-      setFavorite(false);
-      toast.success('Removed from favorites');
-    } else {
-      addToFavorites(car.id);
-      setFavorite(true);
-      toast.success('Added to favorites');
-    }
-    window.dispatchEvent(new Event('favoritesUpdated'));
-  };
-
-  const handleBooking = (e) => {
-    e.preventDefault();
-    // Mock booking success
-    setShowBookingDialog(false);
-    toast.success(
-      `Booking confirmed for ${car.brand} ${car.model}! We'll contact you shortly.`,
-      { duration: 5000 }
-    );
-    setBookingData({
-      name: '',
-      email: '',
-      phone: '',
-      pickupDate: '',
-      returnDate: '',
-      location: ''
-    });
-  };
-
-  const calculateDays = () => {
-    if (bookingData.pickupDate && bookingData.returnDate) {
-      const pickup = new Date(bookingData.pickupDate);
-      const returnDate = new Date(bookingData.returnDate);
-      const days = Math.ceil((returnDate - pickup) / (1000 * 60 * 60 * 24));
-      return days > 0 ? days : 0;
-    }
-    return 0;
-  };
-
-  const days = calculateDays();
-  const totalPrice = days * car.price;
-
   return (
     <div className="min-h-screen pt-20">
       {/* Back Button */}
@@ -127,8 +200,8 @@ export const CarDetailPage = () => {
           Back to Cars
         </Button>
       </div>
-
       <div className="container mx-auto px-4 pb-12">
+        {/* Your existing car details JSX */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Image Gallery */}
           <div>
@@ -150,7 +223,6 @@ export const CarDetailPage = () => {
                 />
               </button>
             </div>
-
             {/* Thumbnail Images */}
             <div className="grid grid-cols-3 gap-4">
               {car.images.map((image, index) => (
@@ -172,7 +244,6 @@ export const CarDetailPage = () => {
               ))}
             </div>
           </div>
-
           {/* Car Details */}
           <div>
             <div className="flex items-start justify-between mb-4">
@@ -190,11 +261,9 @@ export const CarDetailPage = () => {
                 </div>
               </div>
             </div>
-
             <p className="text-muted-foreground mb-6 leading-relaxed">
               {car.description}
             </p>
-
             {/* Price */}
             <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 mb-6">
               <CardContent className="p-6">
@@ -216,7 +285,6 @@ export const CarDetailPage = () => {
                 </div>
               </CardContent>
             </Card>
-
             {/* Specifications */}
             <Card className="mb-6">
               <CardContent className="p-6">
@@ -261,7 +329,6 @@ export const CarDetailPage = () => {
                 </div>
               </CardContent>
             </Card>
-
             {/* Features */}
             <Card>
               <CardContent className="p-6">
@@ -279,7 +346,6 @@ export const CarDetailPage = () => {
           </div>
         </div>
       </div>
-
       {/* Booking Dialog */}
       <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -291,7 +357,6 @@ export const CarDetailPage = () => {
               Fill in your details to complete the booking. We'll contact you to confirm.
             </DialogDescription>
           </DialogHeader>
-
           <form onSubmit={handleBooking} className="space-y-6 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -346,11 +411,11 @@ export const CarDetailPage = () => {
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="pickupDate"
-                    type="date"
+                    type="datetime-local"
                     required
                     value={bookingData.pickupDate}
                     onChange={(e) => setBookingData({ ...bookingData, pickupDate: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={new Date().toISOString().slice(0, 16)}
                     className="pl-10"
                   />
                 </div>
@@ -361,19 +426,26 @@ export const CarDetailPage = () => {
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="returnDate"
-                    type="date"
+                    type="datetime-local"
                     required
                     value={bookingData.returnDate}
                     onChange={(e) => setBookingData({ ...bookingData, returnDate: e.target.value })}
-                    min={bookingData.pickupDate || new Date().toISOString().split('T')[0]}
+                    min={bookingData.pickupDate || new Date().toISOString().slice(0, 16)}
                     className="pl-10"
                   />
                 </div>
               </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="reason">Reason for Booking</Label>
+                <Input
+                  id="reason"
+                  value={bookingData.reason}
+                  onChange={(e) => setBookingData({ ...bookingData, reason: e.target.value })}
+                  placeholder="Business trip, vacation, etc."
+                />
+              </div>
             </div>
-
             <Separator />
-
             {/* Price Summary */}
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
@@ -396,13 +468,13 @@ export const CarDetailPage = () => {
                 </>
               )}
             </div>
-
             <Button
               type="submit"
               size="lg"
               className="w-full bg-secondary hover:bg-secondary-light text-secondary-foreground font-semibold"
+              disabled={isSubmitting}
             >
-              Confirm Booking
+              {isSubmitting ? 'Processing...' : 'Confirm Booking'}
             </Button>
           </form>
         </DialogContent>

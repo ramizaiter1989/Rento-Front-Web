@@ -1,0 +1,278 @@
+{
+  "brand": {
+    "name": "RENTO",
+    "tagline": "Your premium car rental experience"
+  },
+  "nav": {
+    "home": "Home",
+    "browseCars": "Browse Cars",
+    "about": "About",
+    "contact": "Contact",
+    "favorites": "Favorites",
+    "logout": "Logout",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "myAccount": "My Account"
+  },
+  "hero": {
+    "badge": "Premium Car Rental Service",
+    "title": "Experience Luxury",
+    "titleAccent": "On Every Journey",
+    "description": "Drive the world's most prestigious vehicles. From sports cars to luxury SUVs, find your perfect ride for any occasion.",
+    "searchBtn": "Search Available Cars",
+    "location": "Location",
+    "pickupDate": "Pickup Date",
+    "returnDate": "Return Date"
+  },
+  "stats": {
+    "customers": "Happy Customers",
+    "vehicles": "Luxury Vehicles",
+    "experience": "Years Experience",
+    "satisfaction": "Satisfaction Rate"
+  },
+  "featured": {
+    "badge": "Our Fleet",
+    "title": "Featured Luxury Vehicles",
+    "description": "Explore our handpicked selection of premium vehicles, ready to elevate your driving experience",
+    "viewAll": "View All Vehicles"
+  },
+  "features": {
+    "badge": "Why Choose Us",
+    "title": "Premium Service, Unforgettable Experience",
+    "description": "We're committed to providing exceptional service and the finest vehicles for your journey",
+    "insurance": {
+      "title": "Premium Insurance",
+      "description": "Comprehensive coverage included with every rental for your peace of mind"
+    },
+    "support": {
+      "title": "24/7 Support",
+      "description": "Round-the-clock customer service to assist you whenever you need"
+    },
+    "price": {
+      "title": "Best Price Guarantee",
+      "description": "Competitive rates with no hidden fees or surprises"
+    },
+    "fleet": {
+      "title": "Premium Fleet",
+      "description": "Exclusive selection of luxury and high-performance vehicles"
+    }
+  },
+  "testimonials": {
+    "badge": "Testimonials",
+    "title": "What Our Customers Say",
+    "description": "Real experiences from our valued customers who trust us for their luxury car needs"
+  },
+  "cta": {
+    "title": "Ready to Experience Luxury?",
+    "description": "Book your dream car today and enjoy an unforgettable driving experience",
+    "browseFleet": "Browse Our Fleet",
+    "contactUs": "Contact Us"
+  },
+  "cars": {
+    "badge": "Browse Fleet",
+    "title": "Discover Your Perfect Ride",
+    "description": "Explore our premium collection of {{count}} luxury vehicles",
+    "showing": "Showing",
+    "vehicles": "vehicles",
+    "sortBy": "Sort by:",
+    "featured": "Featured",
+    "priceLow": "Price: Low to High",
+    "priceHigh": "Price: High to Low",
+    "rating": "Highest Rated",
+    "popular": "Most Popular",
+    "filters": "Filters",
+    "reset": "Reset",
+    "search": "Search",
+    "brand": "Brand",
+    "vehicleType": "Vehicle Type",
+    "transmission": "Transmission",
+    "priceRange": "Price Range",
+    "allBrands": "All Brands",
+    "allTypes": "All Types",
+    "all": "All",
+    "perDay": "/day",
+    "viewDetails": "View Details",
+    "noResults": "No vehicles found",
+    "tryAdjusting": "Try adjusting your filters to see more results",
+    "resetFilters": "Reset Filters"
+  },
+  "carDetail": {
+    "backToCars": "Back to Cars",
+    "rentalPrice": "Rental Price",
+    "bookNow": "Book Now",
+    "specifications": "Specifications",
+    "seats": "Seats",
+    "people": "People",
+    "fuelType": "Fuel Type",
+    "features": "Features & Amenities",
+    "reviews": "reviews"
+  },
+  "booking": {
+    "title": "Book {{car}}",
+    "description": "Fill in your details to complete the booking. We'll contact you to confirm.",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "pickupLocation": "Pickup Location",
+    "pickupDate": "Pickup Date",
+    "returnDate": "Return Date",
+    "dailyRate": "Daily Rate",
+    "duration": "Duration",
+    "day": "day",
+    "days": "days",
+    "totalPrice": "Total Price",
+    "confirmBooking": "Confirm Booking",
+    "success": "Booking confirmed for {{car}}! We'll contact you shortly."
+  },
+  "favorites": {
+    "badge": "Favorites",
+    "title": "Your Favorite Vehicles",
+    "count": "You have {{count}} vehicle in your favorites",
+    "count_plural": "You have {{count}} vehicles in your favorites",
+    "empty": "No favorites yet. Start exploring our fleet!",
+    "emptyTitle": "No Favorites Yet",
+    "emptyDescription": "Start adding vehicles to your favorites to keep track of the cars you love. Click the heart icon on any vehicle card to add it here.",
+    "browseCars": "Browse Our Fleet"
+  },
+  "about": {
+    "badge": "About Us",
+    "title": "Redefining Luxury Car Rental",
+    "description": "For over 15 years, RENTO has been the trusted name in premium vehicle rentals, providing discerning customers with access to the world's finest automobiles.",
+    "stats": {
+      "years": "Years in Business",
+      "customers": "Happy Customers",
+      "vehicles": "Premium Vehicles",
+      "cities": "Cities Covered"
+    },
+    "story": {
+      "badge": "Our Story",
+      "title": "Passion for Automotive Excellence",
+      "p1": "RENTO was born from a simple vision: to make the world's most prestigious vehicles accessible to those who appreciate the finer things in life. Founded in 2008 by automotive enthusiasts, we've grown from a small boutique operation to a leading name in luxury car rentals.",
+      "p2": "Every vehicle in our fleet is carefully selected and maintained to the highest standards. We believe that driving a premium vehicle isn't just about transportation—it's about experiencing craftsmanship, performance, and luxury in their purest forms.",
+      "p3": "Today, we're proud to serve thousands of satisfied customers across 25 cities, offering everything from exotic sports cars to elegant luxury sedans. Our commitment to excellence and customer satisfaction remains as strong as ever."
+    },
+    "values": {
+      "badge": "Our Values",
+      "title": "What Drives Us Forward",
+      "description": "Our core values guide every decision we make and every service we provide",
+      "customer": {
+        "title": "Customer First",
+        "description": "Your satisfaction and experience are at the heart of everything we do"
+      },
+      "trust": {
+        "title": "Trust & Safety",
+        "description": "Every vehicle is meticulously maintained and fully insured for your protection"
+      },
+      "excellence": {
+        "title": "Excellence",
+        "description": "We strive for perfection in service quality and vehicle condition"
+      },
+      "accessibility": {
+        "title": "Accessibility",
+        "description": "Premium vehicles available across multiple locations for your convenience"
+      }
+    },
+    "team": {
+      "badge": "Meet Our Team",
+      "title": "The People Behind the Wheels",
+      "description": "Our passionate team of automotive experts is dedicated to making your experience exceptional"
+    },
+    "cta": {
+      "title": "Experience the RENTO Difference",
+      "description": "Join thousands of satisfied customers who trust us for their luxury vehicle needs"
+    }
+  },
+  "contact": {
+    "badge": "Contact Us",
+    "title": "Get in Touch",
+    "description": "Have questions? We're here to help. Reach out to our team for any inquiries about our vehicles or services.",
+    "visitUs": "Visit Us",
+    "callUs": "Call Us",
+    "emailUs": "Email Us",
+    "businessHours": "Business Hours",
+    "sendMessage": "Send Us a Message",
+    "name": "Full Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send Message",
+    "success": "Message sent successfully! We'll get back to you soon.",
+    "locations": "Our Locations",
+    "faq": {
+      "badge": "FAQ",
+      "title": "Frequently Asked Questions",
+      "description": "Find quick answers to common questions about our services"
+    }
+  },
+  "auth": {
+    "welcome": "Welcome",
+    "description": "Sign in to your account or create a new one",
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign In",
+    "createAccount": "Create Account",
+    "orContinueWith": "OR CONTINUE WITH",
+    "google": "Google",
+    "apple": "Apple",
+    "continueAsGuest": "Continue as guest",
+    "terms": "By continuing, you agree to our",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy",
+    "back": "Back",
+    "loginSuccess": "Welcome back! Login successful.",
+    "registerSuccess": "Account created successfully! Welcome to RENTO.",
+    "fillFields": "Please fill in all required fields",
+    "passwordMatch": "Passwords do not match",
+    "passwordLength": "Password must be at least 6 characters",
+    "logoutSuccess": "Logged out successfully"
+  },
+  "intro": {
+    "skip": "Skip",
+    "next": "Next",
+    "getStarted": "Get Started",
+    "of": "of",
+    "slides": {
+      "fleet": {
+        "title": "Premium Luxury Fleet",
+        "description": "Access the world's finest vehicles. From sports cars to luxury SUVs, find your perfect ride for any occasion."
+      },
+      "safe": {
+        "title": "Safe & Secure",
+        "description": "Every vehicle is fully insured with comprehensive coverage. Drive with complete peace of mind."
+      },
+      "support": {
+        "title": "24/7 Support",
+        "description": "Our dedicated team is always here to help. Book instantly and get support whenever you need it."
+      },
+      "price": {
+        "title": "Best Price Guarantee",
+        "description": "Competitive rates with no hidden fees. Experience luxury without breaking the bank."
+      }
+    }
+  },
+  "common": {
+    "from": "From",
+    "to": "to",
+    "popular": "Popular",
+    "sports": "Sports",
+    "luxury": "Luxury",
+    "electric": "Electric",
+    "suv": "SUV",
+    "sedan": "Sedan",
+    "convertible": "Convertible",
+    "automatic": "Automatic",
+    "manual": "Manual",
+    "petrol": "Petrol",
+    "diesel": "Diesel",
+    "hybrid": "Hybrid"
+  }
+}

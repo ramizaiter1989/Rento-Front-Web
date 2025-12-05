@@ -40,9 +40,9 @@ export const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-transparent flex items-center justify-center">
                 <img
-  src="/rentologo.jpg" // replace with your actual path
+  src="/rentologo.png" // replace with your actual path
   alt="Rento Logo"
   className="rounded-lg w-10 h-10 object-contain"
 />

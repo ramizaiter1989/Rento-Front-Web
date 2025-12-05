@@ -68,15 +68,15 @@ export const Navbar = () => {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? 'glass-strong shadow-lg' : 'bg-transparent'
+      scrolled ? 'glass-strong shadow-lg' : 'bg-white/30'
     }`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center hover-glow">
+            <div className="w-10 h-10 rounded-lg bg-transparent flex items-center justify-center hover-glow">
               <img
-  src="/rentologo.jpg" // replace with your actual path
+  src="/rentologo.png" // replace with your actual path
   alt="Rento Logo"
   className="rounded-lg w-10 h-10 object-contain"
 />
