@@ -264,7 +264,7 @@ export const SEO = () => {
       <meta property="og:image" content="https://rento-lb.com/rentologo.jpg" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
-      <meta property="og:image:alt" content="Rento LB - Lebanon's Premier Car Rental Platform with 10,000+ vehicles" />
+      <meta property="og:image:alt" content="Rento LB - Lebanon's Premier Car Rental Platform with 10,000+ vehicles and cars" />
       <meta property="og:site_name" content="Rento LB" />
       <meta property="og:locale" content="en_US" />
 
