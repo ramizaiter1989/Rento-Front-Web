@@ -19,6 +19,9 @@ import { ClientBookingPage } from '@/pages/ClientBookingPage';
 import { CreateCarPage } from '@/pages/CreateCarPage';
 import { MyCarsPage } from '@/pages/MyCarsPage';
 import { AgentBookingsPage } from '@/pages/AgentBookingsPage';
+import { HelmetProvider } from 'react-helmet-async';
+import { SEO } from "@/components/SEO";
+
 
 
 // Protected Route Component
@@ -35,6 +38,7 @@ const ProtectedRoute = ({ children }) => {
 // Layout with Navbar and Footer
 const MainLayout = ({ children }) => (
   <>
+
     <Navbar />
     {children}
     <Footer />
@@ -62,6 +66,7 @@ function App() {
   }, []);
 
   return (
+    <HelmetProvider>
     <div className="App">
       <BrowserRouter>
         <Routes>
@@ -175,6 +180,7 @@ function App() {
         <Toaster position="top-right" richColors />
       </BrowserRouter>
     </div>
+    </HelmetProvider>
   );
 }
 

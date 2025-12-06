@@ -334,206 +334,257 @@ export function AgentBookingsPage() {
         )}
 
         {/* Modal */}
-        {modalOpen && selectedCar && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={closeModal}
-          >
-            <div
-              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-teal-600 to-teal-700 dark:from-teal-700 dark:to-blue-800 p-6 text-white relative">
-                <button
-                  onClick={closeModal}
-                  className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                    <Users className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">
-                      {selectedCar.car?.make} {selectedCar.car?.model}
-                    </h2>
-                    <p className="text-blue-100">
-                      {selectedCar.bookings?.length || 0} booking request{selectedCar.bookings?.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-6">
-                {selectedCar.bookings?.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">No bookings for this car yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {selectedCar.bookings?.map((booking) => {
-                      const client = booking.client;
-                      const profile = client?.profile || {};
-                      const qualCode = profile?.qualification_code || {};
-                      return (
-                        <div
-                          key={booking.id}
-                          className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 rounded-xl p-6 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg transition"
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                              <img
-                                src={client?.profile_picture || "/default-avatar.png"}
-                                alt={client?.username || "Client"}
-                                className="w-16 h-16 rounded-full border-4 border-white dark:border-gray-600 shadow-lg"
-                              />
-                              <div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                                  {client?.first_name || "N/A"} {client?.last_name || ""}
-                                </h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">@{client?.username || "Unknown"}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  {profile?.average_rating && (
-                                    <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded">
-                                      <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                      <span className="text-xs font-medium text-yellow-800 dark:text-yellow-300">
-                                        {profile.average_rating}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {profile?.trusted_by_app && (
-                                    <div className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
-                                      <Shield className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                      <span className="text-xs font-medium text-blue-800 dark:text-blue-300">Trusted</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">{getStatusBadge(booking.booking_request_status)}</div>
-                          </div>
-                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2 text-sm text-blue-900 dark:text-blue-300">
-                                <Calendar className="w-4 h-4" />
-                                <span className="font-semibold">Rental Period</span>
-                              </div>
-                              <span className="text-xs font-medium bg-blue-200 dark:bg-blue-800 text-blue-900 dark:text-blue-200 px-2 py-1 rounded">
-                                {calculateDuration(booking.start_datetime, booking.end_datetime)} days
-                              </span>
-                            </div>
-                            <div className="space-y-1 text-sm text-blue-800 dark:text-blue-300">
-                              <div className="flex items-center justify-between">
-                                <span className="text-blue-600 dark:text-blue-400">Start:</span>
-                                <span className="font-medium">{formatDateTime(booking.start_datetime)}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-blue-600 dark:text-blue-400">End:</span>
-                                <span className="font-medium">{formatDateTime(booking.end_datetime)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
-                                <Phone className="w-4 h-4" />
-                                Contact Information
-                              </h4>
-                              <div className="space-y-1 text-sm">
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Email:</span> {client?.email || "N/A"}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Phone:</span> {client?.phone || "N/A"}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  <span className="text-gray-500">City:</span> {profile?.city || qualCode?.city || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
-                                <Award className="w-4 h-4" />
-                                Personal Details
-                              </h4>
-                              <div className="space-y-1 text-sm">
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Age:</span> {qualCode?.age || "N/A"}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Gender:</span> {profile?.gender || qualCode?.gender || "N/A"}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Profession:</span> {profile?.profession || qualCode?.profession || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
-                                <Wallet className="w-4 h-4" />
-                                Financial Details
-                              </h4>
-                              <div className="space-y-1 text-sm">
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Salary Range:</span> {profile?.avg_salary || qualCode?.salary_range || "N/A"}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Has Deposit:</span> {qualCode?.has_deposit ? "✓ Yes" : "✗ No"}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
-                                <Shield className="w-4 h-4" />
-                                Verification Status
-                              </h4>
-                              <div className="space-y-1 text-sm">
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Verified by Admin:</span> {qualCode?.verified_by_admin ? "✓ Yes" : "✗ No"}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                  <span className="text-gray-500">Driver License:</span> {profile?.license_number || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          {booking.booking_request_status === "pending" && (
-                            <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAcceptBooking(booking.id);
-                                }}
-                                disabled={processingBookingId === booking.id}
-                                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <Check className="w-5 h-5" />
-                                {processingBookingId === booking.id ? "Processing..." : "Accept Booking"}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRejectBooking(booking.id);
-                                }}
-                                disabled={processingBookingId === booking.id}
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <XCircle className="w-5 h-5" />
-                                {processingBookingId === booking.id ? "Processing..." : "Reject Booking"}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+{modalOpen && selectedCar && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+    onClick={closeModal}
+  >
+    <div
+      className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl mx-4 shadow-xl overflow-hidden"
+      style={{ maxHeight: '95vh' }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Modal Header - Teal Gradient */}
+      <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">
+                {selectedCar.car?.make} {selectedCar.car?.model}
+              </h2>
+              <p className="text-xs opacity-90">
+                {selectedCar.bookings?.length || 0} booking request{selectedCar.bookings?.length !== 1 ? 's' : ''}
+              </p>
             </div>
           </div>
+          <button
+            onClick={closeModal}
+            className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Modal Content - 3D Box Design */}
+      <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(95vh - 80px)' }}>
+        {selectedCar.bookings?.length === 0 ? (
+          <div className="p-8 text-center">
+            <Users className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400">No bookings for this car yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {selectedCar.bookings?.map((booking, index) => {
+              const client = booking.client;
+              const profile = client?.profile || {};
+              const isFirst = index === 0;
+
+              return (
+                <div
+                  key={booking.id}
+                  className={`
+                    bg-white dark:bg-gray-700 rounded-lg p-4
+                    shadow-lg dark:shadow-gray-800/50
+                    border border-gray-100 dark:border-gray-600
+                    transform transition-all duration-200
+                    ${isFirst ? '' : 'mt-4'}
+                  `}
+                  style={{
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    borderTop: '1px solid rgba(45, 212, 191, 0.3)'
+                  }}
+                >
+                  {/* 3D Effect Top Highlight */}
+                  <div className="absolute -top-px left-0 right-0 h-1 bg-gradient-to-r from-teal-200 to-teal-400 rounded-t-lg"></div>
+
+                  {/* Booking Header with Status */}
+                  <div className="flex justify-between items-center mb-4 relative">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <img
+                          src={client?.profile_picture || "/default-avatar.png"}
+                          alt={client?.username || "Client"}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm"
+                        />
+                        {profile?.trusted_by_app && (
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-gray-800 rounded-full border-2 border-white dark:border-gray-700 flex items-center justify-center shadow-sm">
+                            <Shield className="w-3 h-3 text-blue-500" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                            {client?.first_name || "N/A"} {client?.last_name || ""}
+                            {client?.verified_by_admin && (
+                              <Shield className="w-3 h-3 text-teal-500" />
+                            )}
+                          </h3>
+                          {getStatusBadge(booking.booking_request_status)}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          @{client?.username || "Unknown"} • {formatDateTime(booking.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Booking Information - Two Column Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Dates and Duration - 3D Box */}
+                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 shadow-inner">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-teal-600" />
+                        <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
+                          Rental Period
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Start:</span>
+                          <span className="font-medium">{formatDateTime(booking.start_datetime)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">End:</span>
+                          <span className="font-medium">{formatDateTime(booking.end_datetime)}</span>
+                        </div>
+                        <div className="flex justify-between mt-1 pt-1 border-t border-teal-200 dark:border-teal-700">
+                          <span className="text-gray-500 dark:text-gray-400">Duration:</span>
+                          <span className="font-medium">
+                            {calculateDuration(booking.start_datetime, booking.end_datetime)} days
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Price and Location - 3D Box */}
+                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 shadow-inner">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wallet className="w-4 h-4 text-teal-600" />
+                        <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
+                          Price & Location
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Total Price:</span>
+                          <span className="font-medium text-teal-600">${booking.total_booking_price}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Pickup:</span>
+                          <span className="font-medium text-right truncate" style={{ maxWidth: '160px' }}>
+                            {booking.pickup_location || booking.car?.delivery_location?.address || "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Dropoff:</span>
+                          <span className="font-medium text-right truncate" style={{ maxWidth: '160px' }}>
+                            {booking.dropoff_location || booking.car?.return_location?.address || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Client Details - Compact Grid with 3D effect */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
+                    {[
+                      { label: "Email", value: client?.email },
+                      { label: "Phone", value: client?.phone_number },
+                      { label: "City", value: client?.city },
+                      { label: "Profession", value: profile?.profession }
+                    ].map((item, i) => (
+                      <div key={i} className="bg-white dark:bg-gray-600 p-2 rounded-lg shadow-xs">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{item.label}</p>
+                        <p className="font-medium truncate text-gray-800 dark:text-gray-200">{item.value || "N/A"}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Additional Details - Second Row with 3D effect */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
+                    {[
+                      { label: "Age", value: profile?.qualification_code?.age },
+                      { label: "Gender", value: client?.gender },
+                      { label: "Salary", value: profile?.avg_salary },
+                      { label: "License", value: profile?.license_number }
+                    ].map((item, i) => (
+                      <div key={i} className="bg-white dark:bg-gray-600 p-2 rounded-lg shadow-xs">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{item.label}</p>
+                        <p className="font-medium truncate text-gray-800 dark:text-gray-200">{item.value || "N/A"}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Rating Display - 3D Box */}
+                  {profile?.average_rating && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg w-fit mb-4 shadow-xs">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                          {profile.average_rating} Rating
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons - 3D Effect */}
+                  {booking.booking_request_status === "pending" && (
+                    <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAcceptBooking(booking.id);
+                        }}
+                        disabled={processingBookingId === booking.id}
+                        className={`
+                          flex-1 py-2 px-3 rounded-lg text-sm font-medium
+                          flex items-center justify-center gap-1.5
+                          transition-all duration-200 transform hover:scale-[1.01]
+                          bg-teal-600 hover:bg-teal-700 text-white
+                          shadow-sm hover:shadow-md
+                          disabled:opacity-70 disabled:cursor-not-allowed
+                          disabled:hover:transform-none disabled:hover:shadow-sm
+                        `}
+                      >
+                        <Check className="w-4 h-4" />
+                        {processingBookingId === booking.id ? "Processing..." : "Accept"}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRejectBooking(booking.id);
+                        }}
+                        disabled={processingBookingId === booking.id}
+                        className={`
+                          flex-1 py-2 px-3 rounded-lg text-sm font-medium
+                          flex items-center justify-center gap-1.5
+                          transition-all duration-200 transform hover:scale-[1.01]
+                          bg-rose-500 hover:bg-rose-600 text-white
+                          shadow-sm hover:shadow-md
+                          disabled:opacity-70 disabled:cursor-not-allowed
+                          disabled:hover:transform-none disabled:hover:shadow-sm
+                        `}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        {processingBookingId === booking.id ? "Processing..." : "Reject"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
     </div>
   );

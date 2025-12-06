@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import api from '../lib/axios';
+
 import {
   Search,
   MapPin,
@@ -245,15 +246,14 @@ export const HomePage = () => {
             </Badge>
             
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
-              Experience Luxury
+              Discover Lebanon’s 10,000+ premium cars
               <span className="block mt-2 bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
                 On Every Journey
               </span>
             </h1>
             
             <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
-              Drive the world's most prestigious vehicles. From sports cars to luxury SUVs,
-              find your perfect ride for any occasion.
+              All you need in one place — the only platform with full search and filters.
             </p>
 
             {/* Enhanced Search Form */}
@@ -335,13 +335,13 @@ export const HomePage = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-0 px-4 py-2">
-              Our Premium Fleet
+              Premium Cars, Endless Choices
             </Badge>
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4">
-              Featured Luxury Vehicles
+              Search, filter, 10,000+ vehicles across Lebanon.
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Explore our handpicked selection of premium vehicles, ready to elevate your driving experience
+              From sports cars to SUVs, find the vehicle that suits your style and occasion.
             </p>
           </div>
 
@@ -389,10 +389,10 @@ export const HomePage = () => {
               Why Choose Us
             </Badge>
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4">
-              Premium Service, Unforgettable Experience
+              All Cars, All Options, All in One Place
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              We're committed to providing exceptional service and the finest vehicles for your journey
+              Connecting you with the perfect car for every journey, We bring Lebanon’s finest cars and countless options right to you.
             </p>
           </div>
 
