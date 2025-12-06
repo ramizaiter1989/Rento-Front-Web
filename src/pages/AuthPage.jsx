@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Car, Mail, Lock, User, Phone, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import axios from "@/lib/axios"; // IMPORTANT: axios with baseURL & auth config
+import api from "@/lib/axios"; // IMPORTANT: axios with baseURL & auth config
 
 export const AuthPage = () => {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export const AuthPage = () => {
     e.preventDefault();
 
     try {
-      const res = await axios.post("/auth/login", {
+      const res = await api.post("/auth/login", {
         phone_number: loginData.phone_number,
         password: loginData.password,
       });
@@ -74,7 +74,7 @@ export const AuthPage = () => {
     }
 
     try {
-      const res = await axios.post("/auth/register", {
+      const res = await api.post("/auth/register", {
         username: registerData.username,
         phone_number: registerData.phone_number,
         email: registerData.email || null,
