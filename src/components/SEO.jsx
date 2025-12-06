@@ -272,7 +272,7 @@ export const SEO = () => {
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:site" content="@rento_lb" />
       <meta name="twitter:creator" content="@rento_lb" />
-      <meta name="twitter:title" content="Rento LB: Lebanon's Premier Car Rental Platform | 10,000+ Vehicles" />
+      <meta name="twitter:title" content="Rento LB: Lebanon's Premier Car Rental Platform | 10,000+ Vehicles and Cars" />
       <meta name="twitter:description" content="Compare and book rental cars in Lebanon from 10,000+ vehicles with transparent pricing, real-time availability, and 24/7 customer support." />
       <meta name="twitter:image" content="https://rento-lb.com/twitter-image.jpg" />
       <meta name="twitter:image:alt" content="Rento LB - Lebanon's Premier Car Rental Platform" />
