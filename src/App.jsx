@@ -29,7 +29,7 @@ const ProtectedRoute = ({ children }) => {
   const hasSeenIntro = localStorage.getItem('hasSeenIntro');
   
   if (!hasSeenIntro) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/intro" replace />;
   }
   
   return children;
