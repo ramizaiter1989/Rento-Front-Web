@@ -1,5 +1,4 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { partners } from './partners';
 
 export const SEO = () => {
@@ -39,7 +38,6 @@ export const SEO = () => {
         answer: "نقدم مجموعة واسعة من المركبات بما في ذلك السيارات الاقتصادية (ابتداءً من 50 دولارًا في اليوم)، والسيارات الرياضية متعددة الاستخدامات (ابتداءً من 80 دولارًا في اليوم)، والسيارات الفاخرة (ابتداءً من 150 دولارًا في اليوم)، والسيارات الرياضية (ابتداءً من 200 دولار في اليوم). سواء كنت بحاجة إلى سيارة صغيرة للتنقل في المدينة، أو سيارة رياضية متعددة الاستخدامات لرحلات العائلة، أو سيارة فاخرة لمناسبات خاصة، فإن Rento LB يوفر خيارات من جميع مزودي خدمة التأجير الرئيسيين في لبنان."
       }
     ],
-    // [Other languages with similarly detailed answers]
   };
 
   // Comprehensive structured data with AI-friendly properties
@@ -228,10 +226,10 @@ export const SEO = () => {
   };
 
   return (
-    <Helmet>
-      {/* Basic Meta Tags - Optimized for AI */}
-      <html lang="en" />
+    <>
+      {/* Basic Meta Tags - React 19 native */}
       <title>Rento LB | Book 10,000+ Cars in Lebanon | Compare & Rent from Trusted Providers</title>
+      
       <meta name="title" content="Rento LB | Book 10,000+ Cars in Lebanon | Compare & Rent from Trusted Providers" />
       <meta name="description" content="Find and book the perfect rental car in Lebanon. Compare 10,000+ vehicles from trusted providers with transparent pricing, real-time availability, and 24/7 support. Economy cars from $50/day, SUVs from $80/day, luxury from $150/day. Serving Beirut, Tripoli, Sidon and all major cities." />
       <meta name="keywords" content="car rental Lebanon, rent a car Beirut, luxury car rental Lebanon, SUV rental Lebanon, cheap car hire Lebanon, long term car rental Lebanon, airport car rental Beirut, book rental car online Lebanon, Tripoli car rental, Sidon car rental" />
@@ -250,13 +248,13 @@ export const SEO = () => {
       <meta name="ai:target-audience" content="Travelers,Locals,BusinessProfessionals,Tourists,Expats" />
       <meta name="ai:service-categories" content="Transportation,Travel,CarRental,LuxuryServices" />
 
-      {/* Alternate Languages - Fixed paths */}
-      <link rel="alternate" href="https://rento-lb.com" hreflang="en" />
-      <link rel="alternate" href="https://rento-lb.com/fr" hreflang="fr" />
-      <link rel="alternate" href="https://rento-lb.com/ar" hreflang="ar" />
+      {/* Alternate Languages */}
+      <link rel="alternate" href="https://rento-lb.com" hrefLang="en" />
+      <link rel="alternate" href="https://rento-lb.com/fr" hrefLang="fr" />
+      <link rel="alternate" href="https://rento-lb.com/ar" hrefLang="ar" />
       <link rel="alternate" hrefLang="x-default" href="https://rento-lb.com" />
 
-      {/* Open Graph / Facebook - Enhanced for AI */}
+      {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://rento-lb.com" />
       <meta property="og:title" content="Rento LB: Lebanon's Premier Car Rental Platform | 10,000+ Vehicles" />
@@ -268,7 +266,7 @@ export const SEO = () => {
       <meta property="og:site_name" content="Rento LB" />
       <meta property="og:locale" content="en_US" />
 
-      {/* Twitter - Enhanced for AI */}
+      {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:site" content="@rento_lb" />
       <meta name="twitter:creator" content="@rento_lb" />
@@ -281,13 +279,13 @@ export const SEO = () => {
       <link rel="canonical" href="https://rento-lb.com" />
 
       {/* Structured Data for AI */}
-      <script type="application/ld+json">
-        {JSON.stringify(structuredData)}
-      </script>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify(structuredData)
+      }} />
 
-      <script type="application/ld+json">
-        {JSON.stringify(carRentalData)}
-      </script>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify(carRentalData)
+      }} />
 
       {/* FAQ Structured Data - Enhanced for AI */}
       {Object.entries(faqsByLanguage).map(([lang, faqs]) => {
@@ -308,11 +306,15 @@ export const SEO = () => {
           }))
         };
         return (
-          <script key={lang} type="application/ld+json">
-            {JSON.stringify(faqJsonLd)}
-          </script>
+          <script 
+            key={lang} 
+            type="application/ld+json" 
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(faqJsonLd)
+            }}
+          />
         );
       })}
-    </Helmet>
+    </>
   );
 };

@@ -19,7 +19,7 @@ import { ClientBookingPage } from '@/pages/ClientBookingPage';
 import { CreateCarPage } from '@/pages/CreateCarPage';
 import { MyCarsPage } from '@/pages/MyCarsPage';
 import { AgentBookingsPage } from '@/pages/AgentBookingsPage';
-import { HelmetProvider } from 'react-helmet-async';
+
 import { SEO } from "@/components/SEO";
 
 
@@ -66,9 +66,10 @@ function App() {
   }, []);
 
   return (
-    <HelmetProvider>
+
     <div className="App">
       <BrowserRouter>
+      <SEO/>
         <Routes>
           {/* Intro and Auth Routes (no navbar/footer) */}
           <Route path="/intro" element={<IntroPage />} />
@@ -180,7 +181,7 @@ function App() {
         <Toaster position="top-right" richColors />
       </BrowserRouter>
     </div>
-    </HelmetProvider>
+
   );
 }
 
