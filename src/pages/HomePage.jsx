@@ -23,114 +23,96 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-// Enhanced CarCard for HomePage with Teal Brand Colors
+
+// Enhanced CarCard with Better Proportions and UX
 const CarCard = ({ car }) => (
-  <Card className="group relative overflow-hidden h-full bg-white dark:bg-gray-900 border-2 border-transparent hover:border-teal-500/90 transition-all duration-500 hover:shadow-2xl hover:shadow-gray-900 hover:-translate-y-2">
-    {/* Animated Background */}
-    <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-cyan-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    
-    <CardContent className="p-0 relative">
-      {/* Image Section */}
-      <div className="relative overflow-hidden aspect-[16/10] bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-900/20 dark:to-cyan-900/20">
+  <Card className="group relative overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-teal-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+    <CardContent className="p-0">
+      {/* Image Section - Reduced height */}
+      <div className="relative overflow-hidden aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
         {car.main_image_url ? (
           <img
             src={car.main_image_url}
             alt={`${car.make} ${car.model}`}
-            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Car className="w-16 h-16 text-gray-400" />
+            <Car className="w-12 h-12 text-gray-400" />
           </div>
         )}
         
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         
-        {/* Category Badge */}
-        <div className="absolute top-4 left-4">
-          <Badge className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md text-gray-900 dark:text-white border-0 shadow-lg">
-            {car.car_category}
-          </Badge>
+        {/* Category badge - smaller and cleaner */}
+        <Badge className="absolute top-3 left-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm text-xs font-medium text-gray-900 dark:text-white border-0 px-2 py-1 shadow-md">
+          {car.car_category}
+        </Badge>
+
+        {/* Price badge - top right */}
+        <div className="absolute top-3 right-3 bg-teal-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg">
+          ${car.daily_rate}/day
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="p-6 relative z-10">
-        {/* Title */}
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+      {/* Content Section - Compact */}
+      <div className="p-4">
+        {/* Title - Single line with truncate */}
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 truncate group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
           {car.make} {car.model}
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Year {car.year}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{car.year}</p>
 
-        {/* Specs Grid */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Users className="w-4 h-4 text-teal-500" />
-            <span>{car.seats} Seats</span>
+        {/* Compact Specs - 4 columns, single row */}
+        <div className="grid grid-cols-4 gap-2 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col items-center">
+            <Users className="w-3.5 h-3.5 text-teal-500 mb-1" />
+            <span className="text-xs text-gray-600 dark:text-gray-400">{car.seats}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Car className="w-4 h-4 text-cyan-500" />
-            <span>{car.doors} Doors</span>
+          <div className="flex flex-col items-center">
+            <Car className="w-3.5 h-3.5 text-cyan-500 mb-1" />
+            <span className="text-xs text-gray-600 dark:text-gray-400">{car.doors}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Zap className="w-4 h-4 text-teal-600" />
-            <span>{car.transmission}</span>
+          <div className="flex flex-col items-center">
+            <Zap className="w-3.5 h-3.5 text-teal-600 mb-1" />
+            <span className="text-xs text-gray-600 dark:text-gray-400 truncate w-full text-center">{car.transmission.slice(0, 4)}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Sparkles className="w-4 h-4 text-cyan-600" />
-            <span>{car.fuel_type}</span>
+          <div className="flex flex-col items-center">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-600 mb-1" />
+            <span className="text-xs text-gray-600 dark:text-gray-400 truncate w-full text-center">{car.fuel_type.slice(0, 4)}</span>
           </div>
         </div>
 
-        {/* Pricing */}
-        <div className="bg-white rounded-lg p-4 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Daily Rate</span>
-            <span className="text-lg font-bold text-teal-600 dark:text-teal-400">${car.daily_rate}</span>
+        {/* Compact price row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-center flex-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Holiday</p>
+            <p className="text-sm font-bold text-cyan-600 dark:text-cyan-400">${car.holiday_rate}</p>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Holiday Rate</span>
-            <span className="text-lg font-bold text-cyan-600 dark:text-cyan-400">${car.holiday_rate}</span>
+          {car.is_deposit && (
+            <div className="text-center flex-1 border-l border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Deposit</p>
+              <p className="text-sm font-bold text-amber-600 dark:text-amber-400">${car.deposit}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Reviews - Compact single line */}
+        <div className="flex items-center justify-between mb-3 px-2 py-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <div className="flex items-center gap-1">
+            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              {car.feedbacks?.length || 0} reviews
+            </span>
           </div>
         </div>
 
-        {/* Deposit Info */}
-        {car.is_deposit && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-              Deposit Required: ${car.deposit}
-            </p>
-          </div>
-        )}
-
-        {/* Feedback */}
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
-          <p className="font-semibold text-sm mb-2 text-gray-900 dark:text-white flex items-center gap-2">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            Reviews ({car.feedbacks?.length || 0})
-          </p>
-          <div className="max-h-20 overflow-y-auto">
-            {car.feedbacks && car.feedbacks.length > 0 ? (
-              <ul className="space-y-1">
-                {/* {car.feedbacks.map((fb, index) => (
-                  <li key={index} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                    <span className="text-teal-500">•</span>
-                    <span>{fb.comments || 'No comment'}</span>
-                  </li>
-                ))} */}
-              </ul>
-            ) : (
-              <p className="text-xs text-gray-500 italic">No reviews yet</p>
-            )}
-          </div>
-        </div>
-
-        {/* Button */}
+        {/* CTA Button - Compact */}
         <Link to={`/cars/${car.id}`}>
-          <Button className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+          <Button className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-sm">
             View Details
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </Link>
       </div>

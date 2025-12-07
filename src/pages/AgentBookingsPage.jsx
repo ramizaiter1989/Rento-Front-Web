@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Users, X, Check, XCircle, Calendar, MapPin, Phone, Mail, Shield, Star, Wallet, Award } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
+import { Users, X, Check, XCircle, Calendar, MapPin, Phone, Mail, Shield, Star, Wallet, Award, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 
-export function AgentBookingsPage() {
+
+export  function AgentBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCar, setSelectedCar] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [processingBookingId, setProcessingBookingId] = useState(null);
   const [activeTab, setActiveTab] = useState("list");
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -27,6 +30,17 @@ export function AgentBookingsPage() {
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  // Auto-swipe banner every 4 seconds
+  useEffect(() => {
+    const todayBookings = getTodayBookings();
+    if (todayBookings.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex((prev) => (prev + 1) % todayBookings.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [bookings]);
 
   const groupedByCar = bookings.reduce((acc, booking) => {
     const carId = booking.car?.id;
@@ -130,7 +144,165 @@ export function AgentBookingsPage() {
     });
   };
 
-  // Timeline View Helpers
+  const isToday = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const getTodayBookings = () => {
+    return bookings.filter(
+      (booking) => isToday(booking.start_datetime) || isToday(booking.end_datetime)
+    );
+  };
+
+  // Calendar View Functions
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    return { daysInMonth, startingDayOfWeek, year, month };
+  };
+
+  const getBookingsForDate = (date) => {
+    return bookings.filter((booking) => {
+      const start = new Date(booking.start_datetime);
+      const end = new Date(booking.end_datetime);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
+      // Only show bookings on their start or end date, not the period between
+      return date.getTime() === start.getTime() || date.getTime() === end.getTime();
+    });
+  };
+
+  const CalendarView = () => {
+    const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    const previousMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+    };
+
+    const nextMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+    };
+
+    const days = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dayBookings = getBookingsForDate(date);
+      const isCurrentDay = isToday(date.toISOString());
+
+      days.push(
+        <div
+          key={day}
+          className={`aspect-square border border-gray-200 dark:border-gray-700 p-2 ${
+            isCurrentDay ? "bg-teal-50 dark:bg-teal-900/30 border-teal-500" : "bg-white dark:bg-gray-800"
+          } hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer`}
+          onClick={() => {
+            if (dayBookings.length > 0) {
+              const carGroups = dayBookings.reduce((acc, booking) => {
+                const carId = booking.car?.id;
+                if (!acc[carId]) {
+                  acc[carId] = { car: booking.car, bookings: [] };
+                }
+                acc[carId].bookings.push(booking);
+                return acc;
+              }, {});
+              openModal(Object.values(carGroups)[0]);
+            }
+          }}
+        >
+          <div className={`text-sm font-medium mb-1 ${isCurrentDay ? "text-teal-700 dark:text-teal-300" : "text-gray-700 dark:text-gray-300"}`}>
+            {day}
+          </div>
+          {dayBookings.length > 0 && (
+            <div className="space-y-1">
+              {dayBookings.slice(0, 2).map((booking) => (
+                <div
+                  key={booking.id}
+                  className={`text-xs px-1 py-0.5 rounded truncate ${
+                    booking.booking_request_status === "pending"
+                      ? "bg-yellow-200 text-yellow-800"
+                      : booking.booking_request_status === "confirmed"
+                      ? "bg-green-200 text-green-800"
+                      : "bg-red-200 text-red-800"
+                  }`}
+                >
+                  {booking.car?.make} {booking.car?.model}
+                </div>
+              ))}
+              {dayBookings.length > 2 && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  +{dayBookings.length - 2} more
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {monthNames[month]} {year}
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={previousMonth}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={nextMonth}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-2">
+          {dayNames.map((day) => (
+            <div key={day} className="text-center font-semibold text-sm text-gray-600 dark:text-gray-400 py-2">
+              {day}
+            </div>
+          ))}
+          {days}
+        </div>
+
+        <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-200 rounded"></div>
+            <span className="text-sm">Pending</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-200 rounded"></div>
+            <span className="text-sm">Confirmed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-200 rounded"></div>
+            <span className="text-sm">Rejected</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Timeline View
   const calculateDateRange = (bookings) => {
     if (!bookings.length) return { start: new Date(), end: new Date() };
     const allDates = bookings.flatMap((booking) => [new Date(booking.start_datetime), new Date(booking.end_datetime)]);
@@ -196,9 +368,9 @@ export function AgentBookingsPage() {
                   left: `${(left / totalDays) * 100}%`,
                   width: `${(width / totalDays) * 100}%`,
                 }}
-                title={`${booking.client?.profile?.first_name} ${booking.client?.profile?.last_name}\n${formatDateTime(
+                title={`${booking.client?.first_name} ${booking.client?.last_name}\n${formatDateTime(
                   booking.start_datetime,
-                )} - ${formatDateTime(booking.end_datetime)}\nTotal: $${booking.total_price}`}
+                )} - ${formatDateTime(booking.end_datetime)}\nTotal: $${booking.total_booking_price}`}
                 onClick={() => onBookingClick({ car, bookings: [booking] })}
               />
             );
@@ -234,18 +406,115 @@ export function AgentBookingsPage() {
     );
   };
 
+  // Today's Bookings Banner
+  const TodayBanner = () => {
+    const todayBookings = getTodayBookings();
+    
+    if (todayBookings.length === 0) return null;
+
+    const currentBooking = todayBookings[currentBannerIndex];
+    const isStarting = isToday(currentBooking.start_datetime);
+    const isEnding = isToday(currentBooking.end_datetime);
+
+    return (
+      <div className="mb-6 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl shadow-lg p-4 text-white overflow-hidden relative">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-white/20 rounded-lg">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-bold">Today's Reminder</h3>
+              {todayBookings.length > 1 && (
+                <span className="text-xs bg-white/30 px-2 py-1 rounded-full">
+                  {currentBannerIndex + 1} of {todayBookings.length}
+                </span>
+              )}
+            </div>
+            <p className="text-sm opacity-90 mb-3">
+              {isStarting && isEnding ? (
+                <>Booking starts AND ends today</>
+              ) : isStarting ? (
+                <>Booking starts today</>
+              ) : (
+                <>Booking ends today</>
+              )}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src={currentBooking.car?.main_image_url || "/placeholder.png"}
+                    alt={currentBooking.car?.model}
+                    className="w-10 h-10 rounded object-cover"
+                  />
+                  <div>
+                    <div className="font-semibold">
+                      {currentBooking.car?.make} {currentBooking.car?.model}
+                    </div>
+                    <div className="text-xs opacity-80">{currentBooking.car?.year}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src={currentBooking.client?.profile_picture || "/default-avatar.png"}
+                    alt={currentBooking.client?.username}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div>
+                    <div className="font-semibold">
+                      {currentBooking.client?.first_name} {currentBooking.client?.last_name}
+                    </div>
+                    <div className="text-xs opacity-80">@{currentBooking.client?.username}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                <span>{formatDateTime(currentBooking.start_datetime)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Wallet className="w-4 h-4" />
+                <span>${currentBooking.total_booking_price}</span>
+              </div>
+              {getStatusBadge(currentBooking.booking_request_status)}
+            </div>
+          </div>
+        </div>
+        {todayBookings.length > 1 && (
+          <div className="absolute bottom-2 right-4 flex gap-1">
+            {todayBookings.map((_, idx) => (
+              <div
+                key={idx}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === currentBannerIndex ? "bg-white w-4" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-20">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Booking Requests</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your car booking requests</p>
         </div>
 
+        {/* Today's Bookings Banner */}
+        <TodayBanner />
+
         {/* Tab Navigation */}
-        <div className="flex border-b mb-6">
+        <div className="flex border-b mb-6 overflow-x-auto">
           <button
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium whitespace-nowrap ${
               activeTab === "list" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"
             }`}
             onClick={() => setActiveTab("list")}
@@ -253,12 +522,20 @@ export function AgentBookingsPage() {
             List View
           </button>
           <button
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium whitespace-nowrap ${
               activeTab === "timeline" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"
             }`}
             onClick={() => setActiveTab("timeline")}
           >
             Timeline View
+          </button>
+          <button
+            className={`px-4 py-2 font-medium whitespace-nowrap ${
+              activeTab === "calendar" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"
+            }`}
+            onClick={() => setActiveTab("calendar")}
+          >
+            Calendar View
           </button>
         </div>
 
@@ -271,8 +548,9 @@ export function AgentBookingsPage() {
             <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-600 dark:text-gray-400 text-lg">No booking requests yet.</p>
           </div>
+        ) : activeTab === "calendar" ? (
+          <CalendarView />
         ) : activeTab === "list" ? (
-          // List View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.values(groupedByCar).map(({ car, bookings: carBookings }) => {
               const pendingCount = carBookings.filter((b) => b.booking_request_status === "pending").length;
@@ -329,262 +607,245 @@ export function AgentBookingsPage() {
             })}
           </div>
         ) : (
-          // Timeline View
           <TimelineView />
         )}
 
         {/* Modal */}
-{modalOpen && selectedCar && (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-    onClick={closeModal}
-  >
-    <div
-      className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl mx-4 shadow-xl overflow-hidden"
-      style={{ maxHeight: '95vh' }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Modal Header - Teal Gradient */}
-      <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">
-                {selectedCar.car?.make} {selectedCar.car?.model}
-              </h2>
-              <p className="text-xs opacity-90">
-                {selectedCar.bookings?.length || 0} booking request{selectedCar.bookings?.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
-          <button
+        {modalOpen && selectedCar && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
             onClick={closeModal}
-            className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Modal Content - 3D Box Design */}
-      <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(95vh - 80px)' }}>
-        {selectedCar.bookings?.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500 dark:text-gray-400">No bookings for this car yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {selectedCar.bookings?.map((booking, index) => {
-              const client = booking.client;
-              const profile = client?.profile || {};
-              const isFirst = index === 0;
-
-              return (
-                <div
-                  key={booking.id}
-                  className={`
-                    bg-white dark:bg-gray-700 rounded-lg p-4
-                    shadow-lg dark:shadow-gray-800/50
-                    border border-gray-100 dark:border-gray-600
-                    transform transition-all duration-200
-                    ${isFirst ? '' : 'mt-4'}
-                  `}
-                  style={{
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    borderTop: '1px solid rgba(45, 212, 191, 0.3)'
-                  }}
-                >
-                  {/* 3D Effect Top Highlight */}
-                  <div className="absolute -top-px left-0 right-0 h-1 bg-gradient-to-r from-teal-200 to-teal-400 rounded-t-lg"></div>
-
-                  {/* Booking Header with Status */}
-                  <div className="flex justify-between items-center mb-4 relative">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img
-                          src={client?.profile_picture || "/default-avatar.png"}
-                          alt={client?.username || "Client"}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm"
-                        />
-                        {profile?.trusted_by_app && (
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-gray-800 rounded-full border-2 border-white dark:border-gray-700 flex items-center justify-center shadow-sm">
-                            <Shield className="w-3 h-3 text-blue-500" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                            {client?.first_name || "N/A"} {client?.last_name || ""}
-                            {client?.verified_by_admin && (
-                              <Shield className="w-3 h-3 text-teal-500" />
-                            )}
-                          </h3>
-                          {getStatusBadge(booking.booking_request_status)}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          @{client?.username || "Unknown"} • {formatDateTime(booking.created_at)}
-                        </p>
-                      </div>
+            <div
+              className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl mx-4 shadow-xl overflow-hidden"
+              style={{ maxHeight: '95vh' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">
+                        {selectedCar.car?.make} {selectedCar.car?.model}
+                      </h2>
+                      <p className="text-xs opacity-90">
+                        {selectedCar.bookings?.length || 0} booking request{selectedCar.bookings?.length !== 1 ? 's' : ''}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Booking Information - Two Column Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {/* Dates and Duration - 3D Box */}
-                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 shadow-inner">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-teal-600" />
-                        <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
-                          Rental Period
-                        </span>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Start:</span>
-                          <span className="font-medium">{formatDateTime(booking.start_datetime)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">End:</span>
-                          <span className="font-medium">{formatDateTime(booking.end_datetime)}</span>
-                        </div>
-                        <div className="flex justify-between mt-1 pt-1 border-t border-teal-200 dark:border-teal-700">
-                          <span className="text-gray-500 dark:text-gray-400">Duration:</span>
-                          <span className="font-medium">
-                            {calculateDuration(booking.start_datetime, booking.end_datetime)} days
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Price and Location - 3D Box */}
-                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 shadow-inner">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Wallet className="w-4 h-4 text-teal-600" />
-                        <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
-                          Price & Location
-                        </span>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Total Price:</span>
-                          <span className="font-medium text-teal-600">${booking.total_booking_price}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Pickup:</span>
-                          <span className="font-medium text-right truncate" style={{ maxWidth: '160px' }}>
-                            {booking.pickup_location || booking.car?.delivery_location?.address || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Dropoff:</span>
-                          <span className="font-medium text-right truncate" style={{ maxWidth: '160px' }}>
-                            {booking.dropoff_location || booking.car?.return_location?.address || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Client Details - Compact Grid with 3D effect */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
-                    {[
-                      { label: "Email", value: client?.email },
-                      { label: "Phone", value: client?.phone_number },
-                      { label: "City", value: client?.city },
-                      { label: "Profession", value: profile?.profession }
-                    ].map((item, i) => (
-                      <div key={i} className="bg-white dark:bg-gray-600 p-2 rounded-lg shadow-xs">
-                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{item.label}</p>
-                        <p className="font-medium truncate text-gray-800 dark:text-gray-200">{item.value || "N/A"}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Additional Details - Second Row with 3D effect */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
-                    {[
-                      { label: "Age", value: profile?.qualification_code?.age },
-                      { label: "Gender", value: client?.gender },
-                      { label: "Salary", value: profile?.avg_salary },
-                      { label: "License", value: profile?.license_number }
-                    ].map((item, i) => (
-                      <div key={i} className="bg-white dark:bg-gray-600 p-2 rounded-lg shadow-xs">
-                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{item.label}</p>
-                        <p className="font-medium truncate text-gray-800 dark:text-gray-200">{item.value || "N/A"}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Rating Display - 3D Box */}
-                  {profile?.average_rating && (
-                    <div className="bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg w-fit mb-4 shadow-xs">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                        <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                          {profile.average_rating} Rating
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action Buttons - 3D Effect */}
-                  {booking.booking_request_status === "pending" && (
-                    <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAcceptBooking(booking.id);
-                        }}
-                        disabled={processingBookingId === booking.id}
-                        className={`
-                          flex-1 py-2 px-3 rounded-lg text-sm font-medium
-                          flex items-center justify-center gap-1.5
-                          transition-all duration-200 transform hover:scale-[1.01]
-                          bg-teal-600 hover:bg-teal-700 text-white
-                          shadow-sm hover:shadow-md
-                          disabled:opacity-70 disabled:cursor-not-allowed
-                          disabled:hover:transform-none disabled:hover:shadow-sm
-                        `}
-                      >
-                        <Check className="w-4 h-4" />
-                        {processingBookingId === booking.id ? "Processing..." : "Accept"}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRejectBooking(booking.id);
-                        }}
-                        disabled={processingBookingId === booking.id}
-                        className={`
-                          flex-1 py-2 px-3 rounded-lg text-sm font-medium
-                          flex items-center justify-center gap-1.5
-                          transition-all duration-200 transform hover:scale-[1.01]
-                          bg-rose-500 hover:bg-rose-600 text-white
-                          shadow-sm hover:shadow-md
-                          disabled:opacity-70 disabled:cursor-not-allowed
-                          disabled:hover:transform-none disabled:hover:shadow-sm
-                        `}
-                      >
-                        <XCircle className="w-4 h-4" />
-                        {processingBookingId === booking.id ? "Processing..." : "Reject"}
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    onClick={closeModal}
+                    className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              );
-            })}
+              </div>
+
+              <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(95vh - 80px)' }}>
+                {selectedCar.bookings?.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Users className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No bookings for this car yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedCar.bookings?.map((booking, index) => {
+                      const client = booking.client;
+                      const profile = client?.profile || {};
+                      const isFirst = index === 0;
+
+                      return (
+                        <div
+                          key={booking.id}
+                          className={`
+                            bg-white dark:bg-gray-700 rounded-lg p-4
+                            shadow-lg dark:shadow-gray-800/50
+                            border border-gray-100 dark:border-gray-600
+                            transform transition-all duration-200
+                            ${isFirst ? '' : 'mt-4'}
+                          `}
+                          style={{
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                            borderTop: '1px solid rgba(45, 212, 191, 0.3)'
+                          }}
+                        >
+                          <div className="flex justify-between items-center mb-4 relative">
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <img
+                                  src={client?.profile_picture || "/default-avatar.png"}
+                                  alt={client?.username || "Client"}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm"
+                                />
+                                {profile?.trusted_by_app && (
+                                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-gray-800 rounded-full border-2 border-white dark:border-gray-700 flex items-center justify-center shadow-sm">
+                                    <Shield className="w-3 h-3 text-blue-500" />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                                    {client?.first_name || "N/A"} {client?.last_name || ""}
+                                    {client?.verified_by_admin && (
+                                      <Shield className="w-3 h-3 text-teal-500" />
+                                    )}
+                                  </h3>
+                                  {getStatusBadge(booking.booking_request_status)}
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  @{client?.username || "Unknown"} • {formatDateTime(booking.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 shadow-inner">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="w-4 h-4 text-teal-600" />
+                                <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
+                                  Rental Period
+                                </span>
+                              </div>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500 dark:text-gray-400">Start:</span>
+                                  <span className="font-medium">{formatDateTime(booking.start_datetime)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500 dark:text-gray-400">End:</span>
+                                  <span className="font-medium">{formatDateTime(booking.end_datetime)}</span>
+                                </div>
+                                <div className="flex justify-between mt-1 pt-1 border-t border-teal-200 dark:border-teal-700">
+                                  <span className="text-gray-500 dark:text-gray-400">Duration:</span>
+                                  <span className="font-medium">
+                                    {calculateDuration(booking.start_datetime, booking.end_datetime)} days
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 shadow-inner">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Wallet className="w-4 h-4 text-teal-600" />
+                                <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
+                                  Price & Location
+                                </span>
+                              </div>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500 dark:text-gray-400">Total Price:</span>
+                                  <span className="font-medium text-teal-600">${booking.total_booking_price}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500 dark:text-gray-400">Pickup:</span>
+                                  <span className="font-medium text-right truncate" style={{ maxWidth: '160px' }}>
+                                    {booking.pickup_location || "N/A"}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500 dark:text-gray-400">Dropoff:</span>
+                                  <span className="font-medium text-right truncate" style={{ maxWidth: '160px' }}>
+                                    {booking.dropoff_location || "N/A"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
+                            {[
+                              { label: "Email", value: client?.email },
+                              { label: "Phone", value: client?.phone_number },
+                              { label: "City", value: client?.city },
+                              { label: "Profession", value: profile?.profession }
+                            ].map((item, i) => (
+                              <div key={i} className="bg-white dark:bg-gray-600 p-2 rounded-lg shadow-xs">
+                                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{item.label}</p>
+                                <p className="font-medium truncate text-gray-800 dark:text-gray-200">{item.value || "N/A"}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
+                            {[
+                              { label: "Age", value: profile?.age },
+                              { label: "Gender", value: client?.gender },
+                              { label: "Salary", value: profile?.avg_salary },
+                              { label: "License", value: profile?.license_number }
+                            ].map((item, i) => (
+                              <div key={i} className="bg-white dark:bg-gray-600 p-2 rounded-lg shadow-xs">
+                                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{item.label}</p>
+                                <p className="font-medium truncate text-gray-800 dark:text-gray-200">{item.value || "N/A"}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {profile?.average_rating && (
+                            <div className="bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg w-fit mb-4 shadow-xs">
+                              <div className="flex items-center gap-1">
+                                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                  {profile.average_rating} Rating
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {booking.booking_request_status === "pending" && (
+                            <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAcceptBooking(booking.id);
+                                }}
+                                disabled={processingBookingId === booking.id}
+                                className={`
+                                  flex-1 py-2 px-3 rounded-lg text-sm font-medium
+                                  flex items-center justify-center gap-1.5
+                                  transition-all duration-200 transform hover:scale-[1.01]
+                                  bg-teal-600 hover:bg-teal-700 text-white
+                                  shadow-sm hover:shadow-md
+                                  disabled:opacity-70 disabled:cursor-not-allowed
+                                `}
+                              >
+                                <Check className="w-4 h-4" />
+                                {processingBookingId === booking.id ? "Processing..." : "Accept"}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRejectBooking(booking.id);
+                                }}
+                                disabled={processingBookingId === booking.id}
+                                className={`
+                                  flex-1 py-2 px-3 rounded-lg text-sm font-medium
+                                  flex items-center justify-center gap-1.5
+                                  transition-all duration-200 transform hover:scale-[1.01]
+                                  bg-rose-500 hover:bg-rose-600 text-white
+                                  shadow-sm hover:shadow-md
+                                  disabled:opacity-70 disabled:cursor-not-allowed
+                                `}
+                              >
+                                <XCircle className="w-4 h-4" />
+                                {processingBookingId === booking.id ? "Processing..." : "Reject"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
-      </div>
-    </div>
-  </div>
-)}
-
       </div>
     </div>
   );

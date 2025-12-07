@@ -18,7 +18,8 @@ import { ContactPage } from '@/pages/ContactPage';
 import { ClientBookingPage } from '@/pages/ClientBookingPage';
 import { CreateCarPage } from '@/pages/CreateCarPage';
 import { MyCarsPage } from '@/pages/MyCarsPage';
-import { AgentBookingsPage } from '@/pages/AgentBookingsPage';
+import { BookingChatSystem } from '@/pages/BookingChatSystem';
+import { AgentBookingsPage } from '@/pages/AgentBookingsPage'; 
 
 import { SEO } from "@/components/SEO";
 
@@ -82,6 +83,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <HomePage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/BookingChat"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <BookingChatSystem />
                 </MainLayout>
               </ProtectedRoute>
             }

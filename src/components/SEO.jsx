@@ -62,13 +62,13 @@ export const SEO = () => {
       }
     },
     "telephone": "+961-03520427",
-    "email": "support@rento-lb.com",
+    "email": "social@rento-lb.com",
     "openingHours": "Mo-Su 00:00-23:59",
     "sameAs": [
-      "https://www.facebook.com/rento-lb",
-      "https://www.instagram.com/rento-lb",
-      "https://twitter.com/rento_lb",
-      "https://www.linkedin.com/company/rento-lb"
+      "https://www.facebook.com/profile.php?id=61584938841683#",
+      "https://www.instagram.com/rento_lebanon/",
+      "https://x.com/RENTO_lb",
+      "https://www.linkedin.com/company/rento-lb/about/"
     ],
     "aggregateRating": {
       "@type": "AggregateRating",
@@ -100,7 +100,7 @@ export const SEO = () => {
     ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
-      "name": "Car Rental Offers in Lebanon",
+      "name": "Car Rental in Lebanon",
       "itemListElement": partners.flatMap(p =>
         ["Economy", "SUV", "Luxury", "Sports"].map(type => ({
           "@type": "Offer",
@@ -231,7 +231,7 @@ export const SEO = () => {
       <title>Rento LB | Book 10,000+ Cars in Lebanon | Compare & Rent from Trusted Providers</title>
       
       <meta name="title" content="Rento LB | Book 10,000+ Cars in Lebanon | Compare & Rent from Trusted Providers" />
-      <meta name="description" content="Find and book the perfect rental car in Lebanon. Compare 10,000+ vehicles from trusted providers with transparent pricing, real-time availability, and 24/7 support. Economy cars from $50/day, SUVs from $80/day, luxury from $150/day. Serving Beirut, Tripoli, Sidon and all major cities." />
+      <meta name="description" content="Find and book the perfect rental car in Lebanon. Compare 10,000+ vehicles from trusted providers with transparent pricing, real-time availability, and 24/7 support. Economy cars from $10/day, SUVs from $40/day, luxury from $100/day. Serving Beirut, Tripoli, Sidon and all major cities." />
       <meta name="keywords" content="car rental Lebanon, rent a car Beirut, luxury car rental Lebanon, SUV rental Lebanon, cheap car hire Lebanon, long term car rental Lebanon, airport car rental Beirut, book rental car online Lebanon, Tripoli car rental, Sidon car rental" />
       <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
@@ -242,7 +242,7 @@ export const SEO = () => {
       <meta name="ai:service-area" content="Lebanon" />
       <meta name="ai:service-type" content="VehicleRental" />
       <meta name="ai:availability" content="24/7" />
-      <meta name="ai:price-range" content="USD50-USD300" />
+      <meta name="ai:price-range" content="USD10-USD300" />
       <meta name="ai:currency" content="USD,LBP,EUR" />
       <meta name="ai:language" content="en,fr,ar" />
       <meta name="ai:target-audience" content="Travelers,Locals,BusinessProfessionals,Tourists,Expats" />
@@ -250,8 +250,8 @@ export const SEO = () => {
 
       {/* Alternate Languages */}
       <link rel="alternate" href="https://rento-lb.com" hrefLang="en" />
-      <link rel="alternate" href="https://rento-lb.com/fr" hrefLang="fr" />
-      <link rel="alternate" href="https://rento-lb.com/ar" hrefLang="ar" />
+      <link rel="alternate" href="https://rento-lb.com" hrefLang="fr" />
+      <link rel="alternate" href="https://rento-lb.com" hrefLang="ar" />
       <link rel="alternate" hrefLang="x-default" href="https://rento-lb.com" />
 
       {/* Open Graph / Facebook */}
@@ -268,11 +268,11 @@ export const SEO = () => {
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:site" content="@rento_lb" />
-      <meta name="twitter:creator" content="@rento_lb" />
+      <meta name="twitter:site" content="@RENTO_lb" />
+      <meta name="twitter:creator" content="@RENTO_lb" />
       <meta name="twitter:title" content="Rento LB: Lebanon's Premier Car Rental Platform | 10,000+ Vehicles and Cars" />
       <meta name="twitter:description" content="Compare and book rental cars in Lebanon from 10,000+ vehicles with transparent pricing, real-time availability, and 24/7 customer support." />
-      <meta name="twitter:image" content="https://rento-lb.com/twitter-image.jpg" />
+      <meta name="twitter:image" content="https://x.com/RENTO_lb/photo" />
       <meta name="twitter:image:alt" content="Rento LB - Lebanon's Premier Car Rental Platform" />
 
       {/* Canonical */}
