@@ -62,44 +62,41 @@ export function SocialMediaPage() {
           Stay Connected With
           <span className="block bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">Rento Lebanon</span>
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          Follow us on all platforms for updates, new car listings, offers, and more.
-        </p>
       </div>
 
       {/* Social Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 container mx-auto max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 container mx-auto max-w-5xl">
         {platforms.map((platform, idx) => (
-          <Card
+            <Card
             key={idx}
-            className="group border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-teal-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-          >
-            <CardContent className="p-6 text-center">
+            className="group border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-teal-500 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
+            >
+            <CardContent className="p-4 text-center">
 
-              {/* Icon */}
-              <div
-                className={`w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${platform.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-              >
-                <platform.icon className="w-12 h-12 text-white" />
-              </div>
+                {/* Icon */}
+                <div
+                className={`w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br ${platform.gradient} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300`}
+                >
+                <platform.icon className="w-8 h-8 text-white" />
+                </div>
 
-              {/* Title */}
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                {/* Title */}
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 {platform.name}
-              </h2>
+                </h2>
 
-              {/* Button */}
-              <a href={platform.url} target="_blank" rel="noopener noreferrer">
-                <Button className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                  Visit Page
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                {/* Button */}
+                <a href={platform.url} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-sm">
+                    Visit Page
+                    <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
-              </a>
+                </a>
 
             </CardContent>
-          </Card>
+            </Card>
         ))}
-      </div>
+        </div>
     </div>
   );
 }

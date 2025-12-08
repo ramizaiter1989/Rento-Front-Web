@@ -26,63 +26,80 @@ export const Footer = () => {
     ]
   };
 
-  const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn' }
-  ];
+const socialLinks = [
+  { 
+    icon: Facebook, 
+    href: "https://www.facebook.com/profile.php?id=61584938841683", 
+    label: "Facebook" 
+  },
+  { 
+    icon: Twitter, 
+    href: "https://x.com/RENTO_lb", 
+    label: "Twitter" 
+  },
+  { 
+    icon: Instagram, 
+    href: "https://www.instagram.com/rento_lebanon/", 
+    label: "Instagram" 
+  },
+  { 
+    icon: Linkedin, 
+    href: "https://www.linkedin.com/company/rento-lb/about/", 
+    label: "LinkedIn" 
+  }
+];
+
 
   return (
-    <footer className="bg-card border-t border-border mt-20">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+    <footer className="bg-card border-t border-border mt-16">
+      <div className="container mx-auto px-4 py-8">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
           {/* Brand Section */}
           <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-transparent flex items-center justify-center">
-                <img
-  src="/rentologo.png" // replace with your actual path
-  alt="Rento Logo"
-  className="rounded-lg w-10 h-10 object-contain"
-/>
-              </div>
-              <span className="text-2xl font-bold gradient-text">RENTO LB</span>
+            <Link to="/" className="flex items-center space-x-2 mb-3">
+              <img
+                src="/rentologo.png"
+                alt="Rento Logo"
+                className="rounded-lg w-8 h-8 object-contain"
+              />
+              <span className="text-xl font-bold gradient-text">RENTO LB</span>
             </Link>
-            <p className="text-muted-foreground mb-6 max-w-sm">
-              Experience luxury on the road with our premium fleet of high-end vehicles. Your journey, our passion.
+
+            <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+              Experience luxury on the road with our premium fleet of high-end vehicles.
             </p>
-            
-            {/* Contact Info */}
-            <div className="space-y-2 text-sm text-muted-foreground">
+
+            <div className="space-y-1 text-xs text-muted-foreground">
               <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-secondary" />
-                <span>Mount Liban, Hazmieh ,Lebanon</span>
+                <MapPin className="w-3 h-3 text-secondary" />
+                <span>Mount Liban, Hazmieh, Lebanon</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4 text-secondary" />
+                <Phone className="w-3 h-3 text-secondary" />
                 <span>+961 (70) 041-862</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4 text-secondary" />
+                <Phone className="w-3 h-3 text-secondary" />
                 <span>+961 (03) 520-427</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-secondary" />
+                <Mail className="w-3 h-3 text-secondary" />
                 <span>support@RENTO-LB.com</span>
               </div>
             </div>
           </div>
 
-          {/* Links Sections */}
+          {/* Links */}
           <div>
-            <h3 className="font-semibold mb-4">Company</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-2 text-sm">Company</h3>
+            <ul className="space-y-1">
               {footerLinks.company.map(link => (
                 <li key={link.label}>
                   <Link
                     to={link.to}
-                    className="text-muted-foreground hover:text-secondary transition-colors text-sm"
+                    className="text-muted-foreground hover:text-secondary transition-colors text-xs"
                   >
                     {link.label}
                   </Link>
@@ -92,13 +109,13 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Support</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-2 text-sm">Support</h3>
+            <ul className="space-y-1">
               {footerLinks.support.map(link => (
                 <li key={link.label}>
                   <Link
                     to={link.to}
-                    className="text-muted-foreground hover:text-secondary transition-colors text-sm"
+                    className="text-muted-foreground hover:text-secondary transition-colors text-xs"
                   >
                     {link.label}
                   </Link>
@@ -108,13 +125,13 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Services</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-2 text-sm">Services</h3>
+            <ul className="space-y-1">
               {footerLinks.services.map(link => (
                 <li key={link.label}>
                   <Link
                     to={link.to}
-                    className="text-muted-foreground hover:text-secondary transition-colors text-sm"
+                    className="text-muted-foreground hover:text-secondary transition-colors text-xs"
                   >
                     {link.label}
                   </Link>
@@ -125,23 +142,22 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Section */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-8 pt-4 border-t border-border flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
+          <p className="text-xs text-muted-foreground">
             © {currentYear} RENTO LB. All rights reserved.
           </p>
 
-          {/* Social Links */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             {socialLinks.map(social => (
               <a
                 key={social.label}
                 href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-muted hover:bg-secondary hover:text-secondary-foreground transition-all flex items-center justify-center hover-glow"
+                className="w-8 h-8 rounded-full bg-muted hover:bg-secondary transition-all flex items-center justify-center"
                 aria-label={social.label}
               >
-                <social.icon className="w-5 h-5" />
+                <social.icon className="w-4 h-4" />
               </a>
             ))}
           </div>
