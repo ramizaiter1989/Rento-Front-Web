@@ -34,8 +34,21 @@ const platforms = [
     url: 'https://www.youtube.com/channel/UCW1dt_Y0qq0oczELUoGDI7Q',
     icon: Youtube,
     gradient: 'from-red-600 to-red-400'
+  },
+  {
+    name: 'TikTok',
+    url: 'https://www.tiktok.com/@rentolb',
+    icon: Globe, // You can replace with a TikTok icon if you have one
+    gradient: 'from-black to-gray-700'
+  },
+  {
+    name: 'Facebook',
+    url: 'https://www.facebook.com/profile.php?id=61584938841683',
+    icon: Globe, // Replace with a Facebook icon if available
+    gradient: 'from-blue-600 to-blue-400'
   }
 ];
+
 
 export function SocialMediaPage() {
   return (
