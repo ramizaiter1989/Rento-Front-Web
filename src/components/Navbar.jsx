@@ -60,7 +60,7 @@ export const Navbar = () => {
   const navLinks = [
     { to: '/', label: 'Home' },
     { to: '/cars', label: 'Browse Cars' },
-    { to: '/about', label: 'About' },
+    { to: '/socialmedia', label: 'About' },
     { to: '/contact', label: 'Contact' }
   ];
 
