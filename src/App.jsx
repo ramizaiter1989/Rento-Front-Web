@@ -19,7 +19,8 @@ import { ClientBookingPage } from '@/pages/ClientBookingPage';
 import { CreateCarPage } from '@/pages/CreateCarPage';
 import { MyCarsPage } from '@/pages/MyCarsPage';
 import { BookingChatSystem } from '@/pages/BookingChatSystem';
-import { AgentBookingsPage } from '@/pages/AgentBookingsPage'; 
+import { AgentBookingsPage } from '@/pages/AgentBookingsPage';
+import { SocialMediaPage } from '@/pages/SocialMediaPage';
 
 import { SEO } from "@/components/SEO";
 
@@ -93,6 +94,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <BookingChatSystem />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/socialmedia"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <SocialMediaPage />
                 </MainLayout>
               </ProtectedRoute>
             }
