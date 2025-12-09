@@ -229,7 +229,10 @@ export const SEO = () => {
     <>
       {/* Basic Meta Tags - React 19 native */}
       <title>Rento LB | Book 10,000+ Cars in Lebanon | Compare & Rent from Trusted Providers</title>
-      
+      <meta
+          name="trustpilot-one-time-domain-verification-id"
+          content="2ddec9a3-46a7-4ab8-a397-7482d145e508"
+        />
       <meta name="title" content="Rento LB | Book 10,000+ Cars in Lebanon | Compare & Rent from Trusted Providers" />
       <meta name="description" content="Find and book the perfect rental car in Lebanon. Compare 10,000+ vehicles from trusted providers with transparent pricing, real-time availability, and 24/7 support. Economy cars from $10/day, SUVs from $40/day, luxury from $100/day. Serving Beirut, Tripoli, Sidon and all major cities." />
       <meta name="keywords" content="car rental Lebanon, rent a car Beirut, luxury car rental Lebanon, SUV rental Lebanon, cheap car hire Lebanon, long term car rental Lebanon, airport car rental Beirut, book rental car online Lebanon, Tripoli car rental, Sidon car rental" />
