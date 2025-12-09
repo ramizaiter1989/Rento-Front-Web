@@ -1,0 +1,11 @@
+# Allow all crawlers full access
+User-agent: *
+Disallow:
+
+# Sitemap location
+Sitemap: https://rento-lb.com/sitemap.xml
+
+# Prevent crawling of sensitive folders (optional)
+Disallow: /admin/
+Disallow: /private/
+Disallow: /tmp/

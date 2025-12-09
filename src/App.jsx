@@ -21,6 +21,7 @@ import { MyCarsPage } from '@/pages/MyCarsPage';
 import { BookingChatSystem } from '@/pages/BookingChatSystem';
 import { AgentBookingsPage } from '@/pages/AgentBookingsPage';
 import { SocialMediaPage } from '@/pages/SocialMediaPage';
+import CarQualificationsPage from '@/pages/CarQualificationsPage';
 
 import { SEO } from "@/components/SEO";
 
@@ -145,6 +146,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <CreateCarPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/Add/car/qualification"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <CarQualificationsPage />
                 </MainLayout>
               </ProtectedRoute>
             }
