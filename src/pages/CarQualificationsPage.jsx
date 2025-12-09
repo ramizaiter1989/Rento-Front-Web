@@ -59,16 +59,39 @@ export const CarQualificationsPage = () => {
       const response = await api.get(`/cars/${carId}/qualifications`);
       if (response.data.qualifications) {
         const qual = response.data.qualifications;
+        
+        // Helper function to capitalize first letter
+        const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        
+        // Helper to convert backend format to display format
+        const formatGenders = (genders) => {
+          if (!genders || !genders.length) return [];
+          return genders.map(g => capitalize(g));
+        };
+        
+        const formatCities = (cities) => {
+          if (!cities || !cities.length) return [];
+          return cities.map(c => capitalize(c));
+        };
+        
+        const formatProfessions = (professions) => {
+          if (!professions || !professions.length) return [];
+          return professions.map(p => {
+            // Handle special cases like "business_owner" -> "Business Owner"
+            return p.split('_').map(word => capitalize(word)).join(' ');
+          });
+        };
+        
         setQualifications({
           enableAge: !!(qual.min_age || qual.max_age),
           minAge: qual.min_age || 25,
           maxAge: qual.max_age || 65,
           enableGender: !!(qual.gender && qual.gender.length),
-          selectedGenders: qual.gender || [],
+          selectedGenders: formatGenders(qual.gender),
           enableCities: !!(qual.required_cities && qual.required_cities.length),
-          selectedCities: qual.required_cities || [],
+          selectedCities: formatCities(qual.required_cities),
           enableProfessions: !!(qual.professions && qual.professions.length),
-          selectedProfessions: qual.professions || [],
+          selectedProfessions: formatProfessions(qual.professions),
           enableSalary: !!qual.min_salary,
           minSalary: qual.min_salary || 1000,
           enableRating: !!qual.min_rating,
@@ -82,6 +105,10 @@ export const CarQualificationsPage = () => {
       }
     } catch (error) {
       console.error('Error loading qualifications:', error);
+      // Silently handle 404 if endpoint doesn't exist yet
+      if (error.response?.status === 404) {
+        console.info('Qualifications endpoint not available for this car');
+      }
     }
   };
 

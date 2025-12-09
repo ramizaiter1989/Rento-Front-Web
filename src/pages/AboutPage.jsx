@@ -8,74 +8,96 @@ export const AboutPage = () => {
     {
       icon: Heart,
       title: 'Customer First',
-      description: 'Your satisfaction and experience are at the heart of everything we do'
+      description: 'Your satisfaction and experience are at the heart of everything we do.'
     },
     {
       icon: Shield,
       title: 'Trust & Safety',
-      description: 'Every vehicle is meticulously maintained and fully insured for your protection'
+      description: 'All vehicles are fully insured and professionally maintained for maximum safety.'
     },
     {
       icon: Award,
       title: 'Excellence',
-      description: 'We strive for perfection in service quality and vehicle condition'
+      description: 'We provide premium-quality cars and top-tier customer service across Lebanon.'
     },
     {
       icon: Globe,
       title: 'Accessibility',
-      description: 'Premium vehicles available across multiple locations for your convenience'
+      description: 'Car rental services available across Beirut, airport, and major Lebanese cities.'
     }
   ];
 
   const stats = [
-    { value: '15+', label: 'Years in Business' },
-    { value: '10,000+', label: 'Happy Customers' },
-    { value: '50+', label: 'Premium Vehicles' },
-    { value: '25', label: 'Cities Covered' }
+    { value: '15+', label: 'Years in Car Rental in Lebanon' },
+    { value: '10,000+', label: 'Happy Clients' },
+    { value: '50+', label: 'Premium Rental Cars' },
+    { value: '25', label: 'Lebanese Cities Covered' }
   ];
 
   const team = [
     {
-      name: 'Michael Stevens',
-      role: 'CEO & Founder',
-      image: 'https://i.pravatar.cc/200?img=12',
-      bio: '20+ years in luxury automotive industry'
+      name: 'Rami Z.',
+      role: 'Co-Founder',
+      image: 'https://media.licdn.com/dms/image/v2/D4D03AQE-SI2RbsIKJg/profile-displayphoto-scale_400_400/B4DZkR13KuIEAw-/0/1756940957455?e=1766620800&v=beta&t=zeHYUyUBfpn25qt5t5noPx63zsRssAtxFJfix_St0u8',
+      bio: 'Expert in the Lebanese car rental industry for over 15 years.'
     },
     {
-      name: 'Sarah Chen',
+      name: 'Ali Z.',
       role: 'Operations Director',
-      image: 'https://i.pravatar.cc/200?img=5',
-      bio: 'Expert in fleet management and customer service'
+      image: 'https://i.pravatar.cc/200?img=1',
+      bio: 'Specialist in fleet management and customer satisfaction.'
     },
     {
-      name: 'David Martinez',
+      name: 'Dib Bailoun',
       role: 'Fleet Manager',
-      image: 'https://i.pravatar.cc/200?img=13',
-      bio: 'Automotive specialist with passion for excellence'
+      image: 'https://media.licdn.com/dms/image/v2/D4E03AQG5-k6KT0xAkQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1676234982153?e=1766620800&v=beta&t=9DRUyjBNMmfBBksjIy_xP0VADrIcR6ikoHK2R8bUPjM',
+      bio: 'Ensures all cars meet the highest maintenance and safety standards.'
     },
     {
-      name: 'Emily Johnson',
+      name: 'Ahmad',
       role: 'Customer Relations',
       image: 'https://i.pravatar.cc/200?img=1',
-      bio: 'Dedicated to delivering exceptional experiences'
+      bio: 'Dedicated to providing fast and friendly rental service.'
     }
   ];
 
   return (
     <div className="min-h-screen pt-20">
+
+      {/* SEO Structured Data */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CarRental",
+          "name": "Rento LB",
+          "url": "https://rento-lb.com",
+          "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "LB",
+            "addressLocality": "Beirut",
+            "streetAddress": "Beirut, Lebanon"
+          },
+          "description": "Rent a car in Lebanon – luxury, SUV, sedan, economy cars. Beirut airport delivery. Affordable daily and monthly prices.",
+          "openingHours": "Mo-Su 00:00-23:59",
+          "telephone": "+961 81 001301",
+          "image": "https://rento-lb.com/og-image.jpg",
+        })}
+      </script>
+
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">
-              About Us
+              About Rento LB
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Redefining Luxury Car Rental
+              The #1 Car Rental Company in Lebanon
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              For over 15 years, RENTO LB has been the trusted name in premium vehicle rentals,
-              providing discerning customers with access to the world's finest automobiles.
+              RENTO LB provides premium, affordable, and reliable car rental services across Lebanon.
+              With 15+ years of experience, we offer luxury, SUV, and economy cars with airport pickup,
+              24/7 support, and delivery anywhere in Beirut and surrounding cities.
             </p>
           </div>
         </div>
@@ -101,55 +123,55 @@ export const AboutPage = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
             <div>
               <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
                 Our Story
               </Badge>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Passion for Automotive Excellence
+                Leading the Car Rental Industry in Lebanon
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  RENTO LB was born from a simple vision: to make the world's most prestigious
-                  vehicles accessible to those who appreciate the finer things in life. Founded in
-                  2008 by automotive enthusiasts, we've grown from a small boutique operation to
-                  a leading name in luxury car rentals.
+                  Rento LB started with a mission to offer safe, reliable, and affordable car rental
+                  services in Lebanon. Since 2008, we’ve grown into one of the leading rental companies
+                  in Beirut, serving thousands of happy clients every year.
                 </p>
                 <p>
-                  Every vehicle in our fleet is carefully selected and maintained to the highest
-                  standards. We believe that driving a premium vehicle isn't just about
-                  transportation—it's about experiencing craftsmanship, performance, and luxury
-                  in their purest forms.
+                  We offer a full range of vehicles—from economic cars for everyday use, to SUVs for
+                  families, to luxury cars for special occasions.
                 </p>
                 <p>
-                  Today, we're proud to serve thousands of satisfied customers across 25 cities,
-                  offering everything from exotic sports cars to elegant luxury sedans. Our
-                  commitment to excellence and customer satisfaction remains as strong as ever.
+                  Whether you're a tourist or a resident, our goal is to deliver the best car rental
+                  experience with transparent pricing, clean vehicles, and fast service.
                 </p>
               </div>
             </div>
+
+            {/* Right Images with SEO alt text */}
             <div className="grid grid-cols-2 gap-4">
               <img
                 src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=80"
-                alt="Luxury Car 1"
+                alt="Affordable luxury car rental in Beirut Lebanon - Rento LB"
                 className="rounded-2xl w-full h-64 object-cover hover-glow"
               />
               <img
                 src="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80"
-                alt="Luxury Car 2"
+                alt="Rent a BMW in Beirut Lebanon - Cheap car rental"
                 className="rounded-2xl w-full h-64 object-cover hover-glow mt-8"
               />
               <img
                 src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80"
-                alt="Luxury Car 3"
+                alt="Best car rental company in Lebanon - Rento LB"
                 className="rounded-2xl w-full h-64 object-cover hover-glow"
               />
               <img
                 src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=600&q=80"
-                alt="Luxury Car 4"
+                alt="SUV rental in Beirut Lebanon"
                 className="rounded-2xl w-full h-64 object-cover hover-glow mt-8"
               />
             </div>
+
           </div>
         </div>
       </section>
@@ -162,10 +184,10 @@ export const AboutPage = () => {
               Our Values
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              What Drives Us Forward
+              Why Customers Choose Rento LB
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Our core values guide every decision we make and every service we provide
+              We focus on reliability, transparency, and exceptional service across Lebanon.
             </p>
           </div>
 
@@ -190,13 +212,13 @@ export const AboutPage = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">
-              Meet Our Team
+              Our Lebanese Team
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              The People Behind the Wheels
+              Meet the People Behind Rento LB
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Our passionate team of automotive experts is dedicated to making your experience exceptional
+              Our experienced team ensures the highest level of service in the Lebanese car rental industry.
             </p>
           </div>
 
@@ -206,7 +228,7 @@ export const AboutPage = () => {
                 <div className="aspect-square overflow-hidden">
                   <img
                     src={member.image}
-                    alt={member.name}
+                    alt={`${member.name} - Rento LB Car Rental Lebanon`}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -227,23 +249,24 @@ export const AboutPage = () => {
           <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl" />
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Experience the RENTO LB Difference
+            Book Your Car Rental in Lebanon Today
           </h2>
           <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-            Join thousands of satisfied customers who trust us for their luxury vehicle needs
+            Select your car and enjoy fast delivery anywhere in Lebanon.
           </p>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="/cars">
               <button className="px-8 py-3 bg-white text-primary hover:bg-white/90 font-semibold rounded-lg transition-smooth">
-                Browse Our Fleet
+                View Available Cars
               </button>
             </a>
             <a href="/contact">
               <button className="px-8 py-3 border-2 border-white text-white hover:bg-white/10 font-semibold rounded-lg transition-smooth">
-                Contact Us
+                Contact Rento LB
               </button>
             </a>
           </div>

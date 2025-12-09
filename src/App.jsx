@@ -161,7 +161,7 @@ function App() {
             }
           />
           <Route
-            path="/cars"
+            path="/luxury-car-rental-lebanon"
             element={
               <ProtectedRoute>
                 <MainLayout>
