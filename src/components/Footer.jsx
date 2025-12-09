@@ -26,44 +26,22 @@ export const Footer = () => {
     ]
   };
 
-const socialLinks = [
-  { 
-    icon: Facebook, 
-    href: "https://www.facebook.com/profile.php?id=61584938841683", 
-    label: "Facebook" 
-  },
-  { 
-    icon: Twitter, 
-    href: "https://x.com/RENTO_lb", 
-    label: "Twitter" 
-  },
-  { 
-    icon: Instagram, 
-    href: "https://www.instagram.com/rento_lebanon/", 
-    label: "Instagram" 
-  },
-  { 
-    icon: Linkedin, 
-    href: "https://www.linkedin.com/company/rento-lb/about/", 
-    label: "LinkedIn" 
-  }
-];
-
+  const socialLinks = [
+    { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61584938841683", label: "Facebook" },
+    { icon: Twitter, href: "https://x.com/RENTO_lb", label: "Twitter" },
+    { icon: Instagram, href: "https://www.instagram.com/rento_lebanon/", label: "Instagram" },
+    { icon: Linkedin, href: "https://www.linkedin.com/company/rento-lb/about/", label: "LinkedIn" }
+  ];
 
   return (
     <footer className="bg-card border-t border-border mt-16">
       <div className="container mx-auto px-4 py-8">
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center space-x-2 mb-3">
-              <img
-                src="/rentologo.png"
-                alt="Rento Logo"
-                className="rounded-lg w-8 h-8 object-contain"
-              />
+              <img src="/rentologo.png" alt="Rento Logo" className="rounded-lg w-8 h-8 object-contain" />
               <span className="text-xl font-bold gradient-text">RENTO LB</span>
             </Link>
 
@@ -97,10 +75,7 @@ const socialLinks = [
             <ul className="space-y-1">
               {footerLinks.company.map(link => (
                 <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="text-muted-foreground hover:text-secondary transition-colors text-xs"
-                  >
+                  <Link to={link.to} className="text-muted-foreground hover:text-secondary transition-colors text-xs">
                     {link.label}
                   </Link>
                 </li>
@@ -113,10 +88,7 @@ const socialLinks = [
             <ul className="space-y-1">
               {footerLinks.support.map(link => (
                 <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="text-muted-foreground hover:text-secondary transition-colors text-xs"
-                  >
+                  <Link to={link.to} className="text-muted-foreground hover:text-secondary transition-colors text-xs">
                     {link.label}
                   </Link>
                 </li>
@@ -129,10 +101,7 @@ const socialLinks = [
             <ul className="space-y-1">
               {footerLinks.services.map(link => (
                 <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="text-muted-foreground hover:text-secondary transition-colors text-xs"
-                  >
+                  <Link to={link.to} className="text-muted-foreground hover:text-secondary transition-colors text-xs">
                     {link.label}
                   </Link>
                 </li>
@@ -147,6 +116,7 @@ const socialLinks = [
             © {currentYear} RENTO LB. All rights reserved.
           </p>
 
+          {/* Social Links */}
           <div className="flex items-center space-x-2">
             {socialLinks.map(social => (
               <a
@@ -161,6 +131,12 @@ const socialLinks = [
               </a>
             ))}
           </div>
+
+          {/* DMCA Badge */}
+<a href="https://www.dmca.com/r/em2gpk5" title="DMCA.com Protection Status" class="dmca-badge"> 
+<img src ="https://images.dmca.com/Badges/dmca_protected_sml_120aj.png?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"  alt="DMCA.com Protection Status" />
+</a>  
+<script src="https://images.dmca.com/Badges/DMCABadgeHelper.min.js"> </script>
         </div>
       </div>
     </footer>
