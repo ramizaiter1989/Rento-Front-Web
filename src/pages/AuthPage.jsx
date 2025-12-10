@@ -50,8 +50,11 @@ export const AuthPage = () => {
         password: loginData.password,
       });
 
-      // save token
+      // save token (aligned with ProtectedRoute in App.jsx)
+      localStorage.setItem("authToken", res.data.token);
+      // keep this if you used "token" elsewhere
       localStorage.setItem("token", res.data.token);
+
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       toast.success(t("auth.loginSuccess"));
@@ -82,12 +85,14 @@ export const AuthPage = () => {
         role: registerData.role,
       });
 
+      // same token key as login
+      localStorage.setItem("authToken", res.data.token);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       toast.success(t("auth.registerSuccess"));
 
-      navigate("/profile-completion");
+      navigate("/profile-completion"); // or "/" if you don't have this route
     } catch (err) {
       if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
@@ -99,7 +104,12 @@ export const AuthPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       <div className="w-full max-w-md">
-        <Button variant="ghost" onClick={() => navigate("/intro")} className="mb-6 hover:bg-muted">
+        {/* Back button – now goes to home instead of intro */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-6 hover:bg-muted"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           {t("auth.back")}
         </Button>
@@ -117,7 +127,9 @@ export const AuthPage = () => {
         <Card className="hover-glow">
           <CardHeader>
             <CardTitle className="text-2xl text-center">{t("auth.welcome")}</CardTitle>
-            <CardDescription className="text-center">{t("auth.description")}</CardDescription>
+            <CardDescription className="text-center">
+              {t("auth.description")}
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -266,7 +278,10 @@ export const AuthPage = () => {
                         type="password"
                         value={registerData.confirmPassword}
                         onChange={(e) =>
-                          setRegisterData({ ...registerData, confirmPassword: e.target.value })
+                          setRegisterData({
+                            ...registerData,
+                            confirmPassword: e.target.value,
+                          })
                         }
                         className="pl-10"
                         required

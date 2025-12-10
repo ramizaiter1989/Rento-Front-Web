@@ -1,47 +1,45 @@
 import "@/index.css";
 import "@/App.css";
-import '@/i18n/config';
-import React, { useEffect, useState } from 'react';
+import "@/i18n/config";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useTranslation } from 'react-i18next';
-import { Toaster } from '@/components/ui/sonner';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { IntroPage } from '@/pages/IntroPage';
-import { AuthPage } from '@/pages/AuthPage';
-import { HomePage } from '@/pages/HomePage';
-import { CarsPage } from '@/pages/CarsPage';
-import { CarDetailPage } from '@/pages/CarDetailPage';
-import { FavoritesPage } from '@/pages/FavoritesPage';
-import { AboutPage } from '@/pages/AboutPage';
-import { ContactPage } from '@/pages/ContactPage';
-import { ClientBookingPage } from '@/pages/ClientBookingPage';
-import { CreateCarPage } from '@/pages/CreateCarPage';
-import { MyCarsPage } from '@/pages/MyCarsPage';
-import { BookingChatSystem } from '@/pages/BookingChatSystem';
-import { AgentBookingsPage } from '@/pages/AgentBookingsPage';
-import { SocialMediaPage } from '@/pages/SocialMediaPage';
-import CarQualificationsPage from '@/pages/CarQualificationsPage';
+import { useTranslation } from "react-i18next";
+import { Toaster } from "@/components/ui/sonner";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+// Removed IntroPage import
+import { AuthPage } from "@/pages/AuthPage";
+import { HomePage } from "@/pages/HomePage";
+import { CarsPage } from "@/pages/CarsPage";
+import { CarDetailPage } from "@/pages/CarDetailPage";
+import { FavoritesPage } from "@/pages/FavoritesPage";
+import { AboutPage } from "@/pages/AboutPage";
+import { ContactPage } from "@/pages/ContactPage";
+import { ClientBookingPage } from "@/pages/ClientBookingPage";
+import { CreateCarPage } from "@/pages/CreateCarPage";
+import { MyCarsPage } from "@/pages/MyCarsPage";
+import { BookingChatSystem } from "@/pages/BookingChatSystem";
+import { AgentBookingsPage } from "@/pages/AgentBookingsPage";
+import { SocialMediaPage } from "@/pages/SocialMediaPage";
+import CarQualificationsPage from "@/pages/CarQualificationsPage";
 
 import { SEO } from "@/components/SEO";
 
-
-
-// Protected Route Component
+// Protected Route Component (auth-based now)
 const ProtectedRoute = ({ children }) => {
-  const hasSeenIntro = localStorage.getItem('hasSeenIntro');
-  
-  if (!hasSeenIntro) {
-    return <Navigate to="/intro" replace />;
+  // Change this to match your real auth logic
+  const isAuthenticated = !!localStorage.getItem("authToken");
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
   }
-  
+
   return children;
 };
 
 // Layout with Navbar and Footer
 const MainLayout = ({ children }) => (
   <>
-
     <Navbar />
     {children}
     <Footer />
@@ -49,46 +47,53 @@ const MainLayout = ({ children }) => (
 );
 
 function App() {
-  const [hasSeenIntro, setHasSeenIntro] = useState(false);
-  const { i18n } = useTranslation();
+  const { i18n } = useTranslation(); // if unused, you can remove this line + import
 
   useEffect(() => {
-    // Check if user has seen intro
-    const seenIntro = localStorage.getItem('hasSeenIntro');
-    setHasSeenIntro(!!seenIntro);
-    
     // Set RTL/LTR based on language
-    const currentLang = localStorage.getItem('language') || 'en';
-    if (currentLang === 'ar') {
-      document.documentElement.dir = 'rtl';
-      document.documentElement.lang = 'ar';
+    const currentLang = localStorage.getItem("language") || "en";
+    if (currentLang === "ar") {
+      document.documentElement.dir = "rtl";
+      document.documentElement.lang = "ar";
     } else {
-      document.documentElement.dir = 'ltr';
-      document.documentElement.lang = 'en';
+      document.documentElement.dir = "ltr";
+      document.documentElement.lang = "en";
     }
   }, []);
 
   return (
-
     <div className="App">
       <BrowserRouter>
-      <SEO/>
+        <SEO />
         <Routes>
-          {/* Intro and Auth Routes (no navbar/footer) */}
-          <Route path="/intro" element={<IntroPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-
-          {/* Main App Routes (with navbar/footer) */}
+          {/* Public routes (no auth required) */}
           <Route
             path="/"
             element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <HomePage />
-                </MainLayout>
-              </ProtectedRoute>
+              <MainLayout>
+                <HomePage />
+              </MainLayout>
             }
           />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route
+            path="/about"
+            element={
+              <MainLayout>
+                <AboutPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <MainLayout>
+                <ContactPage />
+              </MainLayout>
+            }
+          />
+
+          {/* Protected routes (auth required) */}
           <Route
             path="/BookingChat"
             element={
@@ -105,6 +110,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <SocialMediaPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cars"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <CarsPage />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -139,7 +154,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
           <Route
             path="/Add/car"
             element={
@@ -190,31 +204,13 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/about"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <AboutPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/contact"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <ContactPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+
+          {/* Fallback: redirect unknown routes to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
     </div>
-
   );
 }
 
