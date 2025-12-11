@@ -75,7 +75,7 @@ export const SEO = () => {
       postalCode: '1000',
       addressCountry: {
         '@type': 'Country',
-        name: 'Lebanon',
+        name: 'LB',
         isoCode: 'LB',
       },
     },
