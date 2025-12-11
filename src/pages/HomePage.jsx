@@ -287,31 +287,7 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-white  dark:bg-gray-900" />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center group">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
-                  index === 0 ? 'from-teal-500 to-cyan-500' :
-                  index === 1 ? 'from-cyan-500 to-blue-500' :
-                  index === 2 ? 'from-teal-600 to-teal-400' :
-                  'from-amber-500 to-yellow-500'
-                } flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                  <stat.icon className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-4xl md:text-5xl font-black bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
-                  {stat.value}
-                </p>
-                <p className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+  
       {/* Cars Section */}
       <section className="py-24">
         <div className="container mx-auto px-4">
@@ -362,6 +338,32 @@ export const HomePage = () => {
           )}
         </div>
       </section>
+
+          {/* Stats Section */}
+      <section className="py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-white  dark:bg-gray-900" />
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center group">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
+                  index === 0 ? 'from-teal-500 to-cyan-500' :
+                  index === 1 ? 'from-cyan-500 to-blue-500' :
+                  index === 2 ? 'from-teal-600 to-teal-400' :
+                  'from-amber-500 to-yellow-500'
+                } flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                  <stat.icon className="w-8 h-8 text-white" />
+                </div>
+                <p className="text-4xl md:text-5xl font-black bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+                  {stat.value}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* Features Section */}
       <section className="py-24 bg-white  dark:bg-gray-900">
