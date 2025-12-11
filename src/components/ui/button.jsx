@@ -34,13 +34,44 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
+const Button = React.forwardRef(({ 
+  className, 
+  variant, 
+  size, 
+  asChild = false,
+  children,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledby,
+  ...props 
+}, ref) => {
   const Comp = asChild ? Slot : "button"
+  
+  // Development warning for accessibility
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const hasTextContent = typeof children === 'string' || 
+        (React.Children.toArray(children).some(child => typeof child === 'string'));
+      const hasAccessibleName = ariaLabel || ariaLabelledby || props.title;
+      
+      if (!hasTextContent && !hasAccessibleName && size === 'icon') {
+        console.warn(
+          'Button: Icon buttons should have an aria-label for accessibility. ' +
+          'Example: <Button aria-label="Close" size="icon"><XIcon /></Button>'
+        );
+      }
+    }
+  }, [children, ariaLabel, ariaLabelledby, props.title, size]);
+  
   return (
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
-      {...props} />
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledby}
+      {...props}
+    >
+      {children}
+    </Comp>
   );
 })
 Button.displayName = "Button"
