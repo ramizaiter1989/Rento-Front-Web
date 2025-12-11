@@ -1,1 +1,272 @@
-<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"><url><loc>https://rento-lb.com/</loc><lastmod>2025-12-08T22:48:59.365Z</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url></urlset>
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" 
+        xmlns:xhtml="http://www.w3.org/1999/xhtml" 
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" 
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  
+  <!-- Homepage - Main Entry Point -->
+  <url>
+    <loc>https://rento-lb.com/</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rento-lb.com/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://rento-lb.com/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://rento-lb.com/" />
+  </url>
+
+  <!-- Tourist Services Page -->
+  <url>
+    <loc>https://rento-lb.com/tourists</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rento-lb.com/tourists" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://rento-lb.com/tourists" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://rento-lb.com/tourists" />
+  </url>
+
+  <!-- Airport Pickup Service -->
+  <url>
+    <loc>https://rento-lb.com/airport-pickup</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Car Search/Browse -->
+  <url>
+    <loc>https://rento-lb.com/cars</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Search Results -->
+  <url>
+    <loc>https://rento-lb.com/search</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Vehicle Categories -->
+  <url>
+    <loc>https://rento-lb.com/economy-cars</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/suv-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/luxury-cars</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/sports-cars</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- City-Specific Tourist Pages -->
+  <url>
+    <loc>https://rento-lb.com/beirut-car-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/byblos-car-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/tripoli-car-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/baalbek-car-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/sidon-car-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Tourist Destinations & Guides -->
+  <url>
+    <loc>https://rento-lb.com/explore-lebanon</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/tourist-attractions</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/lebanon-road-trip-guide</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Information & Support Pages -->
+  <url>
+    <loc>https://rento-lb.com/about</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/how-it-works</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/faq</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/tourist-faq</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/contact</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/support</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Rental Options & Features -->
+  <url>
+    <loc>https://rento-lb.com/long-term-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/weekend-rental</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/with-driver</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/hotel-delivery</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Partners & Agencies -->
+  <url>
+    <loc>https://rento-lb.com/partners</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/list-your-car</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Legal & Policy Pages -->
+  <url>
+    <loc>https://rento-lb.com/terms-and-conditions</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/privacy-policy</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Blog/Content (if applicable) -->
+  <url>
+    <loc>https://rento-lb.com/blog</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/blog/best-places-to-visit-lebanon</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/blog/driving-in-lebanon-guide</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rento-lb.com/blog/lebanon-road-trip-itinerary</loc>
+    <lastmod>2025-12-11T00:00:00.000Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>

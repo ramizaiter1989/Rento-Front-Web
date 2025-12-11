@@ -1,11 +1,73 @@
-# Allow all crawlers full access
+# robots.txt for RENTO LB - Car Rental Lebanon
+# Updated: December 2025
+
+# Allow all major search engines full access
 User-agent: *
-Disallow:
+Allow: /
 
-# Sitemap location
-Sitemap: https://rento-lb.com/sitemap.xml
-
-# Prevent crawling of sensitive folders (optional)
+# Block sensitive and unnecessary paths
 Disallow: /admin/
 Disallow: /private/
 Disallow: /tmp/
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /payment/
+Disallow: /user/
+Disallow: /account/
+Disallow: /dashboard/
+Disallow: /*.json$
+Disallow: /*?print=
+Disallow: /*?share=
+Disallow: /search?*sessionid=
+Disallow: /search?*sortby=
+Disallow: /search?*filterby=
+
+# Allow search engines to crawl images
+User-agent: Googlebot-Image
+Allow: /images/
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+
+# Allow social media crawlers for better sharing
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Pinterest
+Allow: /
+
+# Block problematic bots (optional - remove if causing issues)
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Crawl delay for other bots to avoid server overload
+User-agent: *
+Crawl-delay: 2
+
+# Sitemap locations
+Sitemap: https://rento-lb.com/sitemap.xml
+Sitemap: https://rento-lb.com/sitemap-images.xml
+Sitemap: https://rento-lb.com/sitemap-cars.xml
+Sitemap: https://rento-lb.com/sitemap-cities.xml
+
+# Host specification (helps with canonicalization)
+Host: https://rento-lb.com

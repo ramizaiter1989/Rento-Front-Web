@@ -24,7 +24,7 @@ export const SEO = () => {
       {
         question: 'Can I modify or cancel my car rental booking?',
         answer:
-          'Modification and cancellation policies vary by provider. Most bookings can be modified or cancelled free of charge up to 24–48 hours before pickup. We recommend checking your booking confirmation email for specific terms or contacting our 24/7 customer support team at +961-03520427 for assistance with any changes to your reservation.',
+          'Modification and cancellation policies vary by provider. Most bookings can be modified or cancelled free of charge up to 24–48 hours before pickup. We recommend checking your booking confirmation email for specific terms or contacting our 24/7 customer support team at +961-81001301 for assistance with any changes to your reservation.',
       },
     ],
     fr: [
@@ -53,20 +53,23 @@ export const SEO = () => {
     ],
   };
 
-  // Main structured data
-  const structuredData = {
+  // LocalBusiness Schema - PRIMARY for Google Search presence and logo display
+  const localBusinessData = {
     '@context': 'https://schema.org',
-    '@type': ['CarRental', 'Organization', 'WebSite'],
-    '@id': 'https://rento-lb.com/#organization',
-    name: 'Rento LB: Car Rental Aggregator in Lebanon',
-    url: 'https://rento-lb.com',
-    logo: 'https://rento-lb.com/rentologo.png',
+    '@type': ['LocalBusiness', 'CarRental', 'RentalCarAgency'],
+    '@id': 'https://rento-lb.com/#identity',
+    name: 'Rento LB',
+    url: 'https://rento-lb.com/',
     image: 'https://rento-lb.com/rentologo.jpg',
+    logo: 'https://rento-lb.com/rentologo.png',
+    telephone: '+961-81001301',
+    email: 'social@rento-lb.com',
+    priceRange: '$$',
     description:
-      "Rento LB is Lebanon's premier car rental aggregation platform, connecting you with agencies and private owners and offering 10,000+ vehicles with transparent pricing, real-time availability, and 24/7 customer support across all major cities including Beirut, Tripoli, and Sidon.",
+      'Car rental Lebanon aggregator connecting travelers with agencies and private owners. 10,000+ vehicles with transparent pricing, real-time availability, and 24/7 support across Beirut, Tripoli, and Sidon.',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Your Street Address',
+      streetAddress: 'city center',
       addressLocality: 'Beirut',
       addressRegion: 'Beirut Governorate',
       postalCode: '1000',
@@ -76,42 +79,74 @@ export const SEO = () => {
         isoCode: 'LB',
       },
     },
-    telephone: '+961-03520427',
-    email: 'social@rento-lb.com',
-    openingHours: 'Mo-Su 00:00-23:59',
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 33.8547,
+      longitude: 35.8623,
+    },
+    areaServed: [
+      { '@type': 'City', name: 'Beirut' },
+      { '@type': 'City', name: 'Tripoli' },
+      { '@type': 'City', name: 'Sidon' },
+      { '@type': 'City', name: 'Byblos' },
+      { '@type': 'City', name: 'Bekaa' },
+      { '@type': 'City', name: 'Mont Liban' },
+    ],
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        telephone: '+961-81001301',
+        contactType: 'customer service',
+        areaServed: 'LB',
+        availableLanguage: ['en', 'fr', 'ar'],
+        contactOption: 'TollFree',
+        hoursAvailable: {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: [
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+            'Sunday',
+          ],
+          opens: '00:00',
+          closes: '23:59',
+        },
+      },
+    ],
     sameAs: [
-      'https://www.facebook.com/profile.php?id=61584938841683#',
+      'https://www.facebook.com/profile.php?id=61584938841683',
       'https://www.instagram.com/rento_lebanon/',
       'https://x.com/RENTO_lb',
       'https://www.linkedin.com/company/rento-lb/about/',
     ],
-    potentialAction: [
-      {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: 'https://rento-lb.com/search?query={search_term_string}',
-          inLanguage: 'en',
-          actionPlatform: [
-            'http://schema.org/DesktopWebPlatform',
-            'http://schema.org/MobileWebPlatform',
-          ],
-        },
-        'query-input': 'required name=search_term_string',
+  };
+
+  // WebSite Schema with Search Action
+  const webSiteData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Rento LB',
+    url: 'https://rento-lb.com/',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: 'https://rento-lb.com/search?query={search_term_string}',
       },
-      {
-        '@type': 'ReserveAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: 'https://rento-lb.com/booking/{vehicle_id}',
-          inLanguage: 'en',
-          actionPlatform: [
-            'http://schema.org/DesktopWebPlatform',
-            'http://schema.org/MobileWebPlatform',
-          ],
-        },
-      },
-    ],
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
+  // Organization/Offer Catalog Schema
+  const organizationData = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': 'https://rento-lb.com/#organization',
+    name: 'Rento LB',
+    url: 'https://rento-lb.com/',
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
       name: 'Car Rental in Lebanon',
@@ -157,22 +192,10 @@ export const SEO = () => {
           }))
         ),
     },
-    speakable: {
-      '@type': 'SpeakableSpecification',
-      cssSelector: ['#faq-section'],
-      xpath: ["//*[@id='main-faq']"],
-    },
-    mainEntity: {
-      '@type': 'WebPage',
-      mainContentOfPage: {
-        '@type': 'WebPageElement',
-        cssSelector: '#main-content',
-      },
-    },
   };
 
   if (INCLUDE_AGGREGATE_RATING) {
-    structuredData.aggregateRating = {
+    organizationData.aggregateRating = {
       '@type': 'AggregateRating',
       ratingValue: '4.7',
       reviewCount: '350',
@@ -314,9 +337,7 @@ export const SEO = () => {
         content="Transportation,Travel,CarRental,LuxuryServices"
       />
 
-      {/* Alternate Languages 
-          If you have real /fr and /ar URLs, update href accordingly.
-      */}
+      {/* Alternate Languages */}
       <link rel="alternate" href="https://rento-lb.com" hrefLang="en" />
       <link rel="alternate" href="https://rento-lb.com" hrefLang="fr" />
       <link rel="alternate" href="https://rento-lb.com" hrefLang="ar" />
@@ -333,7 +354,7 @@ export const SEO = () => {
         property="og:description"
         content="Compare and book rental cars in Lebanon from agencies and private owners. 10,000+ vehicles, transparent pricing, real-time availability, and 24/7 customer support. Economy cars from $50/day, SUVs from $80/day, luxury from $150/day."
       />
-      <meta property="og:image" content="https://rento-lb.com/rentologo.jpg" />
+      <meta property="og:image" content="https://rento-lb.com/rentologo.png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta
@@ -357,8 +378,7 @@ export const SEO = () => {
         name="twitter:description"
         content="Compare and book rental cars in Lebanon from agencies and private owners. 10,000+ vehicles with transparent pricing and 24/7 support."
       />
-      {/* Use a direct image URL, not a profile page */}
-      <meta name="twitter:image" content="https://rento-lb.com/rentologo.jpg" />
+      <meta name="twitter:image" content="https://rento-lb.com/rentologo.png" />
       <meta
         name="twitter:image:alt"
         content="Rento LB - Lebanon's Premier Car Rental Aggregator"
@@ -367,11 +387,25 @@ export const SEO = () => {
       {/* Canonical */}
       <link rel="canonical" href="https://rento-lb.com" />
 
-      {/* Structured Data */}
+      {/* LocalBusiness Schema - PRIMARY for Google Search & Logo Display */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessData) }}
       />
+
+      {/* WebSite Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteData) }}
+      />
+
+      {/* Organization/Offer Catalog Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+      />
+
+      {/* CarRental Detailed Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(carRentalData) }}
