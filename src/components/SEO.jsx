@@ -411,31 +411,26 @@ export const SEO = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(carRentalData) }}
       />
 
-      {/* FAQ Structured Data */}
-      {Object.entries(faqsByLanguage).map(([lang, faqs]) => {
-        const faqJsonLd = {
-          '@context': 'https://schema.org',
-          '@type': 'FAQPage',
-          mainEntity: faqs.map((f) => ({
-            '@type': 'Question',
-            name: f.question,
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: f.answer,
-            },
-          })),
-        };
-
-        return (
-          <script
-            key={lang}
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(faqJsonLd),
-            }}
-          />
-        );
-      })}
+      {/* FAQ Structured Data - Single FAQPage with all languages */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: Object.values(faqsByLanguage)
+              .flat()
+              .map((f) => ({
+                '@type': 'Question',
+                name: f.question,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: f.answer,
+                },
+              })),
+          }),
+        }}
+      />
     </>
   );
 };
