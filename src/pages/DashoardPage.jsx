@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { 
-  Plus, CalendarCheck, Settings, Bell, LogOut, Car, AlertCircle, TrendingUp, Clock, Menu, Moon, Sun
+  Plus, CalendarCheck, Settings, Wallet, Bell, LogOut, Car, AlertCircle, TrendingUp, Clock, Menu, Moon, Sun
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
@@ -161,7 +161,7 @@ export default function DashboardPage() {
     { title: "Add New Car", icon: Plus, href: "/add-car", gradient: "from-teal-500 to-cyan-500" },
     { title: "My Cars", icon: Car, href: "/Mycars", gradient: "from-indigo-500 to-purple-500" },
     { title: "View Bookings", icon: CalendarCheck, href: "/Mycars-bookings", gradient: "from-blue-500 to-cyan-500" },
-    { title: "Settings", icon: Settings, href: "/settings", gradient: "from-gray-600 to-gray-800" },
+    { title: "Wallet", icon: Wallet, href: "/wallet", gradient: "from-gray-600 to-gray-800" },
   ];
 
   const statsCards = [

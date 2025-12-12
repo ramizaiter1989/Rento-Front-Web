@@ -33,7 +33,7 @@ export const Footer = () => {
     { icon: Linkedin, href: "https://www.linkedin.com/company/rento-lb/about/", label: "LinkedIn" }
   ];
 
-  // Optional: Load Trustpilot script for advanced widget (if needed)
+  // Optional: Load Trustpilot script for advanced widget
   useEffect(() => {
     if (!document.querySelector('script[src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"]')) {
       const script = document.createElement('script');
@@ -57,6 +57,10 @@ export const Footer = () => {
               Experience luxury on the road with our premium fleet of high-end vehicles.
             </p>
             <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-3 h-3 text-secondary" />
+                <span>124-128 City Road, London, England, EC1V 2NX</span>
+              </div>
               <div className="flex items-center space-x-2">
                 <MapPin className="w-3 h-3 text-secondary" />
                 <span>Mount Liban, Hazmieh, Lebanon</span>
@@ -137,9 +141,14 @@ export const Footer = () => {
             ))}
           </div>
 
-          {/* DMCA & Trustpilot */}
-          <div className="flex items-center space-x-2">
-            <a href="//www.dmca.com/Protection/Status.aspx?ID=25eee832-1169-46e9-9a63-19f82b7e1b01" title="DMCA.com Protection Status" className="dmca-badge">
+          {/* DMCA, Trustpilot & Verified Info */}
+          <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-3 text-xs">
+            {/* DMCA Badge */}
+            <a
+              href="//www.dmca.com/Protection/Status.aspx?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
+              title="DMCA.com Protection Status"
+              className="dmca-badge"
+            >
               <img
                 src="https://images.dmca.com/Badges/dmca_protected_sml_120aj.png?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
                 alt="DMCA.com Protection Status"
@@ -155,6 +164,21 @@ export const Footer = () => {
               className="px-3 py-1 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-xs font-medium shadow-md"
             >
               Leave a Trustpilot Review
+            </a>
+
+            {/* Google Verified Text */}
+            <span className="px-2 py-1 bg-green-600 text-white rounded-lg">
+              Verified on Google Business
+            </span>
+
+            {/* UK Company Registration */}
+            <a
+              href="https://find-and-update.company-information.service.gov.uk/company/16292007"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              UK Registered Company
             </a>
           </div>
         </div>

@@ -141,58 +141,66 @@ export const SEO = () => {
   };
 
   // Organization/Offer Catalog Schema
-  const organizationData = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': 'https://rento-lb.com/#organization',
-    name: 'Rento LB',
-    url: 'https://rento-lb.com/',
-    hasOfferCatalog: {
-      '@type': 'OfferCatalog',
-      name: 'Car Rental in Lebanon',
-      // Limit the number of offers to avoid an enormous JSON-LD blob
-      itemListElement: partners
-        .slice(0, 10)
-        .flatMap((p) =>
-          OFFER_CATEGORIES.map((type) => ({
-            '@type': 'Offer',
-            name: `${type} Car Rental from ${p.name}`,
-            url: p.url,
-            category: `CarRental:${type}`,
-            offeredBy: {
-              '@type': 'Organization',
-              name: p.name,
-            },
-            priceSpecification: {
-              '@type': 'PriceSpecification',
-              price:
-                type === 'Economy'
-                  ? '50'
-                  : type === 'SUV'
-                  ? '80'
-                  : type === 'Luxury'
-                  ? '150'
-                  : '200',
-              priceCurrency: 'USD',
-              valueAddedTaxIncluded: 'true',
-              validFrom: '2023-01-01',
-              validThrough: '2026-12-31',
-            },
-            availability: 'https://schema.org/InStock',
-            areaServed: {
-              '@type': 'Country',
-              name: 'Lebanon',
-              isoCode: 'LB',
-            },
-            itemOffered: {
-              '@type': 'Service',
-              name: `${type} Car Rental in Lebanon`,
-              description: `Rent a ${type.toLowerCase()} car in Lebanon through ${p.name} via Rento LB's platform with 24/7 support and transparent pricing.`,
-            },
-          }))
-        ),
-    },
-  };
+const organizationData = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': 'https://rento-lb.com/#organization',
+  name: 'RENTO TECHNOLOGIES SOLUTION LTD',
+  legalName: 'RENTO TECHNOLOGIES SOLUTION LTD',
+  url: 'https://rento-lb.com/',
+  logo: 'https://rento-lb.com/rentologo.png',
+  foundingDate: '2025-03-04',
+  founder: {
+    '@type': 'Person',
+    name: 'Rami Zeaiter',
+  },
+  registrationNumber: '16292007',
+  sameAs: [
+    'https://www.facebook.com/profile.php?id=61584938841683',
+    'https://www.instagram.com/rento_lebanon/',
+    'https://x.com/RENTO_lb',
+    'https://www.linkedin.com/company/rento-lb/about/',
+    'https://find-and-update.company-information.service.gov.uk/company/16292007'
+  ],
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Car Rental in Lebanon',
+    itemListElement: partners
+      .slice(0, 10)
+      .flatMap((p) =>
+        OFFER_CATEGORIES.map((type) => ({
+          '@type': 'Offer',
+          name: `${type} Car Rental from ${p.name}`,
+          url: p.url,
+          category: `CarRental:${type}`,
+          offeredBy: { '@type': 'Organization', name: p.name },
+          priceSpecification: {
+            '@type': 'PriceSpecification',
+            price:
+              type === 'Economy'
+                ? '50'
+                : type === 'SUV'
+                ? '80'
+                : type === 'Luxury'
+                ? '150'
+                : '200',
+            priceCurrency: 'USD',
+            valueAddedTaxIncluded: 'true',
+            validFrom: '2023-01-01',
+            validThrough: '2026-12-31',
+          },
+          availability: 'https://schema.org/InStock',
+          areaServed: { '@type': 'Country', name: 'Lebanon', isoCode: 'LB' },
+          itemOffered: {
+            '@type': 'Service',
+            name: `${type} Car Rental in Lebanon`,
+            description: `Rent a ${type.toLowerCase()} car in Lebanon through ${p.name} via Rento LB's platform with 24/7 support and transparent pricing.`,
+          },
+        }))
+      ),
+  },
+};
+
 
   if (INCLUDE_AGGREGATE_RATING) {
     organizationData.aggregateRating = {

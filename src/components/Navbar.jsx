@@ -6,7 +6,7 @@ import { getFavorites } from '@/utils/localStorage';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [favCount, setFavCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();

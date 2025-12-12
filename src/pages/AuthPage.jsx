@@ -1,34 +1,49 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Phone,
-  Lock,
-  User,
-  RefreshCw,
-  ArrowLeft,
-  Car,
-} from "lucide-react";
+import { Phone, Lock, User, RefreshCw, ArrowLeft, Car } from "lucide-react";
 import { toast } from "sonner";
+import countriesData from "@/lib/countries.json";
 
+// ===================
+// PhoneRow Component
+// ===================
+const onlyDigits = (v) => v.replace(/\D/g, "");
+
+const PhoneRow = ({ countries, iso2, setIso2, phone, setPhone, disabledPhone }) => (
+  <div className="flex gap-2 w-full">
+    <select
+      value={iso2}
+      onChange={(e) => setIso2(e.target.value)}
+      className="w-[140px] sm:w-[190px] shrink-0 bg-white text-black p-2 border rounded"
+    >
+      {countries.map((c) => (
+        <option key={c.iso2} value={c.iso2}>
+          {c.name} ({c.dialCode})
+        </option>
+      ))}
+    </select>
+
+    <input
+      type="tel"
+      inputMode="numeric"
+      value={phone}
+      onChange={(e) => setPhone(onlyDigits(e.target.value))}
+      placeholder="70123456"
+      className="flex-1 pl-2 border rounded text-black"
+      disabled={disabledPhone}
+    />
+  </div>
+);
+
+// ===================
+// AuthPage Component
+// ===================
 export function AuthPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("login");
@@ -36,38 +51,48 @@ export function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // =============================
+  // Countries
+  // =============================
+  const countries = useMemo(() => {
+    return countriesData
+      .map((c) => ({
+        name: c.name,
+        iso2: c.iso2,
+        dialCode: c.dialCode.startsWith("+") ? c.dialCode : `+${c.dialCode}`,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const dialCodeByIso2 = useMemo(() => {
+    const map = new Map();
+    for (const c of countries) map.set(c.iso2, c.dialCode);
+    return map;
+  }, [countries]);
+
+  const getDialCode = (iso2) => dialCodeByIso2.get(iso2) || "+961";
+
+  // =============================
   // LOGIN STATE
   // =============================
-  const [loginData, setLoginData] = useState({
-    phone_number: "",
-    password: "",
-  });
+  const [loginPhone, setLoginPhone] = useState("");
+  const [loginCountryIso2, setLoginCountryIso2] = useState("LB");
+  const [loginPassword, setLoginPassword] = useState("");
 
   const handleLogin = async () => {
-    if (!loginData.phone_number || !loginData.password) {
-      return toast.error("Please fill all fields");
-    }
+    const fullPhone = `${getDialCode(loginCountryIso2)}${loginPhone.replace(/^0+/, "")}`;
+    if (!loginPhone || !loginPassword) return toast.error("Please fill all fields");
+    if (!/^\+\d{8,15}$/.test(fullPhone)) return toast.error("Invalid phone number.");
 
     try {
       setLoading(true);
-      const res = await api.post("/auth/login", loginData);
-
+      const res = await api.post("/auth/login", { phone_number: fullPhone, password: loginPassword });
       localStorage.setItem("authToken", res.data.token);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-
       toast.success("Login successful!");
-
-      if (!res.data.user.profile_complete) {
-        navigate("/Complete-Profile");
-        return;
-      }
-
-      if (res.data.user.role === "agency" || res.data.user.role === "agent") {
-        navigate("/Dashboard");
-      } else {
-        navigate("/");
-      }
+      if (!res.data.user.profile_complete) return navigate("/Complete-Profile");
+      if (["agency", "agent"].includes(res.data.user.role)) navigate("/Dashboard");
+      else navigate("/");
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed.");
     } finally {
@@ -76,70 +101,52 @@ export function AuthPage() {
   };
 
   // =============================
-  // REGISTRATION STATE & FLOW
+  // REGISTRATION STATE
   // =============================
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regCountryIso2, setRegCountryIso2] = useState("LB");
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
   const [canResend, setCanResend] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-
-  const [registerData, setRegisterData] = useState({
-    username: "",
-    first_name: "",
-    last_name: "",
-    license_number: "",
-    password: "",
-    password_confirmation: "",
-    role: "client",
-    business_type: "",
-  });
+  const [registerData, setRegisterData] = useState({ username: "", password: "", password_confirmation: "" });
 
   useEffect(() => {
     let interval;
     if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      interval = setInterval(() => setResendTimer((prev) => (prev <= 1 ? (setCanResend(true), 0) : prev - 1)), 1000);
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
 
   const resetRegistrationFlow = () => {
-    setPhoneNumber("");
+    setRegPhone("");
     setOtpSent(false);
     setOtpCode("");
     setOtpVerified(false);
     setCanResend(false);
     setResendTimer(0);
-    setRegisterData({
-      username: "",
-      first_name: "",
-      last_name: "",
-      license_number: "",
-      password: "",
-      password_confirmation: "",
-      role: "client",
-      business_type: "",
-    });
+    setRegisterData({ username: "", password: "", password_confirmation: "" });
+  };
+
+  const changeRegisterNumber = () => {
+    setOtpSent(false);
+    setOtpCode("");
+    setOtpVerified(false);
+    setCanResend(false);
+    setResendTimer(0);
+    setRegPhone("");
   };
 
   const handleSendOtp = async () => {
-    if (!phoneNumber) return toast.error("Please enter a phone number.");
-    if (!/^\+\d{8,15}$/.test(phoneNumber)) {
-      return toast.error("Please enter a valid phone number with country code.");
-    }
+    if (!regPhone) return toast.error("Please enter a phone number.");
+    const fullPhone = `${getDialCode(regCountryIso2)}${regPhone.replace(/^0+/, "")}`;
+    if (!/^\+\d{8,15}$/.test(fullPhone)) return toast.error("Invalid phone number.");
 
     try {
       setLoading(true);
-      await api.post("/auth/send-otp", { phone_number: phoneNumber });
+      await api.post("/auth/send-otp", { phone_number: fullPhone });
       toast.success("OTP sent! Check your phone.");
       setOtpSent(true);
       setCanResend(false);
@@ -151,21 +158,16 @@ export function AuthPage() {
     }
   };
 
-  const handleResendOtp = async () => {
-    if (!canResend) return;
-    await handleSendOtp();
-  };
+  const handleResendOtp = async () => canResend && handleSendOtp();
 
   const handleVerifyOtp = async () => {
-    if (!otpCode) return toast.error("Please enter the OTP code.");
+    if (!otpCode) return toast.error("Please enter OTP code.");
+    const fullPhone = `${getDialCode(regCountryIso2)}${regPhone.replace(/^0+/, "")}`;
 
     try {
       setLoading(true);
-      await api.post("/auth/verify-otp", {
-        phone_number: phoneNumber,
-        otp_code: otpCode,
-      });
-      toast.success("OTP verified! Complete your registration.");
+      await api.post("/auth/verify-otp", { phone_number: fullPhone, otp_code: otpCode });
+      toast.success("OTP verified! Complete registration.");
       setOtpVerified(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP.");
@@ -175,40 +177,30 @@ export function AuthPage() {
   };
 
   const handleRegister = async () => {
-    if (registerData.password !== registerData.password_confirmation) {
-      return toast.error("Passwords do not match!");
-    }
-    if (registerData.password.length < 6) {
-      return toast.error("Password must be at least 6 characters long.");
-    }
+    if (registerData.password !== registerData.password_confirmation) return toast.error("Passwords do not match!");
+    if (registerData.password.length < 6) return toast.error("Password must be at least 6 characters.");
+    const fullPhone = `${getDialCode(regCountryIso2)}${regPhone.replace(/^0+/, "")}`;
 
     try {
       setLoading(true);
-      const payload = {
-        phone_number: phoneNumber,
+      const res = await api.post("/auth/register", {
+        phone_number: fullPhone,
         otp_code: otpCode,
-        ...registerData,
-        ...(registerData.role === "agency" && {
-          business_type: registerData.business_type,
-        }),
-      };
-
-      const res = await api.post("/auth/register", payload);
-
+        username: registerData.username,
+        password: registerData.password,
+        password_confirmation: registerData.password_confirmation,
+      });
       localStorage.setItem("authToken", res.data.token);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      toast.success("Registration successful! Please complete your profile.");
+      toast.success("Registration successful! Complete your profile.");
       navigate("/Complete-Profile");
     } catch (err) {
       if (err.response?.data?.errors) {
-        Object.keys(err.response.data.errors).forEach((key) => {
-          err.response.data.errors[key].forEach((error) => toast.error(error));
-        });
-      } else {
-        toast.error(err.response?.data?.message || "Registration failed.");
-      }
+        Object.keys(err.response.data.errors).forEach((key) =>
+          err.response.data.errors[key].forEach((error) => toast.error(error))
+        );
+      } else toast.error(err.response?.data?.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -218,6 +210,7 @@ export function AuthPage() {
   // FORGOT PASSWORD STATE
   // =============================
   const [forgotPhone, setForgotPhone] = useState("");
+  const [forgotCountryIso2, setForgotCountryIso2] = useState("LB");
   const [forgotOtpSent, setForgotOtpSent] = useState(false);
   const [forgotOtpCode, setForgotOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -228,15 +221,7 @@ export function AuthPage() {
   useEffect(() => {
     let interval;
     if (forgotResendTimer > 0) {
-      interval = setInterval(() => {
-        setForgotResendTimer((prev) => {
-          if (prev <= 1) {
-            setForgotCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      interval = setInterval(() => setForgotResendTimer((prev) => (prev <= 1 ? (setForgotCanResend(true), 0) : prev - 1)), 1000);
     }
     return () => clearInterval(interval);
   }, [forgotResendTimer]);
@@ -252,16 +237,25 @@ export function AuthPage() {
     setForgotResendTimer(0);
   };
 
+  const changeForgotNumber = () => {
+    setForgotPhone("");
+    setForgotOtpSent(false);
+    setForgotOtpCode("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setForgotCanResend(false);
+    setForgotResendTimer(0);
+  };
+
   const handleSendForgotOtp = async () => {
     if (!forgotPhone) return toast.error("Please enter your phone number.");
-    if (!/^\+\d{10,15}$/.test(forgotPhone)) {
-      return toast.error("Please enter a valid phone number with country code.");
-    }
+    const fullPhone = `${getDialCode(forgotCountryIso2)}${forgotPhone.replace(/^0+/, "")}`;
+    if (!/^\+\d{8,15}$/.test(fullPhone)) return toast.error("Invalid phone number.");
 
     try {
       setLoading(true);
-      await api.post("/auth/forgot-password", { phone_number: forgotPhone });
-      toast.success("OTP sent! Check your phone.");
+      await api.post("/auth/forgot-password", { phone_number: fullPhone });
+      toast.success("OTP sent!");
       setForgotOtpSent(true);
       setForgotCanResend(false);
       setForgotResendTimer(60);
@@ -272,32 +266,25 @@ export function AuthPage() {
     }
   };
 
-  const handleResendForgotOtp = async () => {
-    if (!forgotCanResend) return;
-    await handleSendForgotOtp();
-  };
+  const handleResendForgotOtp = async () => forgotCanResend && handleSendForgotOtp();
 
   const handleResetPassword = async () => {
-    if (!forgotOtpCode) return toast.error("Please enter the OTP code.");
-    if (!newPassword || !confirmNewPassword) {
-      return toast.error("Please enter your new password.");
-    }
-    if (newPassword !== confirmNewPassword) {
-      return toast.error("Passwords do not match!");
-    }
-    if (newPassword.length < 6) {
-      return toast.error("Password must be at least 6 characters long.");
-    }
+    if (!forgotOtpCode) return toast.error("Please enter OTP code.");
+    if (!newPassword || !confirmNewPassword) return toast.error("Enter new password.");
+    if (newPassword !== confirmNewPassword) return toast.error("Passwords do not match.");
+    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters.");
+
+    const fullPhone = `${getDialCode(forgotCountryIso2)}${forgotPhone.replace(/^0+/, "")}`;
 
     try {
       setLoading(true);
       await api.post("/auth/reset-password", {
-        phone_number: forgotPhone,
+        phone_number: fullPhone,
         otp_code: forgotOtpCode,
         new_password: newPassword,
         new_password_confirmation: confirmNewPassword,
       });
-      toast.success("Password reset successfully! You can now login.");
+      toast.success("Password reset successfully!");
       resetForgotPasswordFlow();
       setActiveTab("login");
     } catch (err) {
@@ -308,143 +295,108 @@ export function AuthPage() {
   };
 
   // =============================
-  // FORGOT PASSWORD VIEW
+  // RENDER
   // =============================
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-black via-[#0B1120] to-[#020617] text-slate-100">
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-background via-primary/5 to-secondary/5">
         <div className="w-full max-w-md">
-          <Button
-            variant="ghost"
-            onClick={resetForgotPasswordFlow}
-            className="mb-6 hover:bg-slate-900 text-slate-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Login
+          <Button variant="ghost" onClick={resetForgotPasswordFlow} className="mb-6 hover:bg-muted">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
           </Button>
 
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#EAB308] to-[#FACC15] flex items-center justify-center shadow-lg mb-4">
-              <Car className="w-8 h-8 text-[#020617]" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg mb-4">
+              <Car className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#EAB308] via-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
-              Rento LB
-            </h1>
-            <p className="text-slate-400 mt-2">Reset Your Password</p>
+            <h1 className="text-3xl font-bold gradient-text">Rento LB</h1>
+            <p className="text-muted-foreground mt-2">Reset Your Password</p>
           </div>
 
-          <Card className="hover-glow shadow-xl bg-[#020617] border border-slate-800 text-slate-100">
+          <Card className="hover-glow shadow-xl">
             <CardHeader>
               <CardTitle className="text-2xl">Reset Password</CardTitle>
-              <CardDescription className="text-slate-400">
-                Enter your phone number to receive an OTP
-              </CardDescription>
+              <CardDescription>Enter your phone number to receive an OTP</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label>Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <Input
-                      type="tel"
-                      value={forgotPhone}
-                      onChange={(e) => setForgotPhone(e.target.value)}
-                      placeholder="+96170123456"
-                      className="pl-10 bg-black/40 border-slate-700 text-slate-100"
-                      disabled={forgotOtpSent}
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Include country code
-                  </p>
-                </div>
+
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Phone Number</Label>
+                <PhoneRow
+                  countries={countries}
+                  iso2={forgotCountryIso2}
+                  setIso2={setForgotCountryIso2}
+                  phone={forgotPhone}
+                  setPhone={setForgotPhone}
+                  disabledPhone={false}
+                />
 
                 {forgotOtpSent && (
-                  <>
-                    <div>
-                      <Label>OTP Code</Label>
-                      <Input
-                        type="text"
-                        value={forgotOtpCode}
-                        onChange={(e) => setForgotOtpCode(e.target.value)}
-                        placeholder="Enter 6-digit OTP"
-                        maxLength={6}
-                        className="bg-black/40 border-slate-700 text-slate-100"
-                      />
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-slate-500">
-                          Check your phone
-                        </p>
-                        {forgotResendTimer > 0 ? (
-                          <p className="text-xs text-slate-500">
-                            Resend in {forgotResendTimer}s
-                          </p>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="link"
-                            size="sm"
-                            onClick={handleResendForgotOtp}
-                            disabled={!forgotCanResend || loading}
-                            className="h-auto p-0 text-xs text-[#EAB308]"
-                          >
-                            <RefreshCw className="w-3 h-3 mr-1" />
-                            Resend OTP
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>New Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <Input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
-                          minLength={6}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Confirm New Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <Input
-                          type="password"
-                          value={confirmNewPassword}
-                          onChange={(e) =>
-                            setConfirmNewPassword(e.target.value)
-                          }
-                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {!forgotOtpSent ? (
-                  <Button
-                    onClick={handleSendForgotOtp}
-                    className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
-                    disabled={loading}
-                  >
-                    {loading ? "Sending..." : "Send OTP"}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleResetPassword}
-                    className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
-                    disabled={loading}
-                  >
-                    {loading ? "Resetting..." : "Reset Password"}
+                  <Button type="button" variant="link" size="sm" onClick={changeForgotNumber} className="px-0">
+                    Change number
                   </Button>
                 )}
               </div>
+
+              {forgotOtpSent ? (
+                <>
+                  <div>
+                    <Label>OTP Code</Label>
+                    <Input
+                      type="text"
+                      value={forgotOtpCode}
+                      onChange={(e) => setForgotOtpCode(e.target.value)}
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      {forgotResendTimer > 0 ? (
+                        <p className="text-xs text-muted-foreground">Resend in {forgotResendTimer}s</p>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="link"
+                          size="sm"
+                          onClick={handleResendForgotOtp}
+                          disabled={!forgotCanResend || loading}
+                          className="h-auto p-0 text-xs"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" /> Resend OTP
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>New Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pl-10" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Confirm New Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <Button onClick={handleResetPassword} className="w-full bg-gradient-to-r from-primary to-secondary">
+                    {loading ? "Resetting..." : "Reset Password"}
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={handleSendForgotOtp} className="w-full bg-gradient-to-r from-primary to-secondary">
+                  {loading ? "Sending..." : "Send OTP"}
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -452,39 +404,25 @@ export function AuthPage() {
     );
   }
 
-  // =============================
-  // MAIN AUTH VIEW
-  // =============================
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-black via-[#0B1120] to-[#020617] text-slate-100">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       <div className="w-full max-w-md">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6 hover:bg-slate-900 text-slate-200"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
+        <Button variant="ghost" onClick={() => navigate("/")} className="mb-6 hover:bg-muted">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Home
         </Button>
 
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#EAB308] to-[#FACC15] flex items-center justify-center shadow-lg mb-4">
-            <Car className="w-8 h-8 text-[#020617]" />
+          <div className="w-16 h-16 rounded-2xl bg-transparent flex items-center justify-center shadow-lg mb-4">
+            <img src="/rentologo.png" alt="Rento Logo" className="w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#EAB308] via-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
-            Rento LB
-          </h1>
-          <p className="text-slate-400 mt-2">
-            Lebanon&apos;s Premier Car Rental
-          </p>
+          <h1 className="text-3xl font-bold gradient-text">Rento LB</h1>
+          <p className="text-muted-foreground mt-2">Lebanon's Premier Car Rental</p>
         </div>
 
-        <Card className="hover-glow shadow-xl bg-[#020617] border border-slate-800 text-slate-100">
+        <Card className="hover-glow shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl text-center">Welcome</CardTitle>
-            <CardDescription className="text-center text-slate-400">
-              Login or register to continue
-            </CardDescription>
+            <CardDescription className="text-center">Login or register to continue</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -495,324 +433,138 @@ export function AuthPage() {
                 if (val === "register") resetRegistrationFlow();
               }}
             >
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-900">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
 
-              {/* ========== LOGIN TAB ========== */}
+              {/* ===== LOGIN TAB ===== */}
               <TabsContent value="login">
-                <div className="space-y-4">
+                <div className="space-y-4 text-black">
                   <div>
                     <Label>Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                      <Input
-                        type="text"
-                        value={loginData.phone_number}
-                        onChange={(e) =>
-                          setLoginData({
-                            ...loginData,
-                            phone_number: e.target.value,
-                          })
-                        }
-                        placeholder="+96170123456"
-                        className="pl-10 bg-black/40 border-slate-700 text-slate-100"
-                      />
-                    </div>
+                    <PhoneRow
+                      countries={countries}
+                      iso2={loginCountryIso2}
+                      setIso2={setLoginCountryIso2}
+                      phone={loginPhone}
+                      setPhone={setLoginPhone}
+                      disabledPhone={false}
+                    />
                   </div>
 
                   <div>
                     <Label>Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         type="password"
-                        value={loginData.password}
-                        onChange={(e) =>
-                          setLoginData({
-                            ...loginData,
-                            password: e.target.value,
-                          })
-                        }
-                        className="pl-10 bg-black/40 border-slate-700 text-slate-100"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="pl-10"
+                        placeholder="Enter password"
                       />
                     </div>
                   </div>
 
                   <Button
-                    type="button"
-                    variant="link"
-                    className="w-full text-sm p-0 h-auto text-[#EAB308]"
-                    onClick={() => setShowForgotPassword(true)}
-                  >
-                    Forgot Password?
-                  </Button>
-
-                  <Button
                     onClick={handleLogin}
+                    className="w-full bg-gradient-to-r from-primary to-secondary"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
                   >
                     {loading ? "Logging in..." : "Login"}
+                  </Button>
+
+                  <Button variant="link" size="sm" onClick={() => setShowForgotPassword(true)}>
+                    Forgot Password?
                   </Button>
                 </div>
               </TabsContent>
 
-              {/* ========== REGISTER TAB ========== */}
+              {/* ===== REGISTER TAB ===== */}
               <TabsContent value="register">
-                {!otpVerified ? (
-                  <div className="space-y-4">
-                    <div>
+                <div className="space-y-4 text-black">
+                  {!otpSent ? (
+                    <>
                       <Label>Phone Number</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <Input
-                          type="tel"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="+96170123456"
-                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
-                          disabled={otpSent}
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Include country code (e.g., +961)
-                      </p>
-                    </div>
-
-                    {otpSent && (
+                      <PhoneRow
+                        countries={countries}
+                        iso2={regCountryIso2}
+                        setIso2={setRegCountryIso2}
+                        phone={regPhone}
+                        setPhone={setRegPhone}
+                        disabledPhone={false}
+                      />
+                      <Button onClick={handleSendOtp} className="w-full bg-gradient-to-r from-primary to-secondary">
+                        {loading ? "Sending OTP..." : "Send OTP"}
+                      </Button>
+                    </>
+                  ) : !otpVerified ? (
+                    <>
                       <div>
                         <Label>OTP Code</Label>
                         <Input
                           type="text"
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="Enter 6-digit OTP"
-                          maxLength={6}
-                          className="bg-black/40 border-slate-700 text-slate-100"
+                          placeholder="Enter OTP"
                         />
                         <div className="flex items-center justify-between mt-2">
-                          <p className="text-xs text-slate-500">
-                            Check your phone
-                          </p>
                           {resendTimer > 0 ? (
-                            <p className="text-xs text-slate-500">
-                              Resend in {resendTimer}s
-                            </p>
+                            <p className="text-xs text-muted-foreground">Resend in {resendTimer}s</p>
                           ) : (
-                            <Button
-                              type="button"
-                              variant="link"
-                              size="sm"
-                              onClick={handleResendOtp}
-                              disabled={!canResend || loading}
-                              className="h-auto p-0 text-xs text-[#EAB308]"
-                            >
-                              <RefreshCw className="w-3 h-3 mr-1" />
-                              Resend OTP
+                            <Button type="button" variant="link" size="sm" onClick={handleResendOtp} disabled={!canResend || loading}>
+                              <RefreshCw className="w-3 h-3 mr-1" /> Resend OTP
                             </Button>
                           )}
                         </div>
                       </div>
-                    )}
 
-                    <div className="flex gap-2">
-                      {!otpSent ? (
-                        <Button
-                          onClick={handleSendOtp}
-                          className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
-                          disabled={loading}
-                        >
-                          {loading ? "Sending..." : "Send OTP"}
-                        </Button>
-                      ) : (
-                        <>
-                          <Button
-                            variant="outline"
-                            onClick={resetRegistrationFlow}
-                            className="w-1/3 border-slate-700 text-slate-200 hover:bg-slate-900"
-                            disabled={loading}
-                          >
-                            Change
-                          </Button>
-                          <Button
-                            onClick={handleVerifyOtp}
-                            className="w-2/3 bg-gradient-to-r from-[#FACC15] to-[#F97316] text-[#020617] font-semibold"
-                            disabled={loading}
-                          >
-                            {loading ? "Verifying..." : "Verify OTP"}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Username</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Button onClick={handleVerifyOtp} className="w-full bg-gradient-to-r from-primary to-secondary">
+                        {loading ? "Verifying..." : "Verify OTP"}
+                      </Button>
+
+                      <Button variant="link" size="sm" onClick={changeRegisterNumber}>
+                        Change phone number
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <Label>Username</Label>
                         <Input
                           type="text"
                           value={registerData.username}
-                          onChange={(e) =>
-                            setRegisterData({
-                              ...registerData,
-                              username: e.target.value,
-                            })
-                          }
-                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
+                          onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
                         />
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label>First Name</Label>
+                        <Label>Password</Label>
                         <Input
-                          type="text"
-                          value={registerData.first_name}
-                          onChange={(e) =>
-                            setRegisterData({
-                              ...registerData,
-                              first_name: e.target.value,
-                            })
-                          }
-                          className="bg-black/40 border-slate-700 text-slate-100"
+                          type="password"
+                          value={registerData.password}
+                          onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                         />
                       </div>
+
                       <div>
-                        <Label>Last Name</Label>
+                        <Label>Confirm Password</Label>
                         <Input
-                          type="text"
-                          value={registerData.last_name}
-                          onChange={(e) =>
-                            setRegisterData({
-                              ...registerData,
-                              last_name: e.target.value,
-                            })
-                          }
-                          className="bg-black/40 border-slate-700 text-slate-100"
+                          type="password"
+                          value={registerData.password_confirmation}
+                          onChange={(e) => setRegisterData({ ...registerData, password_confirmation: e.target.value })}
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <Label>License Number</Label>
-                      <Input
-                        type="text"
-                        value={registerData.license_number}
-                        onChange={(e) =>
-                          setRegisterData({
-                            ...registerData,
-                            license_number: e.target.value,
-                          })
-                        }
-                        className="bg-black/40 border-slate-700 text-slate-100"
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Password</Label>
-                      <Input
-                        type="password"
-                        value={registerData.password}
-                        onChange={(e) =>
-                          setRegisterData({
-                            ...registerData,
-                            password: e.target.value,
-                          })
-                        }
-                        minLength={6}
-                        className="bg-black/40 border-slate-700 text-slate-100"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        Minimum 6 characters
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label>Confirm Password</Label>
-                      <Input
-                        type="password"
-                        value={registerData.password_confirmation}
-                        onChange={(e) =>
-                          setRegisterData({
-                            ...registerData,
-                            password_confirmation: e.target.value,
-                          })
-                        }
-                        className="bg-black/40 border-slate-700 text-slate-100"
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Role</Label>
-                      <Select
-                        value={registerData.role}
-                        onValueChange={(value) =>
-                          setRegisterData({ ...registerData, role: value })
-                        }
-                      >
-                        <SelectTrigger className="bg-black/40 border-slate-700 text-slate-100">
-                          <SelectValue placeholder="Select Role" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#020617] border-slate-700 text-slate-100">
-                          <SelectItem value="client">Client</SelectItem>
-                          <SelectItem value="agency">Agency</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {registerData.role === "agency" && (
-                      <div>
-                        <Label>Business Type</Label>
-                        <Input
-                          type="text"
-                          value={registerData.business_type}
-                          onChange={(e) =>
-                            setRegisterData({
-                              ...registerData,
-                              business_type: e.target.value,
-                            })
-                          }
-                          placeholder="e.g., Company, Individual"
-                          className="bg-black/40 border-slate-700 text-slate-100"
-                        />
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => setOtpVerified(false)}
-                        className="w-1/3 border-slate-700 text-slate-200 hover:bg-slate-900"
-                        disabled={loading}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        onClick={handleRegister}
-                        className="w-2/3 bg-gradient-to-r from-[#FACC15] to-[#F97316] text-[#020617] font-semibold"
-                        disabled={loading}
-                      >
+                      <Button onClick={handleRegister} className="w-full bg-gradient-to-r from-primary to-secondary">
                         {loading ? "Registering..." : "Register"}
                       </Button>
-                    </div>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
-
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => navigate("/")}
-                className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
-              >
-                Continue as Guest
-              </button>
-            </div>
           </CardContent>
         </Card>
       </div>
