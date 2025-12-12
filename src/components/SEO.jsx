@@ -279,6 +279,10 @@ export const SEO = () => {
           '@type': 'City',
           name: 'Sidon',
         },
+        {
+          '@type': 'City',
+          name: 'Bekaa',
+        },
       ],
     },
   };
@@ -289,7 +293,6 @@ export const SEO = () => {
       <title>
         Rento LB | Rent & Compare Cars in Lebanon | Agencies & Private Owners
       </title>
-
       <meta
         name="trustpilot-one-time-domain-verification-id"
         content="2ddec9a3-46a7-4ab8-a397-7482d145e508"

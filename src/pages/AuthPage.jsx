@@ -4,10 +4,29 @@ import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Lock, User, RefreshCw, ArrowLeft, Car } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Phone,
+  Lock,
+  User,
+  RefreshCw,
+  ArrowLeft,
+  Car,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export function AuthPage() {
@@ -19,7 +38,10 @@ export function AuthPage() {
   // =============================
   // LOGIN STATE
   // =============================
-  const [loginData, setLoginData] = useState({ phone_number: "", password: "" });
+  const [loginData, setLoginData] = useState({
+    phone_number: "",
+    password: "",
+  });
 
   const handleLogin = async () => {
     if (!loginData.phone_number || !loginData.password) {
@@ -29,20 +51,18 @@ export function AuthPage() {
     try {
       setLoading(true);
       const res = await api.post("/auth/login", loginData);
-      
+
       localStorage.setItem("authToken", res.data.token);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      
+
       toast.success("Login successful!");
 
-      // Check if profile is complete
       if (!res.data.user.profile_complete) {
         navigate("/Complete-Profile");
         return;
       }
 
-      // Redirect based on role if profile is complete
       if (res.data.user.role === "agency" || res.data.user.role === "agent") {
         navigate("/Dashboard");
       } else {
@@ -76,7 +96,6 @@ export function AuthPage() {
     business_type: "",
   });
 
-  // Timer for resend OTP
   useEffect(() => {
     let interval;
     if (resendTimer > 0) {
@@ -142,9 +161,9 @@ export function AuthPage() {
 
     try {
       setLoading(true);
-      await api.post("/auth/verify-otp", { 
-        phone_number: phoneNumber, 
-        otp_code: otpCode 
+      await api.post("/auth/verify-otp", {
+        phone_number: phoneNumber,
+        otp_code: otpCode,
       });
       toast.success("OTP verified! Complete your registration.");
       setOtpVerified(true);
@@ -169,18 +188,18 @@ export function AuthPage() {
         phone_number: phoneNumber,
         otp_code: otpCode,
         ...registerData,
-        ...(registerData.role === "agency" && { business_type: registerData.business_type }),
+        ...(registerData.role === "agency" && {
+          business_type: registerData.business_type,
+        }),
       };
 
       const res = await api.post("/auth/register", payload);
-      
+
       localStorage.setItem("authToken", res.data.token);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      
+
       toast.success("Registration successful! Please complete your profile.");
-      
-      // Redirect to profile completion page
       navigate("/Complete-Profile");
     } catch (err) {
       if (err.response?.data?.errors) {
@@ -293,46 +312,52 @@ export function AuthPage() {
   // =============================
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-background via-primary/5 to-secondary/5">
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-black via-[#0B1120] to-[#020617] text-slate-100">
         <div className="w-full max-w-md">
           <Button
             variant="ghost"
             onClick={resetForgotPasswordFlow}
-            className="mb-6 hover:bg-muted"
+            className="mb-6 hover:bg-slate-900 text-slate-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Login
           </Button>
 
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg mb-4">
-              <Car className="w-8 h-8 text-primary-foreground" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#EAB308] to-[#FACC15] flex items-center justify-center shadow-lg mb-4">
+              <Car className="w-8 h-8 text-[#020617]" />
             </div>
-            <h1 className="text-3xl font-bold gradient-text">Rento LB</h1>
-            <p className="text-muted-foreground mt-2">Reset Your Password</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#EAB308] via-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
+              Rento LB
+            </h1>
+            <p className="text-slate-400 mt-2">Reset Your Password</p>
           </div>
 
-          <Card className="hover-glow shadow-xl">
+          <Card className="hover-glow shadow-xl bg-[#020617] border border-slate-800 text-slate-100">
             <CardHeader>
               <CardTitle className="text-2xl">Reset Password</CardTitle>
-              <CardDescription>Enter your phone number to receive an OTP</CardDescription>
+              <CardDescription className="text-slate-400">
+                Enter your phone number to receive an OTP
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <Label>Phone Number</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <Input
                       type="tel"
                       value={forgotPhone}
                       onChange={(e) => setForgotPhone(e.target.value)}
                       placeholder="+96170123456"
-                      className="pl-10"
+                      className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                       disabled={forgotOtpSent}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Include country code</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Include country code
+                  </p>
                 </div>
 
                 {forgotOtpSent && (
@@ -345,11 +370,16 @@ export function AuthPage() {
                         onChange={(e) => setForgotOtpCode(e.target.value)}
                         placeholder="Enter 6-digit OTP"
                         maxLength={6}
+                        className="bg-black/40 border-slate-700 text-slate-100"
                       />
                       <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-muted-foreground">Check your phone</p>
+                        <p className="text-xs text-slate-500">
+                          Check your phone
+                        </p>
                         {forgotResendTimer > 0 ? (
-                          <p className="text-xs text-muted-foreground">Resend in {forgotResendTimer}s</p>
+                          <p className="text-xs text-slate-500">
+                            Resend in {forgotResendTimer}s
+                          </p>
                         ) : (
                           <Button
                             type="button"
@@ -357,7 +387,7 @@ export function AuthPage() {
                             size="sm"
                             onClick={handleResendForgotOtp}
                             disabled={!forgotCanResend || loading}
-                            className="h-auto p-0 text-xs"
+                            className="h-auto p-0 text-xs text-[#EAB308]"
                           >
                             <RefreshCw className="w-3 h-3 mr-1" />
                             Resend OTP
@@ -369,12 +399,12 @@ export function AuthPage() {
                     <div>
                       <Label>New Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10"
+                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                           minLength={6}
                         />
                       </div>
@@ -383,12 +413,14 @@ export function AuthPage() {
                     <div>
                       <Label>Confirm New Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <Input
                           type="password"
                           value={confirmNewPassword}
-                          onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          className="pl-10"
+                          onChange={(e) =>
+                            setConfirmNewPassword(e.target.value)
+                          }
+                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                         />
                       </div>
                     </div>
@@ -398,7 +430,7 @@ export function AuthPage() {
                 {!forgotOtpSent ? (
                   <Button
                     onClick={handleSendForgotOtp}
-                    className="w-full bg-gradient-to-r from-primary to-secondary"
+                    className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
                     disabled={loading}
                   >
                     {loading ? "Sending..." : "Send OTP"}
@@ -406,7 +438,7 @@ export function AuthPage() {
                 ) : (
                   <Button
                     onClick={handleResetPassword}
-                    className="w-full bg-gradient-to-r from-primary to-secondary"
+                    className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
                     disabled={loading}
                   >
                     {loading ? "Resetting..." : "Reset Password"}
@@ -424,29 +456,33 @@ export function AuthPage() {
   // MAIN AUTH VIEW
   // =============================
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-background via-primary/5 to-secondary/5">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-black via-[#0B1120] to-[#020617] text-slate-100">
       <div className="w-full max-w-md">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className="mb-6 hover:bg-muted"
+          className="mb-6 hover:bg-slate-900 text-slate-200"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Button>
 
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg mb-4">
-            <Car className="w-8 h-8 text-primary-foreground" />
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#EAB308] to-[#FACC15] flex items-center justify-center shadow-lg mb-4">
+            <Car className="w-8 h-8 text-[#020617]" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text">Rento LB</h1>
-          <p className="text-muted-foreground mt-2">Lebanon's Premier Car Rental</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#EAB308] via-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
+            Rento LB
+          </h1>
+          <p className="text-slate-400 mt-2">
+            Lebanon&apos;s Premier Car Rental
+          </p>
         </div>
 
-        <Card className="hover-glow shadow-xl">
+        <Card className="hover-glow shadow-xl bg-[#020617] border border-slate-800 text-slate-100">
           <CardHeader>
             <CardTitle className="text-2xl text-center">Welcome</CardTitle>
-            <CardDescription className="text-center">
+            <CardDescription className="text-center text-slate-400">
               Login or register to continue
             </CardDescription>
           </CardHeader>
@@ -459,7 +495,7 @@ export function AuthPage() {
                 if (val === "register") resetRegistrationFlow();
               }}
             >
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-900">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
@@ -470,15 +506,18 @@ export function AuthPage() {
                   <div>
                     <Label>Phone Number</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <Input
                         type="text"
                         value={loginData.phone_number}
                         onChange={(e) =>
-                          setLoginData({ ...loginData, phone_number: e.target.value })
+                          setLoginData({
+                            ...loginData,
+                            phone_number: e.target.value,
+                          })
                         }
                         placeholder="+96170123456"
-                        className="pl-10"
+                        className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                       />
                     </div>
                   </div>
@@ -486,14 +525,17 @@ export function AuthPage() {
                   <div>
                     <Label>Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <Input
                         type="password"
                         value={loginData.password}
                         onChange={(e) =>
-                          setLoginData({ ...loginData, password: e.target.value })
+                          setLoginData({
+                            ...loginData,
+                            password: e.target.value,
+                          })
                         }
-                        className="pl-10"
+                        className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                       />
                     </div>
                   </div>
@@ -501,7 +543,7 @@ export function AuthPage() {
                   <Button
                     type="button"
                     variant="link"
-                    className="w-full text-sm p-0 h-auto"
+                    className="w-full text-sm p-0 h-auto text-[#EAB308]"
                     onClick={() => setShowForgotPassword(true)}
                   >
                     Forgot Password?
@@ -510,7 +552,7 @@ export function AuthPage() {
                   <Button
                     onClick={handleLogin}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-primary to-secondary font-semibold"
+                    className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
                   >
                     {loading ? "Logging in..." : "Login"}
                   </Button>
@@ -524,17 +566,17 @@ export function AuthPage() {
                     <div>
                       <Label>Phone Number</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <Input
                           type="tel"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           placeholder="+96170123456"
-                          className="pl-10"
+                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                           disabled={otpSent}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         Include country code (e.g., +961)
                       </p>
                     </div>
@@ -548,11 +590,14 @@ export function AuthPage() {
                           onChange={(e) => setOtpCode(e.target.value)}
                           placeholder="Enter 6-digit OTP"
                           maxLength={6}
+                          className="bg-black/40 border-slate-700 text-slate-100"
                         />
                         <div className="flex items-center justify-between mt-2">
-                          <p className="text-xs text-muted-foreground">Check your phone</p>
+                          <p className="text-xs text-slate-500">
+                            Check your phone
+                          </p>
                           {resendTimer > 0 ? (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-500">
                               Resend in {resendTimer}s
                             </p>
                           ) : (
@@ -562,7 +607,7 @@ export function AuthPage() {
                               size="sm"
                               onClick={handleResendOtp}
                               disabled={!canResend || loading}
-                              className="h-auto p-0 text-xs"
+                              className="h-auto p-0 text-xs text-[#EAB308]"
                             >
                               <RefreshCw className="w-3 h-3 mr-1" />
                               Resend OTP
@@ -576,7 +621,7 @@ export function AuthPage() {
                       {!otpSent ? (
                         <Button
                           onClick={handleSendOtp}
-                          className="w-full bg-gradient-to-r from-primary to-secondary"
+                          className="w-full bg-gradient-to-r from-[#EAB308] to-[#FACC15] text-[#020617] font-semibold"
                           disabled={loading}
                         >
                           {loading ? "Sending..." : "Send OTP"}
@@ -586,14 +631,14 @@ export function AuthPage() {
                           <Button
                             variant="outline"
                             onClick={resetRegistrationFlow}
-                            className="w-1/3"
+                            className="w-1/3 border-slate-700 text-slate-200 hover:bg-slate-900"
                             disabled={loading}
                           >
                             Change
                           </Button>
                           <Button
                             onClick={handleVerifyOtp}
-                            className="w-2/3 bg-gradient-to-r from-secondary to-accent"
+                            className="w-2/3 bg-gradient-to-r from-[#FACC15] to-[#F97316] text-[#020617] font-semibold"
                             disabled={loading}
                           >
                             {loading ? "Verifying..." : "Verify OTP"}
@@ -607,14 +652,17 @@ export function AuthPage() {
                     <div>
                       <Label>Username</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <Input
                           type="text"
                           value={registerData.username}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, username: e.target.value })
+                            setRegisterData({
+                              ...registerData,
+                              username: e.target.value,
+                            })
                           }
-                          className="pl-10"
+                          className="pl-10 bg-black/40 border-slate-700 text-slate-100"
                         />
                       </div>
                     </div>
@@ -626,8 +674,12 @@ export function AuthPage() {
                           type="text"
                           value={registerData.first_name}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, first_name: e.target.value })
+                            setRegisterData({
+                              ...registerData,
+                              first_name: e.target.value,
+                            })
                           }
+                          className="bg-black/40 border-slate-700 text-slate-100"
                         />
                       </div>
                       <div>
@@ -636,8 +688,12 @@ export function AuthPage() {
                           type="text"
                           value={registerData.last_name}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, last_name: e.target.value })
+                            setRegisterData({
+                              ...registerData,
+                              last_name: e.target.value,
+                            })
                           }
+                          className="bg-black/40 border-slate-700 text-slate-100"
                         />
                       </div>
                     </div>
@@ -648,8 +704,12 @@ export function AuthPage() {
                         type="text"
                         value={registerData.license_number}
                         onChange={(e) =>
-                          setRegisterData({ ...registerData, license_number: e.target.value })
+                          setRegisterData({
+                            ...registerData,
+                            license_number: e.target.value,
+                          })
                         }
+                        className="bg-black/40 border-slate-700 text-slate-100"
                       />
                     </div>
 
@@ -659,11 +719,17 @@ export function AuthPage() {
                         type="password"
                         value={registerData.password}
                         onChange={(e) =>
-                          setRegisterData({ ...registerData, password: e.target.value })
+                          setRegisterData({
+                            ...registerData,
+                            password: e.target.value,
+                          })
                         }
                         minLength={6}
+                        className="bg-black/40 border-slate-700 text-slate-100"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">Minimum 6 characters</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Minimum 6 characters
+                      </p>
                     </div>
 
                     <div>
@@ -677,6 +743,7 @@ export function AuthPage() {
                             password_confirmation: e.target.value,
                           })
                         }
+                        className="bg-black/40 border-slate-700 text-slate-100"
                       />
                     </div>
 
@@ -688,10 +755,10 @@ export function AuthPage() {
                           setRegisterData({ ...registerData, role: value })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-black/40 border-slate-700 text-slate-100">
                           <SelectValue placeholder="Select Role" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-[#020617] border-slate-700 text-slate-100">
                           <SelectItem value="client">Client</SelectItem>
                           <SelectItem value="agency">Agency</SelectItem>
                         </SelectContent>
@@ -705,9 +772,13 @@ export function AuthPage() {
                           type="text"
                           value={registerData.business_type}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, business_type: e.target.value })
+                            setRegisterData({
+                              ...registerData,
+                              business_type: e.target.value,
+                            })
                           }
                           placeholder="e.g., Company, Individual"
+                          className="bg-black/40 border-slate-700 text-slate-100"
                         />
                       </div>
                     )}
@@ -716,14 +787,14 @@ export function AuthPage() {
                       <Button
                         variant="outline"
                         onClick={() => setOtpVerified(false)}
-                        className="w-1/3"
+                        className="w-1/3 border-slate-700 text-slate-200 hover:bg-slate-900"
                         disabled={loading}
                       >
                         Back
                       </Button>
                       <Button
                         onClick={handleRegister}
-                        className="w-2/3 bg-gradient-to-r from-secondary to-accent font-semibold"
+                        className="w-2/3 bg-gradient-to-r from-[#FACC15] to-[#F97316] text-[#020617] font-semibold"
                         disabled={loading}
                       >
                         {loading ? "Registering..." : "Register"}
@@ -737,7 +808,7 @@ export function AuthPage() {
             <div className="mt-6 text-center">
               <button
                 onClick={() => navigate("/")}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
               >
                 Continue as Guest
               </button>
