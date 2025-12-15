@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -27,20 +27,27 @@ export const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61584938841683", label: "Facebook" },
-    { icon: Twitter, href: "https://x.com/RENTO_lb", label: "Twitter" },
-    { icon: Instagram, href: "https://www.instagram.com/rento_lebanon/", label: "Instagram" },
-    { icon: Linkedin, href: "https://www.linkedin.com/company/rento-lb/about/", label: "LinkedIn" }
+    { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61584938841683', label: 'Facebook' },
+    { icon: Twitter, href: 'https://x.com/RENTO_lb', label: 'Twitter' },
+    { icon: Instagram, href: 'https://www.instagram.com/rento_lebanon/', label: 'Instagram' },
+    { icon: Linkedin, href: 'https://www.linkedin.com/company/rento-lb/about/', label: 'LinkedIn' }
   ];
 
-  // Optional: Load Trustpilot script for advanced widget
+  // Load DMCA helper script correctly (React won't execute <script> tags in JSX reliably)
   useEffect(() => {
-    if (!document.querySelector('script[src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"]')) {
-      const script = document.createElement('script');
-      script.src = '//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js';
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    const src = 'https://images.dmca.com/Badges/DMCABadgeHelper.min.js';
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) return;
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // optional cleanup
+      // document.body.removeChild(script);
+    };
   }, []);
 
   return (
@@ -53,28 +60,30 @@ export const Footer = () => {
               <img src="/rentologo.png" alt="Rento Logo" className="rounded-lg w-8 h-8 object-contain" />
               <span className="text-xl font-bold gradient-text">RENTO LB</span>
             </Link>
+
             <p className="text-sm text-muted-foreground mb-4 max-w-sm">
               Experience luxury on the road with our premium fleet of high-end vehicles.
             </p>
+
             <div className="space-y-1 text-xs text-muted-foreground">
               <div className="flex items-center space-x-2">
-                <MapPin className="w-3 h-3 text-secondary" />
+                <MapPin className="w-3 h-3 text-secondary" aria-hidden="true" />
                 <span>124-128 City Road, London, England, EC1V 2NX</span>
               </div>
               <div className="flex items-center space-x-2">
-                <MapPin className="w-3 h-3 text-secondary" />
+                <MapPin className="w-3 h-3 text-secondary" aria-hidden="true" />
                 <span>Mount Liban, Hazmieh, Lebanon</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Phone className="w-3 h-3 text-secondary" />
+                <Phone className="w-3 h-3 text-secondary" aria-hidden="true" />
                 <span>+961 (70) 041-862</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Phone className="w-3 h-3 text-secondary" />
+                <Phone className="w-3 h-3 text-secondary" aria-hidden="true" />
                 <span>+961 (03) 520-427</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Mail className="w-3 h-3 text-secondary" />
+                <Mail className="w-3 h-3 text-secondary" aria-hidden="true" />
                 <span>social@rento-lb.com</span>
               </div>
             </div>
@@ -84,7 +93,7 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold mb-2 text-sm">Company</h3>
             <ul className="space-y-1">
-              {footerLinks.company.map(link => (
+              {footerLinks.company.map((link) => (
                 <li key={link.label}>
                   <Link to={link.to} className="text-muted-foreground hover:text-secondary transition-colors text-xs">
                     {link.label}
@@ -93,10 +102,11 @@ export const Footer = () => {
               ))}
             </ul>
           </div>
+
           <div>
             <h3 className="font-semibold mb-2 text-sm">Support</h3>
             <ul className="space-y-1">
-              {footerLinks.support.map(link => (
+              {footerLinks.support.map((link) => (
                 <li key={link.label}>
                   <Link to={link.to} className="text-muted-foreground hover:text-secondary transition-colors text-xs">
                     {link.label}
@@ -105,10 +115,11 @@ export const Footer = () => {
               ))}
             </ul>
           </div>
+
           <div>
             <h3 className="font-semibold mb-2 text-sm">Services</h3>
             <ul className="space-y-1">
-              {footerLinks.services.map(link => (
+              {footerLinks.services.map((link) => (
                 <li key={link.label}>
                   <Link to={link.to} className="text-muted-foreground hover:text-secondary transition-colors text-xs">
                     {link.label}
@@ -121,13 +132,11 @@ export const Footer = () => {
 
         {/* Bottom Section */}
         <div className="mt-8 pt-4 border-t border-border flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
-          <p className="text-xs text-muted-foreground">
-            © {currentYear} RENTO LB. All rights reserved.
-          </p>
+          <p className="text-xs text-muted-foreground">© {currentYear} RENTO LB. All rights reserved.</p>
 
           {/* Social Links */}
           <div className="flex items-center space-x-2">
-            {socialLinks.map(social => (
+            {socialLinks.map((social) => (
               <a
                 key={social.label}
                 href={social.href}
@@ -136,27 +145,28 @@ export const Footer = () => {
                 className="w-8 h-8 rounded-full bg-muted hover:bg-secondary transition-all flex items-center justify-center"
                 aria-label={social.label}
               >
-                <social.icon className="w-4 h-4" />
+                <social.icon className="w-4 h-4" aria-hidden="true" />
               </a>
             ))}
           </div>
 
-          {/* DMCA, Trustpilot & Verified Info */}
+          {/* DMCA + Trustpilot + Verified */}
           <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-3 text-xs">
             {/* DMCA Badge */}
             <a
-              href="//www.dmca.com/Protection/Status.aspx?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
+              href="https://www.dmca.com/Protection/Status.aspx?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
               title="DMCA.com Protection Status"
               className="dmca-badge"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <img
                 src="https://images.dmca.com/Badges/dmca_protected_sml_120aj.png?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
                 alt="DMCA.com Protection Status"
               />
             </a>
-            <script src="https://images.dmca.com/Badges/DMCABadgeHelper.min.js"></script>
 
-            {/* Trustpilot Button */}
+            {/* Trustpilot (NO widget script needed) */}
             <a
               href="https://www.trustpilot.com/evaluate/rento-lb.com"
               target="_blank"
@@ -166,12 +176,10 @@ export const Footer = () => {
               Leave a Trustpilot Review
             </a>
 
-            {/* Google Verified Text */}
             <span className="px-2 py-1 bg-green-600 text-white rounded-lg">
               Verified on Google Business
             </span>
 
-            {/* UK Company Registration */}
             <a
               href="https://find-and-update.company-information.service.gov.uk/company/16292007"
               target="_blank"

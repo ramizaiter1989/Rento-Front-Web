@@ -16,11 +16,6 @@ import {
   DollarSign,
   ArrowRight,
   Star,
-  CheckCircle,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin ,
   Users,
   Zap,
   Award,
@@ -186,17 +181,12 @@ export const HomePage = () => {
     },
   ];
 
-const stats = [
-  { value: '10K+', label: 'Happy Customers', icon: Users },
-  { value: '10k+', label: 'Luxury Vehicles', icon: Car },
-  { value: '2025', label: 'Start Experience', icon: TrendingUp },
-  { value: '99%', label: 'Satisfaction Rate', icon: Star },
-  { value: '', label: 'Verified on Google Business', icon: CheckCircle, color: 'from-green-500 to-green-400' },
-  { value: '', label: 'Verified on Facebook', icon: Facebook, color: 'from-blue-600 to-blue-500' },
-  { value: '', label: 'Verified on Twitter', icon: Twitter, color: 'from-cyan-500 to-blue-400' },
-  { value: '', label: 'Verified on Instagram', icon: Instagram, color: 'from-pink-500 to-purple-500' },
-  { value: '', label: 'Verified on LinkedIn', icon: Linkedin, color: 'from-blue-700 to-blue-500' },
-];
+  const stats = [
+    { value: '10K+', label: 'Happy Customers', icon: Users },
+    { value: '50+', label: 'Luxury Vehicles', icon: Car },
+    { value: '15', label: 'Years Experience', icon: TrendingUp },
+    { value: '99%', label: 'Satisfaction Rate', icon: Star },
+  ];
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-gray-900 dark:to-teal-950">
@@ -204,11 +194,11 @@ const stats = [
       {/* Hero Section */}
       <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
         {/* Animated Background Elements */}
-        {/* <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-700" />
           <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div> */}
+        </div>
 
         {/* Hero Image with Overlay */}
         <div className="absolute inset-0 z-0">
@@ -224,7 +214,7 @@ const stats = [
     {/* Fallback for browsers that don't support video */}
     Your browser does not support the video tag.
   </video>
-  <div className="absolute inset-0 " />
+  <div className="absolute inset-0 bg-gradient-to-r from-gray-900/20 via-teal-900/20 to-cyan-900/20" />
 </div>
 
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/20 via-teal-900/20 to-cyan-900/20" />
@@ -349,37 +339,30 @@ const stats = [
         </div>
       </section>
 
-{/* Stats Section */}
-<section className="py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
-  <div className="absolute inset-0 bg-white dark:bg-gray-900" />
-  <div className="container mx-auto px-4 relative z-10">
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-      {stats.map((stat, index) => (
-        <div key={index} className="text-center group">
-          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
-            stat.color
-              ? stat.color
-              : index === 0
-              ? 'from-teal-500 to-cyan-500'
-              : index === 1
-              ? 'from-cyan-500 to-blue-500'
-              : index === 2
-              ? 'from-teal-600 to-teal-400'
-              : 'from-amber-500 to-yellow-500'
-          } flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-            <stat.icon className="w-8 h-8 text-white" />
+          {/* Stats Section */}
+      <section className="py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-white  dark:bg-gray-900" />
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center group">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
+                  index === 0 ? 'from-teal-500 to-cyan-500' :
+                  index === 1 ? 'from-cyan-500 to-blue-500' :
+                  index === 2 ? 'from-teal-600 to-teal-400' :
+                  'from-amber-500 to-yellow-500'
+                } flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                  <stat.icon className="w-8 h-8 text-white" />
+                </div>
+                <p className="text-4xl md:text-5xl font-black bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+                  {stat.value}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
+              </div>
+            ))}
           </div>
-          {stat.value && (
-            <p className="text-4xl md:text-5xl font-black bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
-              {stat.value}
-            </p>
-          )}
-          <p className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
         </div>
-      ))}
-    </div>
-  </div>
-</section>
+      </section>
 
 
       {/* Features Section */}
