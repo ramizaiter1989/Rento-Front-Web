@@ -48,16 +48,11 @@ const FeedbacksModal = ({ feedbacks, onClose }) => {
 };
 
 /**
- * CarCard:
- * - Favorite toggle via API: POST /cars/{id}/favorite
- * - Optional props:
- *    - forceFavorite: boolean
- *    - onToggleFavoriteApi: function
+ * CarCard - Compact Design
  */
 export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => {
   const [favorite, setFavorite] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
-
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFeedbacksModal, setShowFeedbacksModal] = useState(false);
 
@@ -78,7 +73,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
     if (onToggleFavoriteApi) return onToggleFavoriteApi();
 
     const next = !favorite;
-    setFavorite(next); // optimistic
+    setFavorite(next);
     setFavLoading(true);
 
     try {
@@ -96,151 +91,139 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
 
   return (
     <Link to={`/cars/${car.id}`} className="block group">
-      <Card className="relative overflow-hidden h-full flex flex-col bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-transparent hover:border-cyan-700/40 transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-950/30 hover:-translate-y-2">
-        {/* Animated Background Gradient (darker cyan 700 feel) */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-700/12 via-cyan-700/6 to-teal-600/6 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-        {/* Image Section */}
-        <div className="relative overflow-hidden aspect-[16/10] bg-gradient-to-br from-cyan-200 to-teal-100 dark:from-cyan-950/40 dark:to-teal-950/25">
+      <Card className="relative overflow-hidden h-full flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-cyan-500 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-1">
+        
+        {/* Image Section - Reduced height */}
+        <div className="relative overflow-hidden aspect-[16/9] bg-gray-100 dark:bg-gray-800">
           {!imageLoaded && (
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-pulse" />
           )}
-
           <img
             src={car.image || '/placeholder.png'}
             alt={`${car.brand || car.make || ''} ${car.model || ''}`}
             onLoad={() => setImageLoaded(true)}
-            className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1 ${
+            className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
           />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          {/* Overlay on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          {/* Favorite Button */}
+          {/* Favorite Button - Smaller */}
           <button
             onClick={toggleFavorite}
             disabled={favLoading}
             aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            className={`absolute top-4 right-4 w-11 h-11 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 z-20 ${
+            className={`absolute top-2 right-2 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 z-20 ${
               favorite
-                ? 'bg-gradient-to-br from-red-500 to-pink-500 scale-110 shadow-lg shadow-red-500/50'
-                : 'bg-white/90 dark:bg-gray-800/90 hover:scale-110 hover:shadow-lg hover:shadow-cyan-950/30'
+                ? 'bg-red-500 shadow-md'
+                : 'bg-white/90 dark:bg-gray-800/90 hover:scale-110'
             } ${favLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             <Heart
-              className={`w-5 h-5 transition-all duration-300 ${
-                favorite ? 'fill-white text-white scale-110' : 'text-gray-700 dark:text-gray-300'
+              className={`w-4 h-4 transition-all ${
+                favorite ? 'fill-white text-white' : 'text-gray-700 dark:text-gray-300'
               }`}
             />
           </button>
 
-          {/* Type Badge */}
+          {/* Type Badge - Smaller */}
           {(car.type || car.category) && (
-            <div className="absolute top-4 left-4 z-10">
-              <Badge className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md text-gray-900 dark:text-white border-0 px-3 py-1.5 font-semibold shadow-lg">
+            <div className="absolute top-2 left-2 z-10">
+              <Badge className="bg-white/95 dark:bg-gray-800/95 text-xs text-gray-900 dark:text-white border-0 px-2 py-0.5">
                 {car.type || car.category}
               </Badge>
             </div>
           )}
 
-          {/* Popular */}
+          {/* Popular Badge - Smaller */}
           {car.popular && (
-            <div className="absolute bottom-4 left-4 z-10">
-              <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-0 px-3 py-1.5 font-bold shadow-lg flex items-center gap-1.5">
-                <Star className="w-3.5 h-3.5 fill-white" />
+            <div className="absolute bottom-2 left-2 z-10">
+              <Badge className="bg-amber-500 text-white text-xs border-0 px-2 py-0.5 flex items-center gap-1">
+                <Star className="w-3 h-3 fill-white" />
                 Popular
               </Badge>
             </div>
           )}
-
-          {/* View Details overlay */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-10">
-            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm px-6 py-3 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 shadow-xl">
-              <span className="font-bold text-cyan-800 dark:text-cyan-200 flex items-center gap-2">
-                <Eye className="w-4 h-4" />
-                View Details
-              </span>
-            </div>
-          </div>
         </div>
 
-        <CardContent className="p-6 flex-grow relative z-10">
-          {/* Brand & Model */}
-          <div className="mb-4">
-            <p className="text-sm font-medium text-cyan-800 dark:text-cyan-200 mb-1">
+        {/* Content - Compact padding */}
+        <CardContent className="p-3 flex-grow">
+          {/* Brand & Model - Reduced spacing */}
+          <div className="mb-2">
+            <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">
               {car.brand || car.make || 'Car'}
             </p>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-cyan-800 dark:group-hover:text-cyan-200 transition-colors duration-300">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-cyan-700 transition-colors">
               {car.model}
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
-              Year {car.year}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {car.year}
             </p>
           </div>
 
-          {/* Specs Grid */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950/35 dark:to-cyan-900/20 group-hover:from-cyan-100 group-hover:to-cyan-200 dark:group-hover:from-cyan-900/30 dark:group-hover:to-cyan-800/20 transition-all duration-300">
-              <Users className="w-5 h-5 text-cyan-800 dark:text-cyan-200 mb-1" />
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                {car.seats} Seats
+          {/* Specs Grid - Compact */}
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800 group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 transition-colors">
+              <Users className="w-4 h-4 text-cyan-700 dark:text-cyan-300 mb-0.5" />
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                {car.seats}
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950/35 dark:to-cyan-900/20 group-hover:from-cyan-100 group-hover:to-cyan-200 dark:group-hover:from-cyan-900/30 dark:group-hover:to-cyan-800/20 transition-all duration-300">
-              <Settings className="w-5 h-5 text-cyan-800 dark:text-cyan-200 mb-1" />
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800 group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 transition-colors">
+              <Settings className="w-4 h-4 text-cyan-700 dark:text-cyan-300 mb-0.5" />
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">
                 {car.transmission}
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-br from-teal-50 to-cyan-100 dark:from-teal-950/25 dark:to-cyan-950/30 group-hover:from-teal-100 group-hover:to-cyan-200 dark:group-hover:from-teal-900/20 dark:group-hover:to-cyan-900/25 transition-all duration-300">
-              <Fuel className="w-5 h-5 text-cyan-800 dark:text-cyan-200 mb-1" />
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800 group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 transition-colors">
+              <Fuel className="w-4 h-4 text-cyan-700 dark:text-cyan-300 mb-0.5" />
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">
                 {car.fuelType ?? car.fuel_type ?? 'N/A'}
               </span>
             </div>
           </div>
 
-          {/* Feedback Section */}
+          {/* Feedback - Inline compact */}
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               setShowFeedbacksModal(true);
             }}
-            className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:border-cyan-700/30 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="w-full flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Open customer feedback"
           >
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-cyan-800 dark:text-cyan-200" />
-                Customer Feedback
-              </p>
-              <Badge className="bg-cyan-100 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-200 border-0">
-                {car.feedbacks?.length || 0}
-              </Badge>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-300" />
+              <span className="text-xs font-medium text-gray-900 dark:text-white">Feedback</span>
             </div>
+            <Badge className="bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 text-xs px-1.5 py-0">
+              {car.feedbacks?.length || 0}
+            </Badge>
           </button>
         </CardContent>
 
-        <CardFooter className="p-6 pt-0 flex items-center justify-between mt-auto relative z-10 border-t border-gray-100 dark:border-gray-800">
+        {/* Footer - Compact */}
+        <CardFooter className="p-3 pt-0 flex items-center justify-between border-t border-gray-100 dark:border-gray-800">
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">From</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold bg-gradient-to-r from-cyan-700 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold text-cyan-700 dark:text-cyan-400">
                 ${car.price}
               </span>
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">/day</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">/day</span>
             </div>
           </div>
 
           <Button
-            className="bg-gradient-to-r from-cyan-700 via-cyan-600 to-teal-600 hover:from-cyan-800 hover:via-cyan-700 hover:to-teal-700 text-white font-bold px-6 py-6 rounded-xl shadow-lg hover:shadow-xl hover:shadow-cyan-950/35 transition-all duration-300 hover:scale-105"
+            size="sm"
+            className="bg-cyan-700 hover:bg-cyan-800 text-white font-semibold px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
             aria-label="View car details"
           >
-            View Details
+            Details
           </Button>
         </CardFooter>
       </Card>

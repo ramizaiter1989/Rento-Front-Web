@@ -5,9 +5,6 @@ export const SEO = () => {
   // Toggle this to true ONLY if you actually have these ratings visible on the site
   const INCLUDE_AGGREGATE_RATING = false;
 
-  // Category labels for offers
-  const OFFER_CATEGORIES = ['Economy', 'SUV', 'Luxury', 'Sports'];
-
   // Multilingual FAQs
   const faqsByLanguage = {
     en: [
@@ -53,20 +50,36 @@ export const SEO = () => {
     ],
   };
 
-  // LocalBusiness Schema - PRIMARY for Google Search presence and logo display
-  const localBusinessData = {
+  // UNIFIED Primary Business Schema - RentalCarAgency
+  const unifiedBusinessSchema = {
     '@context': 'https://schema.org',
-    '@type': ['LocalBusiness', 'CarRental', 'RentalCarAgency'],
-    '@id': 'https://rento-lb.com/#identity',
+    '@type': 'RentalCarAgency',
+    '@id': 'https://rento-lb.com/#organization',
     name: 'Rento LB',
+    alternateName: 'Rento Lebanon',
+    legalName: 'RENTO TECHNOLOGIES SOLUTION LTD',
     url: 'https://rento-lb.com/',
-    image: 'https://rento-lb.com/rentologo.jpg',
-    logo: 'https://rento-lb.com/rentologo.png',
+    logo: {
+      '@type': 'ImageObject',
+      '@id': 'https://rento-lb.com/#logo',
+      url: 'https://rento-lb.com/rentologo.png',
+      contentUrl: 'https://rento-lb.com/rentologo.png',
+      width: 1200,
+      height: 630,
+      caption: 'Rento LB - Lebanon Car Rental Aggregator'
+    },
+    image: {
+      '@type': 'ImageObject',
+      url: 'https://rento-lb.com/rentologo.jpg',
+      width: 1200,
+      height: 630
+    },
+    
+    // Contact Information
     telephone: '+961-81001301',
     email: 'social@rento-lb.com',
-    priceRange: '$$',
-    description:
-      'Car rental Lebanon aggregator connecting travelers with agencies and private owners. 10,000+ vehicles with transparent pricing, real-time availability, and 24/7 support across Beirut, Tripoli, and Sidon.',
+    
+    // Address & Location
     address: {
       '@type': 'PostalAddress',
       streetAddress: 'city center',
@@ -75,30 +88,79 @@ export const SEO = () => {
       postalCode: '1000',
       addressCountry: {
         '@type': 'Country',
-        name: 'LB',
-        isoCode: 'LB',
-      },
+        name: 'Lebanon',
+        alternateName: 'LB'
+      }
     },
     geo: {
       '@type': 'GeoCoordinates',
       latitude: 33.8547,
-      longitude: 35.8623,
+      longitude: 35.8623
     },
+    
+    // Service Areas
     areaServed: [
-      { '@type': 'City', name: 'Beirut' },
-      { '@type': 'City', name: 'Tripoli' },
-      { '@type': 'City', name: 'Sidon' },
-      { '@type': 'City', name: 'Byblos' },
-      { '@type': 'City', name: 'Bekaa' },
-      { '@type': 'City', name: 'Mont Liban' },
+      { 
+        '@type': 'City', 
+        name: 'Beirut',
+        containedInPlace: { '@type': 'Country', name: 'Lebanon' }
+      },
+      { 
+        '@type': 'City', 
+        name: 'Tripoli',
+        containedInPlace: { '@type': 'Country', name: 'Lebanon' }
+      },
+      { 
+        '@type': 'City', 
+        name: 'Sidon',
+        containedInPlace: { '@type': 'Country', name: 'Lebanon' }
+      },
+      { 
+        '@type': 'City', 
+        name: 'Byblos',
+        containedInPlace: { '@type': 'Country', name: 'Lebanon' }
+      },
+      { 
+        '@type': 'City', 
+        name: 'Bekaa',
+        containedInPlace: { '@type': 'Country', name: 'Lebanon' }
+      },
+      { 
+        '@type': 'AdministrativeArea', 
+        name: 'Mont Liban',
+        containedInPlace: { '@type': 'Country', name: 'Lebanon' }
+      }
     ],
+    
+    // Business Details
+    description:
+      'Car rental Lebanon aggregator connecting travelers with agencies and private owners. 10,000+ vehicles with transparent pricing, real-time availability, and 24/7 support across Beirut, Tripoli, and Sidon.',
+    priceRange: '$$',
+    currenciesAccepted: 'USD, LBP, EUR',
+    paymentAccepted: ['Cash', 'Credit Card', 'Debit Card', 'Mobile Payment', 'Bank Transfer'],
+    
+    // Company Information
+    foundingDate: '2024-03-04', // Update this to your actual founding date
+    founder: {
+      '@type': 'Person',
+      name: 'Rami Zeaiter'
+    },
+    
+    // Legal Registration
+    identifier: {
+      '@type': 'PropertyValue',
+      propertyID: 'UK Company Registration Number',
+      value: '16292007'
+    },
+    
+    // Contact Points
     contactPoint: [
       {
         '@type': 'ContactPoint',
         telephone: '+961-81001301',
         contactType: 'customer service',
         areaServed: 'LB',
-        availableLanguage: ['en', 'fr', 'ar'],
+        availableLanguage: ['English', 'French', 'Arabic'],
         contactOption: 'TollFree',
         hoursAvailable: {
           '@type': 'OpeningHoursSpecification',
@@ -109,190 +171,250 @@ export const SEO = () => {
             'Thursday',
             'Friday',
             'Saturday',
-            'Sunday',
+            'Sunday'
           ],
           opens: '00:00',
-          closes: '23:59',
-        },
+          closes: '23:59'
+        }
       },
+      {
+        '@type': 'ContactPoint',
+        telephone: '+961-81001301',
+        contactType: 'reservations',
+        areaServed: 'LB',
+        availableLanguage: ['English', 'French', 'Arabic']
+      }
     ],
+    
+    // Services Offered - Offer Catalog
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Car Rental Services in Lebanon',
+      itemListElement: [
+        {
+          '@type': 'OfferCatalog',
+          name: 'Economy Car Rentals',
+          itemListElement: [
+            {
+              '@type': 'Offer',
+              name: 'Economy Car Rental in Lebanon',
+              description: 'Affordable economy cars perfect for city driving and daily commutes across Lebanon.',
+              url: 'https://rento-lb.com/search?category=economy',
+              category: 'Economy Cars',
+              itemOffered: {
+                '@type': 'Car',
+                name: 'Economy Car',
+                vehicleConfiguration: 'Economy',
+                fuelType: ['Petrol', 'Diesel', 'Hybrid'],
+                vehicleTransmission: ['Automatic', 'Manual'],
+                vehicleSeatingCapacity: {
+                  '@type': 'QuantitativeValue',
+                  value: 5,
+                  unitCode: 'C62'
+                }
+              },
+              priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: '50.00',
+                priceCurrency: 'USD',
+                unitText: 'DAY',
+                minPrice: '50.00',
+                maxPrice: '75.00'
+              },
+              availability: 'https://schema.org/InStock',
+              areaServed: { '@type': 'Country', name: 'Lebanon' },
+              validFrom: '2024-01-01',
+              validThrough: '2026-12-31'
+            }
+          ]
+        },
+        {
+          '@type': 'OfferCatalog',
+          name: 'SUV Rentals',
+          itemListElement: [
+            {
+              '@type': 'Offer',
+              name: 'SUV Rental in Lebanon',
+              description: 'Spacious SUVs ideal for family trips and mountain adventures in Lebanon.',
+              url: 'https://rento-lb.com/search?category=suv',
+              category: 'SUV',
+              itemOffered: {
+                '@type': 'Car',
+                name: 'SUV',
+                vehicleConfiguration: 'SUV',
+                fuelType: ['Petrol', 'Diesel', 'Hybrid'],
+                vehicleTransmission: ['Automatic', 'Manual'],
+                vehicleSeatingCapacity: {
+                  '@type': 'QuantitativeValue',
+                  value: 7,
+                  unitCode: 'C62'
+                }
+              },
+              priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: '80.00',
+                priceCurrency: 'USD',
+                unitText: 'DAY',
+                minPrice: '80.00',
+                maxPrice: '120.00'
+              },
+              availability: 'https://schema.org/InStock',
+              areaServed: { '@type': 'Country', name: 'Lebanon' },
+              validFrom: '2024-01-01',
+              validThrough: '2026-12-31'
+            }
+          ]
+        },
+        {
+          '@type': 'OfferCatalog',
+          name: 'Luxury Car Rentals',
+          itemListElement: [
+            {
+              '@type': 'Offer',
+              name: 'Luxury Car Rental in Lebanon',
+              description: 'Premium luxury vehicles for special occasions and business travel in Lebanon.',
+              url: 'https://rento-lb.com/search?category=luxury',
+              category: 'Luxury Cars',
+              itemOffered: {
+                '@type': 'Car',
+                name: 'Luxury Car',
+                vehicleConfiguration: 'Luxury',
+                fuelType: ['Petrol', 'Diesel', 'Hybrid', 'Electric'],
+                vehicleTransmission: 'Automatic',
+                vehicleSeatingCapacity: {
+                  '@type': 'QuantitativeValue',
+                  value: 5,
+                  unitCode: 'C62'
+                }
+              },
+              priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: '150.00',
+                priceCurrency: 'USD',
+                unitText: 'DAY',
+                minPrice: '150.00',
+                maxPrice: '250.00'
+              },
+              availability: 'https://schema.org/InStock',
+              areaServed: { '@type': 'Country', name: 'Lebanon' },
+              validFrom: '2024-01-01',
+              validThrough: '2026-12-31'
+            }
+          ]
+        },
+        {
+          '@type': 'OfferCatalog',
+          name: 'Sports Car Rentals',
+          itemListElement: [
+            {
+              '@type': 'Offer',
+              name: 'Sports Car Rental in Lebanon',
+              description: 'High-performance sports cars for unforgettable driving experiences in Lebanon.',
+              url: 'https://rento-lb.com/search?category=sports',
+              category: 'Sports Cars',
+              itemOffered: {
+                '@type': 'Car',
+                name: 'Sports Car',
+                vehicleConfiguration: 'Sports',
+                fuelType: ['Petrol', 'Electric'],
+                vehicleTransmission: 'Automatic',
+                vehicleSeatingCapacity: {
+                  '@type': 'QuantitativeValue',
+                  value: 2,
+                  unitCode: 'C62'
+                }
+              },
+              priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: '200.00',
+                priceCurrency: 'USD',
+                unitText: 'DAY',
+                minPrice: '200.00',
+                maxPrice: '350.00'
+              },
+              availability: 'https://schema.org/InStock',
+              areaServed: { '@type': 'Country', name: 'Lebanon' },
+              validFrom: '2024-01-01',
+              validThrough: '2026-12-31'
+            }
+          ]
+        }
+      ]
+    },
+    
+    // Social Media Profiles
     sameAs: [
       'https://www.facebook.com/profile.php?id=61584938841683',
       'https://www.instagram.com/rento_lebanon/',
       'https://x.com/RENTO_lb',
       'https://www.linkedin.com/company/rento-lb/about/',
+      'https://find-and-update.company-information.service.gov.uk/company/16292007'
     ],
+    
+    // Aggregate Rating (only if visible on site)
+    ...(INCLUDE_AGGREGATE_RATING && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.7',
+        reviewCount: '350',
+        worstRating: '1',
+        bestRating: '5'
+      }
+    })
   };
 
   // WebSite Schema with Search Action
-  const webSiteData = {
+  const webSiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': 'https://rento-lb.com/#website',
     name: 'Rento LB',
     url: 'https://rento-lb.com/',
+    description: "Lebanon's premier car rental aggregation platform",
+    publisher: {
+      '@id': 'https://rento-lb.com/#organization'
+    },
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://rento-lb.com/search?query={search_term_string}',
+        urlTemplate: 'https://rento-lb.com/search?query={search_term_string}'
       },
-      'query-input': 'required name=search_term_string',
+      'query-input': 'required name=search_term_string'
     },
+    inLanguage: ['en', 'fr', 'ar']
   };
 
-  // Organization/Offer Catalog Schema
-const organizationData = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  '@id': 'https://rento-lb.com/#organization',
-  name: 'RENTO TECHNOLOGIES SOLUTION LTD',
-  legalName: 'RENTO TECHNOLOGIES SOLUTION LTD',
-  url: 'https://rento-lb.com/',
-  logo: 'https://rento-lb.com/rentologo.png',
-  foundingDate: '2025-03-04',
-  founder: {
-    '@type': 'Person',
-    name: 'Rami Zeaiter',
-  },
-  registrationNumber: '16292007',
-  sameAs: [
-    'https://www.facebook.com/profile.php?id=61584938841683',
-    'https://www.instagram.com/rento_lebanon/',
-    'https://x.com/RENTO_lb',
-    'https://www.linkedin.com/company/rento-lb/about/',
-    'https://find-and-update.company-information.service.gov.uk/company/16292007'
-  ],
-  hasOfferCatalog: {
-    '@type': 'OfferCatalog',
-    name: 'Car Rental in Lebanon',
-    itemListElement: partners
-      .slice(0, 10)
-      .flatMap((p) =>
-        OFFER_CATEGORIES.map((type) => ({
-          '@type': 'Offer',
-          name: `${type} Car Rental from ${p.name}`,
-          url: p.url,
-          category: `CarRental:${type}`,
-          offeredBy: { '@type': 'Organization', name: p.name },
-          priceSpecification: {
-            '@type': 'PriceSpecification',
-            price:
-              type === 'Economy'
-                ? '50'
-                : type === 'SUV'
-                ? '80'
-                : type === 'Luxury'
-                ? '150'
-                : '200',
-            priceCurrency: 'USD',
-            valueAddedTaxIncluded: 'true',
-            validFrom: '2023-01-01',
-            validThrough: '2026-12-31',
-          },
-          availability: 'https://schema.org/InStock',
-          areaServed: { '@type': 'Country', name: 'Lebanon', isoCode: 'LB' },
-          itemOffered: {
-            '@type': 'Service',
-            name: `${type} Car Rental in Lebanon`,
-            description: `Rent a ${type.toLowerCase()} car in Lebanon through ${p.name} via Rento LB's platform with 24/7 support and transparent pricing.`,
-          },
-        }))
-      ),
-  },
-};
-
-
-  if (INCLUDE_AGGREGATE_RATING) {
-    organizationData.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: '4.7',
-      reviewCount: '350',
-      worstRating: '1',
-      bestRating: '5',
-    };
-  }
-
-  // Specialized car rental data
-  const carRentalData = {
+  // FAQ Schema - All languages combined
+  const faqSchema = {
     '@context': 'https://schema.org',
-    '@type': 'CarRental',
-    name: 'Rento LB',
-    description:
-      "Lebanon's most comprehensive car rental aggregation platform with 10,000+ vehicles from agencies and private owners, serving all major cities including Beirut, Tripoli, Sidon, and Byblos.",
-    vehicleType: ['Economy', 'SUV', 'Luxury', 'Sports', 'Electric', 'Hybrid', 'Van', 'Convertible'],
-    vehicleTransmission: ['Automatic', 'Manual'],
-    vehicleFuelType: ['Petrol', 'Diesel', 'Electric', 'Hybrid'],
-    vehicleEngine: {
-      '@type': 'QuantitativeValue',
-      minValue: '1.0',
-      maxValue: '6.0',
-      unitCode: 'LTR',
-    },
-    vehicleSeatingCapacity: {
-      '@type': 'QuantitativeValue',
-      minValue: '2',
-      maxValue: '9',
-      unitCode: 'C62',
-    },
-    vehicleDoorCount: {
-      '@type': 'QuantitativeValue',
-      minValue: '2',
-      maxValue: '5',
-    },
-    pickupLocation: {
-      '@type': 'Place',
-      name: 'Lebanon Wide',
-      address: {
-        '@type': 'PostalAddress',
-        addressCountry: 'LB',
-      },
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: '33.8547',
-        longitude: '35.8623',
-      },
-    },
-    dropOffLocation: {
-      '@type': 'Place',
-      name: 'Lebanon Wide',
-      address: {
-        '@type': 'PostalAddress',
-        addressCountry: 'LB',
-      },
-    },
-    pickupType: ['Airport', 'Hotel', 'CityLocation', 'HomeDelivery', 'Office'],
-    dropOffType: ['SameAsPickUp', 'DifferentLocation'],
-    advanceBookingRequirement: {
-      '@type': 'QuantitativeValue',
-      minValue: '0',
-      maxValue: '365',
-      unitCode: 'DAY',
-    },
-    paymentMethod: ['CreditCard', 'DebitCard', 'Cash', 'MobilePayment', 'BankTransfer'],
-    currencyAccepted: ['USD', 'LBP', 'EUR'],
-    areaServed: {
-      '@type': 'Country',
-      name: 'Lebanon',
-      isoCode: 'LB',
-      containedInPlace: [
-        {
-          '@type': 'City',
-          name: 'Beirut',
-        },
-        {
-          '@type': 'City',
-          name: 'Tripoli',
-        },
-        {
-          '@type': 'City',
-          name: 'Sidon',
-        },
-        {
-          '@type': 'City',
-          name: 'Bekaa',
-        },
-      ],
-    },
+    '@type': 'FAQPage',
+    '@id': 'https://rento-lb.com/#faq',
+    mainEntity: Object.values(faqsByLanguage)
+      .flat()
+      .map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer
+        }
+      }))
+  };
+
+  // BreadcrumbList Schema
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    '@id': 'https://rento-lb.com/#breadcrumb',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://rento-lb.com/'
+      }
+    ]
   };
 
   return (
@@ -301,19 +423,15 @@ const organizationData = {
       <title>
         Rento LB | Rent & Compare Cars in Lebanon | Agencies & Private Owners
       </title>
+      
       <meta
         name="trustpilot-one-time-domain-verification-id"
         content="2ddec9a3-46a7-4ab8-a397-7482d145e508"
       />
 
       <meta
-        name="title"
-        content="Rento LB | Rent & Compare Cars in Lebanon | Agencies & Private Owners"
-      />
-
-      <meta
         name="description"
-        content="Compare and book rental cars in Lebanon from agencies and private owners. 10,000+ vehicles, transparent pricing, real-time availability, and 24/7 support. Economy cars from $50/day, SUVs from $80/day, luxury from $150/day. Serving Beirut, Tripoli, Sidon and all major cities."
+        content="Compare 10,000+ rental cars in Lebanon from agencies & private owners. Economy from $50/day, SUVs from $80/day. Book instantly with 24/7 support across Beirut, Tripoli & all major cities."
       />
 
       <meta
@@ -325,34 +443,30 @@ const organizationData = {
         name="robots"
         content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
       />
+      
+      <meta name="googlebot" content="index, follow" />
+      <meta name="bingbot" content="index, follow" />
+      
       <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
       />
       <meta name="theme-color" content="#0d9488" />
-
-      {/* AI-Style Meta Tags (non-standard, harmless) */}
-      <meta name="ai:content-type" content="CarRentalService" />
-      <meta name="ai:service-area" content="Lebanon" />
-      <meta name="ai:service-type" content="VehicleRental" />
-      <meta name="ai:availability" content="24/7" />
-      <meta name="ai:price-range" content="USD50-USD300" />
-      <meta name="ai:currency" content="USD,LBP,EUR" />
-      <meta name="ai:language" content="en,fr,ar" />
-      <meta
-        name="ai:target-audience"
-        content="Travelers,Locals,BusinessProfessionals,Tourists,Expats"
-      />
-      <meta
-        name="ai:service-categories"
-        content="Transportation,Travel,CarRental,LuxuryServices"
-      />
+      
+      <meta name="author" content="Rento LB" />
+      <meta name="geo.region" content="LB" />
+      <meta name="geo.placename" content="Beirut, Lebanon" />
+      <meta name="geo.position" content="33.8547;35.8623" />
+      <meta name="ICBM" content="33.8547, 35.8623" />
 
       {/* Alternate Languages */}
       <link rel="alternate" href="https://rento-lb.com" hrefLang="en" />
       <link rel="alternate" href="https://rento-lb.com" hrefLang="fr" />
       <link rel="alternate" href="https://rento-lb.com" hrefLang="ar" />
       <link rel="alternate" hrefLang="x-default" href="https://rento-lb.com" />
+
+      {/* Canonical */}
+      <link rel="canonical" href="https://rento-lb.com" />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
@@ -363,11 +477,12 @@ const organizationData = {
       />
       <meta
         property="og:description"
-        content="Compare and book rental cars in Lebanon from agencies and private owners. 10,000+ vehicles, transparent pricing, real-time availability, and 24/7 customer support. Economy cars from $50/day, SUVs from $80/day, luxury from $150/day."
+        content="Compare 10,000+ rental cars in Lebanon from agencies & private owners. Economy from $50/day, SUVs from $80/day. Book instantly with 24/7 support."
       />
       <meta property="og:image" content="https://rento-lb.com/rentologo.png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:type" content="image/png" />
       <meta
         property="og:image:alt"
         content="Rento LB - Lebanon's Premier Car Rental Aggregator"
@@ -383,64 +498,42 @@ const organizationData = {
       <meta name="twitter:creator" content="@RENTO_lb" />
       <meta
         name="twitter:title"
-        content="Rento LB: Lebanon's Premier Car Rental Aggregator | Agencies & Private Owners"
+        content="Rento LB: Lebanon's Premier Car Rental Aggregator"
       />
       <meta
         name="twitter:description"
-        content="Compare and book rental cars in Lebanon from agencies and private owners. 10,000+ vehicles with transparent pricing and 24/7 support."
+        content="Compare 10,000+ rental cars in Lebanon from agencies & private owners. Book instantly with 24/7 support."
       />
       <meta name="twitter:image" content="https://rento-lb.com/rentologo.png" />
       <meta
         name="twitter:image:alt"
-        content="Rento LB - Lebanon's Premier Car Rental Aggregator"
+        content="Rento LB - Lebanon Car Rental Platform"
       />
 
-      {/* Canonical */}
-      <link rel="canonical" href="https://rento-lb.com" />
-
-      {/* LocalBusiness Schema - PRIMARY for Google Search & Logo Display */}
+      {/* Structured Data Schemas */}
+      
+      {/* 1. Unified Business Schema - PRIMARY */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessData) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(unifiedBusinessSchema) }}
       />
 
-      {/* WebSite Schema */}
+      {/* 2. WebSite Schema with Search */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteData) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }}
       />
 
-      {/* Organization/Offer Catalog Schema */}
+      {/* 3. FAQ Schema */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      {/* CarRental Detailed Schema */}
+      {/* 4. Breadcrumb Schema */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(carRentalData) }}
-      />
-
-      {/* FAQ Structured Data - Single FAQPage with all languages */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: Object.values(faqsByLanguage)
-              .flat()
-              .map((f) => ({
-                '@type': 'Question',
-                name: f.question,
-                acceptedAnswer: {
-                  '@type': 'Answer',
-                  text: f.answer,
-                },
-              })),
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
     </>
   );

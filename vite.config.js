@@ -11,7 +11,7 @@ export default defineConfig({
     })
   ],
   server: { 
-    port: 4000,
+    port: 7000,
     host: "127.0.0.1",
     strictPort: true
   },
