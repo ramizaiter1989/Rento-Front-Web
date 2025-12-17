@@ -1,0 +1,267 @@
+/* ========================================
+   RENTO LB - HOMEPAGE ANIMATIONS
+   Professional Animation System
+   Logo Colors: #1e5f7a, #00A19C, #8EDC81
+   ======================================== */
+
+/* ========== KEYFRAMES ========== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ========== ANIMATION CLASSES ========== */
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ========== ANIMATION DELAYS ========== */
+
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animation-delay-700 {
+  animation-delay: 0.7s;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1400 {
+  animation-delay: 1.4s;
+}
+
+/* ========== HOVER EFFECTS ========== */
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 161, 156, 0.2);
+}
+
+/* ========== SMOOTH TRANSITIONS ========== */
+
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========== RESPONSIVE ANIMATIONS ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ========== MOBILE OPTIMIZATIONS ========== */
+
+@media (max-width: 640px) {
+  .animate-fade-in-up {
+    animation-duration: 0.4s;
+  }
+  
+  .animate-scale-in {
+    animation-duration: 0.3s;
+  }
+  
+  /* Reduce animation complexity on mobile */
+  .animate-pulse-glow {
+    animation: none;
+  }
+  
+  /* Optimize hover effects for touch devices */
+  @media (hover: none) {
+    .hover-lift:hover {
+      transform: none;
+    }
+  }
+}
+
+/* ========== TOUCH DEVICE OPTIMIZATIONS ========== */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover animations on touch devices */
+  .group:hover .group-hover\:scale-110 {
+    transform: none;
+  }
+  
+  .group:hover .group-hover\:rotate-3 {
+    transform: none;
+  }
+  
+  /* Keep active/tap states */
+  .group:active .group-hover\:scale-110 {
+    transform: scale(1.05);
+  }
+}
+
+/* ========== CUSTOM SCROLLBAR (Desktop Only) ========== */
+
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #1e5f7a, #00A19C, #8EDC81);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #184a5e, #008c88, #7bc876);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+  }
+}
+
+/* ========== PERFORMANCE OPTIMIZATIONS ========== */
+
+/* GPU acceleration for animated elements */
+.animate-fade-in,
+.animate-fade-in-up,
+.animate-scale-in,
+.animate-pulse-glow,
+.animate-float {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Remove will-change after animation completes */
+.animate-fade-in.animation-complete,
+.animate-fade-in-up.animation-complete,
+.animate-scale-in.animation-complete {
+  will-change: auto;
+}
+
+/* ========== ACCESSIBILITY ========== */
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #a10000;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .animate-pulse-glow {
+    animation: none;
+  }
+}
+
+/* ========== PRINT STYLES ========== */
+
+@media print {
+  /* Remove all animations in print */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  /* Remove decorative elements */
+  .absolute.inset-0 {
+    display: none;
+  }
+}

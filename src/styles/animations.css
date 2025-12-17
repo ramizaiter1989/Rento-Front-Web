@@ -1,0 +1,545 @@
+/**
+ * ============================================
+ * RENTO LB - COMPLETE ANIMATIONS CSS
+ * ============================================
+ * 
+ * Professional animation system for homepage and auth pages
+ * Optimized for performance and mobile devices
+ * 
+ * Logo Colors:
+ * - Dark Blue: #1e5f7a
+ * - Teal: #00A19C
+ * - Lime Green: #8EDC81
+ * 
+ * Installation:
+ * 1. Copy this file to: src/styles/animations.css
+ * 2. Import in your main CSS: @import './styles/animations.css'
+ * OR import in component: import './animations.css'
+ * 
+ * ============================================
+ */
+
+/* ========================================
+   KEYFRAME ANIMATIONS
+   ======================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes rotate-smooth {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   ANIMATION CLASSES
+   ======================================== */
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.animate-shimmer {
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* ========================================
+   ANIMATION DELAYS
+   ======================================== */
+
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animation-delay-700 {
+  animation-delay: 0.7s;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1400 {
+  animation-delay: 1.4s;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1.5s;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+/* ========================================
+   HOVER EFFECTS
+   ======================================== */
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 161, 156, 0.2);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 30px rgba(0, 161, 156, 0.3);
+  border-color: #00A19C;
+}
+
+/* ========================================
+   GRADIENT TEXT
+   ======================================== */
+
+.gradient-text {
+  background: linear-gradient(135deg, #1e5f7a, #00A19C, #8EDC81);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* ========================================
+   LOADING SPINNER
+   ======================================== */
+
+.spinner {
+  border: 3px solid rgba(0, 161, 156, 0.1);
+  border-top-color: #00A19C;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: rotate-smooth 1s linear infinite;
+}
+
+/* ========================================
+   BUTTON ENHANCEMENTS
+   ======================================== */
+
+.button-gradient {
+  background: linear-gradient(135deg, #1e5f7a, #00A19C, #8EDC81);
+  background-size: 200% 200%;
+  transition: all 0.3s ease;
+}
+
+.button-gradient:hover {
+  background-position: 100% 0;
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(0, 161, 156, 0.3);
+}
+
+/* ========================================
+   INPUT FOCUS EFFECTS
+   ======================================== */
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #00A19C !important;
+  box-shadow: 0 0 0 3px rgba(0, 161, 156, 0.1) !important;
+  transition: all 0.3s ease;
+}
+
+/* ========================================
+   CARD ANIMATIONS
+   ======================================== */
+
+.card-entrance {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+/* ========================================
+   SMOOTH TRANSITIONS
+   ======================================== */
+
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATIONS
+   ======================================== */
+
+/* GPU acceleration for animated elements */
+.animate-fade-in,
+.animate-fade-in-up,
+.animate-fade-in-down,
+.animate-scale-in,
+.animate-pulse-glow,
+.animate-float {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Remove will-change after animation completes */
+.animate-fade-in.animation-complete,
+.animate-fade-in-up.animation-complete,
+.animate-scale-in.animation-complete {
+  will-change: auto;
+}
+
+/* ========================================
+   RESPONSIVE ANIMATIONS
+   ======================================== */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .animate-fade-in-up {
+    animation-duration: 0.4s;
+  }
+  
+  .animate-scale-in {
+    animation-duration: 0.3s;
+  }
+  
+  /* Reduce animation complexity on mobile */
+  .animate-pulse-glow {
+    animation: none;
+  }
+  
+  /* Optimize hover effects for touch devices */
+  @media (hover: none) {
+    .hover-lift:hover {
+      transform: none;
+    }
+  }
+}
+
+/* ========================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover animations on touch devices */
+  .group:hover .group-hover\:scale-110 {
+    transform: none;
+  }
+  
+  .group:hover .group-hover\:rotate-3 {
+    transform: none;
+  }
+  
+  /* Keep active/tap states */
+  .group:active .group-hover\:scale-110 {
+    transform: scale(1.05);
+  }
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR (Desktop Only)
+   ======================================== */
+
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #1e5f7a, #00A19C, #8EDC81);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #184a5e, #008c88, #7bc876);
+  }
+
+  /* Dark mode scrollbar */
+  @media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #00A19C;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .animate-pulse-glow {
+    animation: none;
+  }
+  
+  .gradient-text {
+    background: #00A19C;
+    -webkit-text-fill-color: #00A19C;
+  }
+}
+
+/* ========================================
+   DARK MODE ENHANCEMENTS
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+  .hover-glow:hover {
+    box-shadow: 0 0 30px rgba(142, 220, 129, 0.2);
+  }
+  
+  input:focus,
+  select:focus,
+  textarea:focus {
+    box-shadow: 0 0 0 3px rgba(142, 220, 129, 0.1) !important;
+  }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  /* Remove all animations in print */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  /* Remove decorative elements */
+  .absolute.inset-0 {
+    display: none;
+  }
+  
+  /* Remove background images */
+  video,
+  .bg-gradient-to-br {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Text animations */
+.animate-text-slide-in {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+/* Image loading animations */
+.image-loading {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 0%,
+    #e0e0e0 50%,
+    #f0f0f0 100%
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  .image-loading {
+    background: linear-gradient(
+      90deg,
+      #2a2a2a 0%,
+      #1a1a1a 50%,
+      #2a2a2a 100%
+    );
+  }
+}
+
+/* Badge pulse animation */
+.badge-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Card hover shadow */
+.card-hover-shadow {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.card-hover-shadow:hover {
+  box-shadow: 0 20px 40px rgba(0, 161, 156, 0.15);
+  transform: translateY(-4px);
+}
+
+/* ========================================
+   ANIMATION COMPLETION UTILITIES
+   ======================================== */
+
+/* Add this class via JavaScript after animation completes */
+.animation-complete {
+  will-change: auto;
+}
+
+/* Example usage in React:
+   <div 
+     className="animate-fade-in-up"
+     onAnimationEnd={(e) => e.currentTarget.classList.add('animation-complete')}
+   >
+     Content
+   </div>
+*/

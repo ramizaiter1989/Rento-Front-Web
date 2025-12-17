@@ -11,6 +11,13 @@ import {
   Edit2,
   Trash2,
   Eye,
+  TrendingUp,
+  MousePointerClick,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Gauge,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +28,17 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
+import { motion } from 'framer-motion';
+
+// Logo colors
+const COLORS = {
+  darkBlue: '#0E4C81',
+  teal: '#008C95',
+  limeGreen: '#8AC640',
+  darkBlueDim: 'rgba(14, 76, 129, 0.1)',
+  tealDim: 'rgba(0, 140, 149, 0.1)',
+  limeGreenDim: 'rgba(138, 198, 64, 0.1)',
+};
 
 const CAR_CATEGORIES = [
   { value: 'all', label: 'All Categories' },
@@ -55,11 +73,22 @@ const getStatusBadgeClass = (status) => {
 const getCategoryBadgeClass = (category) => {
   switch (category) {
     case 'luxury':
-      return 'bg-amber-500 text-white';
+      return 'text-white';
     case 'sport':
-      return 'bg-red-500 text-white';
+      return 'text-white';
     default:
-      return 'bg-teal-500 text-white';
+      return 'text-white';
+  }
+};
+
+const getCategoryColor = (category) => {
+  switch (category) {
+    case 'luxury':
+      return COLORS.darkBlue;
+    case 'sport':
+      return COLORS.limeGreen;
+    default:
+      return COLORS.teal;
   }
 };
 
@@ -68,75 +97,151 @@ const CarDetailModal = ({ car, onClose }) => {
   const safeArray = (arr) => Array.isArray(arr) ? arr : [];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-3xl p-6 relative overflow-y-auto max-h-full">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl p-6 relative overflow-y-auto max-h-[90vh]"
+      >
         <button
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl font-bold"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
+          style={{ background: COLORS.tealDim }}
           onClick={onClose}
         >
-          ✕
+          <X className="w-5 h-5" style={{ color: COLORS.teal }} />
         </button>
 
-        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-          {car.make} {car.model} ({car.year})
-        </h2>
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
+            >
+              <Car className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {car.make} {car.model}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{car.year} • {car.license_plate}</p>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            <div className="bg-gradient-to-br p-3 rounded-xl" style={{ background: COLORS.tealDim }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="w-4 h-4" style={{ color: COLORS.teal }} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Views</span>
+              </div>
+              <p className="text-xl font-bold" style={{ color: COLORS.teal }}>{car.views_count || 0}</p>
+            </div>
+
+            <div className="bg-gradient-to-br p-3 rounded-xl" style={{ background: COLORS.darkBlueDim }}>
+              <div className="flex items-center gap-2 mb-1">
+                <MousePointerClick className="w-4 h-4" style={{ color: COLORS.darkBlue }} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Clicks</span>
+              </div>
+              <p className="text-xl font-bold" style={{ color: COLORS.darkBlue }}>{car.search_count || 0}</p>
+            </div>
+
+            <div className="bg-gradient-to-br p-3 rounded-xl" style={{ background: COLORS.limeGreenDim }}>
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-4 h-4" style={{ color: COLORS.limeGreen }} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Daily Rate</span>
+              </div>
+              <p className="text-xl font-bold" style={{ color: COLORS.limeGreen }}>${car.daily_rate}</p>
+            </div>
+
+            <div className="bg-gradient-to-br p-3 rounded-xl" style={{ background: COLORS.tealDim }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="w-4 h-4" style={{ color: COLORS.teal }} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Status</span>
+              </div>
+              <Badge className={`text-xs ${getStatusBadgeClass(car.status)}`}>
+                {car.status}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Images */}
-          <div className="space-y-2">
-            <img
-              src={car.main_image_url || '/placeholder.png'}
-              alt="Main"
-              className="w-full h-48 object-cover rounded-lg"
-            />
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-3">
+            <div className="relative rounded-xl overflow-hidden shadow-lg" style={{ height: '240px' }}>
+              {car.main_image_url ? (
+                <img
+                  src={car.main_image_url}
+                  alt="Main"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ background: COLORS.tealDim }}>
+                  <Car className="w-16 h-16" style={{ color: COLORS.teal, opacity: 0.3 }} />
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-2">
               {['front', 'back', 'left', 'right'].map((dir) => (
-                car[`${dir}_image_url`] && (
-                  <img
-                    key={dir}
-                    src={car[`${dir}_image_url`]}
-                    alt={dir}
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
+                car[`${dir}_image_url`] ? (
+                  <div key={dir} className="relative rounded-lg overflow-hidden shadow" style={{ height: '70px' }}>
+                    <img
+                      src={car[`${dir}_image_url`]}
+                      alt={dir}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div key={dir} className="rounded-lg flex items-center justify-center" style={{ height: '70px', background: COLORS.tealDim }}>
+                    <Car className="w-6 h-6" style={{ color: COLORS.teal, opacity: 0.3 }} />
+                  </div>
                 )
               ))}
             </div>
           </div>
 
           {/* Details */}
-          <div className="space-y-2 text-gray-800 dark:text-gray-300">
-            <div><span className="font-semibold">License Plate:</span> {car.license_plate}</div>
-            <div><span className="font-semibold">Category:</span> {car.car_category}</div>
-            <div><span className="font-semibold">Daily Rate:</span> ${car.daily_rate}/day</div>
-            <div><span className="font-semibold">Holiday Rate:</span> ${car.holiday_rate}/day</div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Status:</span>
-              <Badge className={`px-2 py-1 text-xs ${getStatusBadgeClass(car.status)}`}>
-                {car.status}
-              </Badge>
-            </div>
-            <div><span className="font-semibold">Color:</span> {car.color}</div>
-            <div><span className="font-semibold">Fuel Type:</span> {car.fuel_type}</div>
-            <div><span className="font-semibold">Transmission:</span> {car.transmission}</div>
-            <div><span className="font-semibold">Wheels Drive:</span> {car.wheels_drive}</div>
-            <div><span className="font-semibold">Seats:</span> {car.seats}</div>
-            <div><span className="font-semibold">Doors:</span> {car.doors}</div>
-            <div><span className="font-semibold">Mileage:</span> {car.mileage?.toLocaleString()} km</div>
-            <div><span className="font-semibold">Add-Ons:</span> {safeArray(car.car_add_on).join(', ') || 'N/A'}</div>
-            <div><span className="font-semibold">Features:</span> {safeArray(car.features).join(', ') || 'N/A'}</div>
-            <div><span className="font-semibold">Reason for Rent:</span> {safeArray(car.reason_of_rent).join(', ') || 'N/A'}</div>
-            <div><span className="font-semibold">Max Driving Mileage:</span> {car.max_driving_mileage} km</div>
-            <div><span className="font-semibold">Min Rental Days:</span> {car.min_rental_days}</div>
-            <div><span className="font-semibold">Notes:</span> {car.notes || 'N/A'}</div>
-            <div><span className="font-semibold">Delivery Location:</span> {car.delivery_location?.address || 'N/A'}</div>
-            <div><span className="font-semibold">Return Location:</span> {car.return_location?.address || 'N/A'}</div>
-            {car.live_location && <div><span className="font-semibold">Current Location:</span> {car.live_location.address}</div>}
+          <div className="space-y-3 text-sm">
+            <DetailRow icon={Car} label="Category" value={car.car_category} />
+            <DetailRow icon={DollarSign} label="Holiday Rate" value={`$${car.holiday_rate}/day`} />
+            <DetailRow icon={Gauge} label="Mileage" value={`${car.mileage?.toLocaleString()} km`} />
+            <DetailRow label="Color" value={car.color} />
+            <DetailRow label="Fuel Type" value={car.fuel_type} />
+            <DetailRow label="Transmission" value={car.transmission} />
+            <DetailRow label="Wheel Drive" value={car.wheels_drive} />
+            <DetailRow label="Seats" value={car.seats} />
+            <DetailRow label="Doors" value={car.doors} />
+            <DetailRow label="Max Driving Mileage" value={`${car.max_driving_mileage} km`} />
+            <DetailRow label="Min Rental Days" value={car.min_rental_days} />
+            <DetailRow label="Add-Ons" value={safeArray(car.car_add_on).join(', ') || 'N/A'} />
+            <DetailRow label="Features" value={safeArray(car.features).join(', ') || 'N/A'} />
+            <DetailRow label="Reason for Rent" value={safeArray(car.reason_of_rent).join(', ') || 'N/A'} />
+            {car.notes && <DetailRow label="Notes" value={car.notes} />}
+            <DetailRow icon={MapPin} label="Delivery Location" value={car.delivery_location?.address || 'N/A'} />
+            <DetailRow icon={MapPin} label="Return Location" value={car.return_location?.address || 'N/A'} />
+            {car.live_location && <DetailRow icon={MapPin} label="Current Location" value={car.live_location.address} badge />}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
+
+const DetailRow = ({ icon: Icon, label, value, badge }) => (
+  <div className="flex items-start gap-2 py-2 border-b border-gray-100 dark:border-gray-800">
+    {Icon && <Icon className="w-4 h-4 mt-0.5" style={{ color: COLORS.teal }} />}
+    <div className="flex-1">
+      <span className="font-semibold text-gray-700 dark:text-gray-300">{label}:</span>
+      {badge ? (
+        <Badge className="ml-2 text-xs" style={{ background: COLORS.teal, color: 'white' }}>{value}</Badge>
+      ) : (
+        <span className="ml-2 text-gray-600 dark:text-gray-400">{value}</span>
+      )}
+    </div>
+  </div>
+);
 
 export const MyCarsPage = () => {
   const navigate = useNavigate();
@@ -176,7 +281,9 @@ export const MyCarsPage = () => {
       title: 'Confirm Deletion',
       message: 'Are you sure you want to delete this car?',
       buttons: [
-        { label: 'Yes, Delete', onClick: async () => {
+        { 
+          label: 'Yes, Delete', 
+          onClick: async () => {
             try {
               await api.delete(`/cars/${id}`);
               toast.success('Car deleted successfully.');
@@ -191,7 +298,6 @@ export const MyCarsPage = () => {
     });
   };
 
-  // Open edit modal
   const openEditModal = (car) => {
     setSelectedCar(car);
     setEditForm({
@@ -242,61 +348,99 @@ export const MyCarsPage = () => {
 
   const goToPage = (page) => setPagination(prev => ({ ...prev, currentPage: Math.max(1, Math.min(page, totalPages)) }));
 
+  // Calculate total stats
+  const totalViews = allCars.reduce((sum, car) => sum + (car.views_count || 0), 0);
+  const totalClicks = allCars.reduce((sum, car) => sum + (car.search_count || 0), 0);
+  const approvedCars = allCars.filter(c => c.status === 'approved').length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/30 to-cyan-50/30 dark:from-gray-950 dark:via-teal-950/20 dark:to-cyan-950/20 pt-20">
-  <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-black dark:via-gray-900 dark:to-gray-950 pt-20">
+      <div className="container mx-auto px-4 py-8">
 
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg">
-              <Car className="w-8 h-8 text-white" />
+            <div 
+              className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
+            >
+              <Car className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-gray-900 dark:text-white">My Cars</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your listed cars</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Cars</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage your listed vehicles</p>
             </div>
           </div>
 
           <Button
             onClick={() => navigate('/Add/car')}
-            className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            className="h-11 rounded-xl text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
           >
             <Plus className="w-5 h-5 mr-2" />
             Add New Car
           </Button>
         </div>
 
+        {/* STATS CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            icon={Car}
+            label="Total Cars"
+            value={allCars.length}
+            gradient={`linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})`}
+          />
+          <StatCard
+            icon={Eye}
+            label="Total Views"
+            value={totalViews}
+            gradient={`linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal})`}
+          />
+          <StatCard
+            icon={MousePointerClick}
+            label="Total Clicks"
+            value={totalClicks}
+            gradient={`linear-gradient(135deg, ${COLORS.teal}, ${COLORS.limeGreen})`}
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Approved"
+            value={approvedCars}
+            gradient={`linear-gradient(135deg, ${COLORS.limeGreen}, ${COLORS.teal})`}
+          />
+        </div>
+
         {/* FILTERS */}
-        <Card className="mb-6 border-2 border-transparent hover:border-teal-500/30 transition-all duration-300 shadow-lg">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <Card className="mb-6 border-2 border-transparent shadow-lg rounded-xl">
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
               {/* SEARCH */}
               <div className="md:col-span-1">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Search
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
-                    placeholder="Search by make, model, or license plate..."
+                    placeholder="Search cars..."
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className="pl-10 h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 rounded-xl transition-all duration-200"
+                    className="pl-9 h-10 border-2 rounded-xl transition-all duration-200"
+                    style={{ borderColor: filters.search ? COLORS.teal : undefined }}
                   />
                 </div>
               </div>
 
               {/* CATEGORY */}
               <div className="md:col-span-1">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Category
                 </label>
                 <Select
                   value={filters.category}
                   onValueChange={(value) => handleFilterChange('category', value)}
                 >
-                  <SelectTrigger className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl">
+                  <SelectTrigger className="h-10 border-2 rounded-xl">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -311,14 +455,14 @@ export const MyCarsPage = () => {
 
               {/* STATUS */}
               <div className="md:col-span-1">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Status
                 </label>
                 <Select
                   value={filters.status}
                   onValueChange={(value) => handleFilterChange('status', value)}
                 >
-                  <SelectTrigger className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl">
+                  <SelectTrigger className="h-10 border-2 rounded-xl">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -336,7 +480,8 @@ export const MyCarsPage = () => {
                 {(filters.search || filters.category !== 'all' || filters.status !== 'all') && (
                   <Button
                     variant="outline"
-                    className="h-12 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                    className="h-10 rounded-xl border-2"
+                    style={{ borderColor: COLORS.teal, color: COLORS.teal }}
                     onClick={clearFilters}
                   >
                     Clear Filters
@@ -347,24 +492,36 @@ export const MyCarsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Table */}
-        <Card className="border-2 border-transparent hover:border-teal-500/30 transition-all duration-300 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+        {/* TABLE */}
+        <Card className="border-2 border-transparent shadow-lg rounded-xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
               Your Listed Cars ({filteredCars.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex justify-center py-12">
-                <p className="text-gray-600 dark:text-gray-400">Loading cars...</p>
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-transparent" style={{ borderColor: COLORS.teal, borderTopColor: 'transparent' }}></div>
               </div>
             ) : paginatedCars.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
-                <Car className="w-12 h-12 text-gray-400" />
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: COLORS.tealDim }}
+                >
+                  <Car className="w-8 h-8" style={{ color: COLORS.teal }} />
+                </div>
                 <p className="text-gray-600 dark:text-gray-400">
                   No cars found.{' '}
-                  <Button variant="link" className="text-teal-600 dark:text-teal-400 p-0 h-auto" onClick={() => navigate('/Add/car')}>Add your first car</Button>
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto" 
+                    style={{ color: COLORS.teal }}
+                    onClick={() => navigate('/Add/car')}
+                  >
+                    Add your first car
+                  </Button>
                 </p>
               </div>
             ) : (
@@ -372,54 +529,106 @@ export const MyCarsPage = () => {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                      <th>Make & Model</th>
-                      <th>License Plate</th>
-                      <th>Category</th>
-                      <th>Daily Rate</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Vehicle</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">License</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Rate</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Performance</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                    {paginatedCars.map((car) => (
-                      <tr key={car.id}>
-                        <td className="px-6 py-4 whitespace-nowrap flex gap-3 items-center">
-                          <div className="w-12 h-8 rounded-lg overflow-hidden">
-                            {car.main_image_url ? (
-                              <img src={car.main_image_url} alt={car.make} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                <Car className="w-5 h-5 text-gray-400" />
-                              </div>
-                            )}
+                    {paginatedCars.map((car, index) => (
+                      <motion.tr
+                        key={car.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex gap-3 items-center">
+                            <div className="w-14 h-10 rounded-lg overflow-hidden shadow-sm">
+                              {car.main_image_url ? (
+                                <img src={car.main_image_url} alt={car.make} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center" style={{ background: COLORS.tealDim }}>
+                                  <Car className="w-5 h-5" style={{ color: COLORS.teal, opacity: 0.5 }} />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{car.make}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{car.model} ({car.year})</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{car.make}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{car.model} ({car.year})</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-mono">{car.license_plate}</td>
+                        <td className="px-4 py-3">
+                          <Badge 
+                            className="px-2 py-1 text-xs text-white font-semibold"
+                            style={{ background: getCategoryColor(car.car_category) }}
+                          >
+                            {car.car_category}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-bold" style={{ color: COLORS.teal }}>${car.daily_rate}</div>
+                          <div className="text-xs text-gray-500">per day</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={`px-2 py-1 text-xs ${getStatusBadgeClass(car.status)}`}>
+                            {car.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-3">
+                            <div className="flex items-center gap-1">
+                              <Eye className="w-4 h-4" style={{ color: COLORS.darkBlue }} />
+                              <span className="text-sm font-semibold" style={{ color: COLORS.darkBlue }}>
+                                {car.views_count || 0}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MousePointerClick className="w-4 h-4" style={{ color: COLORS.teal }} />
+                              <span className="text-sm font-semibold" style={{ color: COLORS.teal }}>
+                                {car.search_count || 0}
+                              </span>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">{car.license_plate}</td>
-                        <td className="px-6 py-4">
-                          <Badge className={`px-3 py-1 text-xs ${getCategoryBadgeClass(car.car_category)}`}>{car.car_category}</Badge>
-                        </td>
-                        <td className="px-6 py-4">${car.daily_rate}/day</td>
-                        <td className="px-6 py-4">
-                          <Badge className={`px-3 py-1 text-xs ${getStatusBadgeClass(car.status)}`}>{car.status}</Badge>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" className="text-teal-600 dark:text-teal-400" onClick={() => setSelectedCar(car)}>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 hover:scale-110 transition-transform"
+                              style={{ color: COLORS.teal }}
+                              onClick={() => setSelectedCar(car)}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400" onClick={() => openEditModal(car)}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 hover:scale-110 transition-transform"
+                              style={{ color: COLORS.darkBlue }}
+                              onClick={() => openEditModal(car)}
+                            >
                               <Edit2 className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600 dark:text-red-400" onClick={() => handleDelete(car.id)}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:scale-110 transition-transform"
+                              onClick={() => handleDelete(car.id)}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                   </tbody>
                 </table>
@@ -428,101 +637,180 @@ export const MyCarsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Pagination */}
+        {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
             <div className="flex items-center gap-2">
-              <Button onClick={() => goToPage(1)} disabled={pagination.currentPage === 1}><ChevronsLeft className="w-4 h-4"/></Button>
-              <Button onClick={() => goToPage(pagination.currentPage - 1)} disabled={pagination.currentPage === 1}><ChevronLeft className="w-4 h-4"/></Button>
-              <div>Page {pagination.currentPage} of {totalPages}</div>
-              <Button onClick={() => goToPage(pagination.currentPage + 1)} disabled={pagination.currentPage === totalPages}><ChevronRight className="w-4 h-4"/></Button>
-              <Button onClick={() => goToPage(totalPages)} disabled={pagination.currentPage === totalPages}><ChevronsRight className="w-4 h-4"/></Button>
+              <Button 
+                onClick={() => goToPage(1)} 
+                disabled={pagination.currentPage === 1}
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg"
+              >
+                <ChevronsLeft className="w-4 h-4"/>
+              </Button>
+              <Button 
+                onClick={() => goToPage(pagination.currentPage - 1)} 
+                disabled={pagination.currentPage === 1}
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg"
+              >
+                <ChevronLeft className="w-4 h-4"/>
+              </Button>
+              <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-semibold">
+                Page {pagination.currentPage} of {totalPages}
+              </div>
+              <Button 
+                onClick={() => goToPage(pagination.currentPage + 1)} 
+                disabled={pagination.currentPage === totalPages}
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg"
+              >
+                <ChevronRight className="w-4 h-4"/>
+              </Button>
+              <Button 
+                onClick={() => goToPage(totalPages)} 
+                disabled={pagination.currentPage === totalPages}
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg"
+              >
+                <ChevronsRight className="w-4 h-4"/>
+              </Button>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {((pagination.currentPage - 1) * pagination.perPage) + 1} - {Math.min(pagination.currentPage * pagination.perPage, filteredCars.length)} of {filteredCars.length}
             </div>
           </div>
         )}
 
-        {/* Modals */}
-        <CarDetailModal car={selectedCar} onClose={() => setSelectedCar(null)} />
+        {/* MODALS */}
+        {selectedCar && <CarDetailModal car={selectedCar} onClose={() => setSelectedCar(null)} />}
 
         {isEditModalOpen && selectedCar && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-lg p-6 relative">
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg p-6 relative"
+            >
               <button
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-bold text-xl"
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                style={{ background: COLORS.tealDim }}
                 onClick={() => setIsEditModalOpen(false)}
               >
-                ✕
+                <X className="w-5 h-5" style={{ color: COLORS.teal }} />
               </button>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-                Edit {selectedCar.make} {selectedCar.model}
-              </h2>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ background: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal})` }}
+                >
+                  <Edit2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Edit Car
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {selectedCar.make} {selectedCar.model}
+                  </p>
+                </div>
+              </div>
 
               <div className="space-y-4">
-  <div>
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      Delivery Location
-    </label>
-    <Input
-      value={editForm.delivery_location}
-      onChange={e => handleEditChange('delivery_location', e.target.value)}
-      placeholder="Enter delivery location"
-    />
-  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
+                    Delivery Location
+                  </label>
+                  <Input
+                    value={editForm.delivery_location}
+                    onChange={e => handleEditChange('delivery_location', e.target.value)}
+                    placeholder="Enter delivery location"
+                    className="h-10 border-2 rounded-xl"
+                  />
+                </div>
 
-  <div>
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      Return Location
-    </label>
-    <Input
-      value={editForm.return_location}
-      onChange={e => handleEditChange('return_location', e.target.value)}
-      placeholder="Enter return location"
-    />
-  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
+                    Return Location
+                  </label>
+                  <Input
+                    value={editForm.return_location}
+                    onChange={e => handleEditChange('return_location', e.target.value)}
+                    placeholder="Enter return location"
+                    className="h-10 border-2 rounded-xl"
+                  />
+                </div>
 
-  <div>
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      Mileage (km)
-    </label>
-    <Input
-      type="number"
-      value={editForm.mileage}
-      onChange={e => handleEditChange('mileage', Number(e.target.value))}
-      placeholder="Enter mileage"
-    />
-  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <Gauge className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
+                    Mileage (km)
+                  </label>
+                  <Input
+                    type="number"
+                    value={editForm.mileage}
+                    onChange={e => handleEditChange('mileage', Number(e.target.value))}
+                    placeholder="Enter mileage"
+                    className="h-10 border-2 rounded-xl"
+                  />
+                </div>
 
-  <div>
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      Daily Rate ($)
-    </label>
-    <Input
-      type="number"
-      value={editForm.daily_rate}
-      onChange={e => handleEditChange('daily_rate', Number(e.target.value))}
-      placeholder="Enter daily rate"
-    />
-  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <DollarSign className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
+                      Daily Rate
+                    </label>
+                    <Input
+                      type="number"
+                      value={editForm.daily_rate}
+                      onChange={e => handleEditChange('daily_rate', Number(e.target.value))}
+                      placeholder="Daily rate"
+                      className="h-10 border-2 rounded-xl"
+                    />
+                  </div>
 
-  <div>
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      Holiday Rate ($)
-    </label>
-    <Input
-      type="number"
-      value={editForm.holiday_rate}
-      onChange={e => handleEditChange('holiday_rate', Number(e.target.value))}
-      placeholder="Enter holiday rate"
-    />
-  </div>
-</div>
-
-
-              <div className="mt-4 flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                <Button onClick={submitEdit}>Save Changes</Button>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <DollarSign className="w-4 h-4 inline mr-1" style={{ color: COLORS.darkBlue }} />
+                      Holiday Rate
+                    </label>
+                    <Input
+                      type="number"
+                      value={editForm.holiday_rate}
+                      onChange={e => handleEditChange('holiday_rate', Number(e.target.value))}
+                      placeholder="Holiday rate"
+                      className="h-10 border-2 rounded-xl"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="h-10 rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={submitEdit}
+                  className="h-10 rounded-xl text-white font-semibold"
+                  style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </motion.div>
           </div>
         )}
 
@@ -530,3 +818,28 @@ export const MyCarsPage = () => {
     </div>
   );
 };
+
+const StatCard = ({ icon: Icon, label, value, gradient }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4 }}
+  >
+    <Card className="border-2 border-transparent hover:shadow-lg transition-all duration-300 rounded-xl">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-11 h-11 rounded-xl flex items-center justify-center shadow-md"
+            style={{ background: gradient }}
+          >
+            <Icon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">{label}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);

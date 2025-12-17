@@ -10,6 +10,16 @@ import {
   Navigation, MapPinned, CalendarDays, CreditCard, FileText
 } from "lucide-react";
 
+// Logo colors
+const COLORS = {
+  darkBlue: '#0E4C81',
+  teal: '#008C95',
+  limeGreen: '#8AC640',
+  darkBlueDim: 'rgba(14, 76, 129, 0.1)',
+  tealDim: 'rgba(0, 140, 149, 0.1)',
+  limeGreenDim: 'rgba(138, 198, 64, 0.1)',
+};
+
 export function AgentBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,42 +135,37 @@ export function AgentBookingsPage() {
     const configs = {
       pending: {
         label: "Pending",
-        color: "bg-amber-500",
-        bgColor: "bg-amber-50 dark:bg-amber-900/20",
-        textColor: "text-amber-600 dark:text-amber-400",
-        borderColor: "border-amber-200 dark:border-amber-800",
+        color: COLORS.teal,
+        bgColor: COLORS.tealDim,
+        textColor: COLORS.teal,
         icon: Timer,
       },
       confirmed: {
         label: "Confirmed",
-        color: "bg-emerald-500",
-        bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-        textColor: "text-emerald-600 dark:text-emerald-400",
-        borderColor: "border-emerald-200 dark:border-emerald-800",
+        color: COLORS.limeGreen,
+        bgColor: COLORS.limeGreenDim,
+        textColor: COLORS.limeGreen,
         icon: CheckCircle2,
       },
       accepted: {
         label: "Accepted",
-        color: "bg-blue-500",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
-        textColor: "text-blue-600 dark:text-blue-400",
-        borderColor: "border-blue-200 dark:border-blue-800",
+        color: COLORS.darkBlue,
+        bgColor: COLORS.darkBlueDim,
+        textColor: COLORS.darkBlue,
         icon: Check,
       },
       rejected: {
         label: "Rejected",
-        color: "bg-red-500",
-        bgColor: "bg-red-50 dark:bg-red-900/20",
-        textColor: "text-red-600 dark:text-red-400",
-        borderColor: "border-red-200 dark:border-red-800",
+        color: "#DC2626",
+        bgColor: "rgba(220, 38, 38, 0.1)",
+        textColor: "#DC2626",
         icon: XCircle,
       },
       completed: {
         label: "Completed",
-        color: "bg-green-500",
-        bgColor: "bg-green-50 dark:bg-green-900/20",
-        textColor: "text-green-600 dark:text-green-400",
-        borderColor: "border-green-200 dark:border-green-800",
+        color: COLORS.limeGreen,
+        bgColor: COLORS.limeGreenDim,
+        textColor: COLORS.limeGreen,
         icon: CheckCircle2,
       },
     };
@@ -302,9 +307,13 @@ export function AgentBookingsPage() {
           whileHover={{ scale: 1.05 }}
           className={`aspect-square border rounded-xl p-2 transition-all cursor-pointer ${
             isCurrentDay 
-              ? "bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/30 border-violet-400 dark:border-violet-600 shadow-lg" 
-              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-md"
+              ? "border-2 shadow-lg" 
+              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md"
           }`}
+          style={isCurrentDay ? {
+            background: `linear-gradient(135deg, ${COLORS.tealDim}, ${COLORS.limeGreenDim})`,
+            borderColor: COLORS.teal
+          } : {}}
           onClick={() => {
             if (dayBookings.length > 0) {
               const carGroups = dayBookings.reduce((acc, booking) => {
@@ -319,7 +328,7 @@ export function AgentBookingsPage() {
             }
           }}
         >
-          <div className={`text-sm font-bold mb-1 ${isCurrentDay ? "text-violet-700 dark:text-violet-300" : "text-gray-700 dark:text-gray-300"}`}>
+          <div className={`text-sm font-bold mb-1 ${isCurrentDay ? "dark:text-gray-800" : "text-gray-700 dark:text-gray-300"}`} style={isCurrentDay ? { color: COLORS.teal } : {}}>
             {day}
           </div>
           {dayBookings.length > 0 && (
@@ -329,7 +338,8 @@ export function AgentBookingsPage() {
                 return (
                   <div
                     key={booking.id}
-                    className={`text-xs px-1.5 py-0.5 rounded-md truncate ${config.bgColor} ${config.textColor} font-medium shadow-sm`}
+                    className="text-xs px-1.5 py-0.5 rounded-md truncate font-medium shadow-sm"
+                    style={{ background: config.bgColor, color: config.textColor }}
                   >
                     {booking.car?.make}
                   </div>
@@ -350,10 +360,10 @@ export function AgentBookingsPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-5 border border-gray-200 dark:border-gray-700"
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-2xl font-bold bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}>
             {monthNames[month]} {year}
           </h2>
           <div className="flex gap-2">
@@ -361,7 +371,8 @@ export function AgentBookingsPage() {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={previousMonth}
-              className="p-2 rounded-xl bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 transition-colors"
+              className="p-2 rounded-xl transition-colors"
+              style={{ background: COLORS.tealDim, color: COLORS.teal }}
             >
               <ChevronLeft className="w-5 h-5" />
             </motion.button>
@@ -369,7 +380,8 @@ export function AgentBookingsPage() {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={nextMonth}
-              className="p-2 rounded-xl bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 transition-colors"
+              className="p-2 rounded-xl transition-colors"
+              style={{ background: COLORS.tealDim, color: COLORS.teal }}
             >
               <ChevronRight className="w-5 h-5" />
             </motion.button>
@@ -385,12 +397,12 @@ export function AgentBookingsPage() {
           {days}
         </div>
 
-        <div className="flex justify-center gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-center gap-6 mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
           {["pending", "confirmed", "rejected"].map((status) => {
             const config = getStatusConfig(status);
             return (
               <div key={status} className="flex items-center gap-2">
-                <div className={`w-4 h-4 ${config.color} rounded-md shadow-sm`}></div>
+                <div className="w-4 h-4 rounded-md shadow-sm" style={{ background: config.color }}></div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{config.label}</span>
               </div>
             );
@@ -429,9 +441,9 @@ export function AgentBookingsPage() {
           <div 
             key={index} 
             className={`px-4 py-3 text-sm font-semibold text-center ${
-              day.isToday ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' : ''
+              day.isToday ? '' : ''
             }`}
-            style={{ minWidth: 100 }}
+            style={day.isToday ? { background: COLORS.tealDim, color: COLORS.teal } : {}}
           >
             <div className="font-bold">{day.day}</div>
             <div className="text-xs opacity-80">{day.date}</div>
@@ -449,7 +461,7 @@ export function AgentBookingsPage() {
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="flex items-center border-b border-gray-200 dark:border-gray-700 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="flex items-center border-b border-gray-200 dark:border-gray-700 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
       >
         <div className="w-56 flex items-center gap-3 px-4">
           <img 
@@ -467,7 +479,7 @@ export function AgentBookingsPage() {
             </div>
           </div>
         </div>
-        <div className="relative flex-1 h-16 px-2">
+        <div className="relative flex-1 h-14 px-2">
           {bookings.map((booking) => {
             const start = new Date(booking.start_datetime);
             const end = new Date(booking.end_datetime);
@@ -479,10 +491,11 @@ export function AgentBookingsPage() {
               <motion.div
                 key={booking.id}
                 whileHover={{ scale: 1.05, zIndex: 10 }}
-                className={`absolute h-12 rounded-xl ${config.color} cursor-pointer shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-white text-xs font-semibold`}
+                className="absolute h-10 rounded-xl cursor-pointer shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-white text-xs font-semibold"
                 style={{
                   left: `${(left / totalDays) * 100}%`,
                   width: `${(width / totalDays) * 100}%`,
+                  background: config.color
                 }}
                 title={`${booking.client?.first_name} ${booking.client?.last_name}\n${formatDateTime(
                   booking.start_datetime,
@@ -517,7 +530,7 @@ export function AgentBookingsPage() {
             const config = getStatusConfig(status);
             return (
               <div key={status} className="flex items-center gap-2">
-                <div className={`w-4 h-4 ${config.color} rounded-md shadow-sm`}></div>
+                <div className="w-4 h-4 rounded-md shadow-sm" style={{ background: config.color }}></div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{config.label}</span>
               </div>
             );
@@ -541,7 +554,8 @@ export function AgentBookingsPage() {
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 rounded-2xl shadow-2xl p-6 text-white overflow-hidden relative"
+        className="mb-5 rounded-2xl shadow-2xl p-5 text-white overflow-hidden relative"
+        style={{ background: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal}, ${COLORS.limeGreen})` }}
       >
         {/* Decorative Elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
@@ -586,12 +600,12 @@ export function AgentBookingsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {/* Car Info */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-3">
                     <img
                       src={currentBooking.car?.main_image_url || "/placeholder.png"}
                       alt={currentBooking.car?.model}
-                      className="w-14 h-14 rounded-lg object-cover border-2 border-white/30 shadow-lg"
+                      className="w-12 h-12 rounded-lg object-cover border-2 border-white/30 shadow-lg"
                     />
                     <div>
                       <div className="font-bold text-lg">
@@ -606,12 +620,12 @@ export function AgentBookingsPage() {
                 </div>
                 
                 {/* Client Info */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-3">
                     <img
                       src={currentBooking.client?.profile_picture || "/default-avatar.png"}
                       alt={currentBooking.client?.username}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-white/30 shadow-lg"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-white/30 shadow-lg"
                     />
                     <div>
                       <div className="font-bold text-lg flex items-center gap-1">
@@ -636,13 +650,7 @@ export function AgentBookingsPage() {
                   <DollarSign className="w-4 h-4" />
                   <span className="font-bold">${currentBooking.total_booking_price}</span>
                 </div>
-                <div className={`px-3 py-1.5 rounded-lg font-semibold text-xs ${
-                  currentBooking.booking_request_status === "pending" 
-                    ? "bg-amber-500/90" 
-                    : currentBooking.booking_request_status === "confirmed" 
-                    ? "bg-emerald-500/90" 
-                    : "bg-gray-500/90"
-                }`}>
+                <div className="px-3 py-1.5 rounded-lg font-semibold text-xs bg-white/20">
                   {currentBooking.booking_request_status.toUpperCase()}
                 </div>
               </div>
@@ -675,14 +683,14 @@ export function AgentBookingsPage() {
         title: "Total Bookings",
         value: stats.total,
         icon: Calendar,
-        gradient: "from-blue-500 to-cyan-500",
+        gradient: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})`,
         change: "+12%",
       },
       {
         title: "Pending Review",
         value: stats.pending,
         icon: Timer,
-        gradient: "from-amber-500 to-orange-500",
+        gradient: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal})`,
         change: "Needs action",
         alert: stats.pending > 0,
       },
@@ -690,71 +698,66 @@ export function AgentBookingsPage() {
         title: "Confirmed",
         value: stats.confirmed,
         icon: CheckCircle2,
-        gradient: "from-emerald-500 to-teal-500",
+        gradient: `linear-gradient(135deg, ${COLORS.limeGreen}, ${COLORS.teal})`,
         change: "+8%",
       },
       {
         title: "Total Revenue",
         value: `$${stats.totalRevenue.toFixed(2)}`,
         icon: DollarSign,
-        gradient: "from-violet-500 to-purple-500",
+        gradient: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.limeGreen})`,
         change: "+15%",
       },
     ];
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-{statsData.map((stat, index) => (
-  <motion.div
-    key={index}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.1 }}
-    whileHover={{ y: -5 }}
-    className="relative"
-  >
-    <div className="relative z-10 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-2 border border-gray-200 dark:border-gray-700 group">
-      {/* Gradient Background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-
-      <div className="flex justify-between items-start mb-4">
-        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} p-3 shadow-lg`}>
-          <stat.icon className="w-full h-full text-white" />
-        </div>
-        {stat.alert && (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        {statsData.map((stat, index) => (
           <motion.div
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
-            className="w-3 h-3 bg-amber-500 rounded-full"
-          />
-        )}
-      </div>
-
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
-      <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stat.value}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-500">{stat.change}</p>
-    </div>
-  </motion.div>
-))}
-
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            whileHover={{ y: -5 }}
+            className="relative"
+          >
+            <div className="relative z-10 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700 group">
+              <div className="flex justify-between items-start mb-3">
+                <div className="w-10 h-10 rounded-xl p-2.5 shadow-lg" style={{ background: stat.gradient }}>
+                  <stat.icon className="w-full h-full text-white" />
+                </div>
+                {stat.alert && (
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="w-3 h-3 rounded-full"
+                    style={{ background: COLORS.teal }}
+                  />
+                )}
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stat.value}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">{stat.change}</p>
+            </div>
+          </motion.div>
+        ))}
       </div>
     );
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black pt-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-5">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-800/70 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent mb-2" style={{ backgroundImage: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal}, ${COLORS.limeGreen})` }}>
               Booking Management
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage and track all your vehicle bookings</p>
           </motion.div>
         </div>
 
@@ -768,9 +771,9 @@ export function AgentBookingsPage() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 mb-6 border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 mb-4 border border-gray-200 dark:border-gray-700"
         >
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -779,7 +782,8 @@ export function AgentBookingsPage() {
                 placeholder="Search by car, client, or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white"
+                className="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 dark:text-white"
+                style={{ focusRing: COLORS.teal }}
               />
             </div>
             
@@ -788,7 +792,8 @@ export function AgentBookingsPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white"
+                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 dark:text-white"
+                style={{ focusRing: COLORS.teal }}
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -801,7 +806,8 @@ export function AgentBookingsPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchBookings}
-                className="p-3 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
+                className="p-2.5 rounded-xl transition-colors"
+                style={{ background: COLORS.tealDim, color: COLORS.teal }}
               >
                 <RefreshCw className="w-5 h-5" />
               </motion.button>
@@ -810,7 +816,7 @@ export function AgentBookingsPage() {
         </motion.div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
           {[
             { id: "list", label: "List View", icon: FileText },
             { id: "timeline", label: "Timeline", icon: Activity },
@@ -820,11 +826,12 @@ export function AgentBookingsPage() {
               key={tab.id}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? "bg-gradient-to-r from-teal-800/70 to-purple-600/70 text-white shadow-lg"
+                  ? "text-white shadow-lg"
                   : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
               }`}
+              style={activeTab === tab.id ? { background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` } : {}}
               onClick={() => setActiveTab(tab.id)}
             >
               <tab.icon className="w-5 h-5" />
@@ -839,7 +846,8 @@ export function AgentBookingsPage() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 border-4 border-violet-200 dark:border-violet-900 border-t-violet-600 dark:border-t-violet-400 rounded-full"
+              className="w-16 h-16 border-4 border-t-4 rounded-full"
+              style={{ borderColor: COLORS.tealDim, borderTopColor: COLORS.teal }}
             ></motion.div>
           </div>
         ) : Object.keys(filteredGroupedByCar).length === 0 ? (
@@ -848,7 +856,7 @@ export function AgentBookingsPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700"
           >
-            <Users className="w-20 h-20 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+            <Users className="w-20 h-20 mx-auto mb-4" style={{ color: COLORS.teal, opacity: 0.3 }} />
             <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">No bookings found</p>
             <p className="text-gray-500 dark:text-gray-500 text-sm">Try adjusting your filters or search query</p>
           </motion.div>
@@ -860,7 +868,7 @@ export function AgentBookingsPage() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           >
             {Object.values(filteredGroupedByCar).map(({ car, bookings: carBookings }, index) => {
               const pendingCount = carBookings.filter((b) => b.booking_request_status === "pending").length;
@@ -880,10 +888,10 @@ export function AgentBookingsPage() {
                     <img
                       src={car?.main_image_url || "/placeholder.png"}
                       alt={car?.model || "Car"}
-                      className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                    <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
+                    <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
                       <span className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         {carBookings.length}
@@ -891,36 +899,37 @@ export function AgentBookingsPage() {
                     </div>
                   </div>
                   
-                  <div className="p-6">
+                  <div className="p-5">
                     <h2 className="font-bold text-xl text-gray-900 dark:text-white mb-1">
                       {car?.make || "Unknown"} {car?.model || ""}
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
                       <Car className="w-4 h-4" />
                       {car?.year || "N/A"} • {car?.car_category || "N/A"}
                     </p>
                     
                     {car?.notes && (
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">{car.notes}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">{car.notes}</p>
                     )}
                     
                     <div className="flex gap-2 flex-wrap">
                       {pendingCount > 0 && (
-                        <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border" style={{ background: COLORS.tealDim, borderColor: COLORS.teal }}>
                           <motion.div
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 1, repeat: Infinity }}
-                            className="w-2 h-2 bg-amber-500 rounded-full"
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: COLORS.teal }}
                           ></motion.div>
-                          <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                          <span className="text-xs font-semibold" style={{ color: COLORS.teal }}>
                             {pendingCount} Pending
                           </span>
                         </div>
                       )}
                       {confirmedCount > 0 && (
-                        <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border" style={{ background: COLORS.limeGreenDim, borderColor: COLORS.limeGreen }}>
+                          <CheckCircle2 className="w-4 h-4" style={{ color: COLORS.limeGreen }} />
+                          <span className="text-xs font-semibold" style={{ color: COLORS.limeGreen }}>
                             {confirmedCount} Confirmed
                           </span>
                         </div>
@@ -952,12 +961,12 @@ export function AgentBookingsPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-teal-600/40 via-cyan-600/70 to-indigo-600 p-6 text-white relative overflow-hidden">
+                <div className="p-5 text-white relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}>
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
                   <div className="relative z-10 flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
-                        <Car className="w-7 h-7" />
+                      <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-2xl">
+                        <Car className="w-6 h-6" />
                       </div>
                       <div>
                         <h2 className="text-2xl font-bold">
@@ -981,14 +990,14 @@ export function AgentBookingsPage() {
                 </div>
 
                 {/* Modal Content */}
-                <div className="overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                <div className="overflow-y-auto p-5" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                   {selectedCar.bookings?.length === 0 ? (
                     <div className="p-12 text-center">
-                      <Users className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                      <Users className="w-16 h-16 mx-auto mb-4" style={{ color: COLORS.teal, opacity: 0.3 }} />
                       <p className="text-gray-500 dark:text-gray-400 text-lg">No bookings for this car yet.</p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                       {selectedCar.bookings?.map((booking, index) => {
                         const client = booking.client;
                         const profile = client?.profile || {};
@@ -1001,20 +1010,20 @@ export function AgentBookingsPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+                            className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700"
                           >
                             {/* Booking Header */}
-                            <div className="flex justify-between items-start mb-6">
+                            <div className="flex justify-between items-start mb-5">
                               <div className="flex items-center gap-4">
                                 <div className="relative">
                                   <img
                                     src={client?.profile_picture || "/default-avatar.png"}
                                     alt={client?.username || "Client"}
-                                    className="w-16 h-16 rounded-2xl object-cover border-4 border-white dark:border-gray-700 shadow-lg"
+                                    className="w-14 h-14 rounded-2xl object-cover border-4 border-white dark:border-gray-700 shadow-lg"
                                   />
                                   {profile?.trusted_by_app && (
-                                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-blue-500 rounded-full border-4 border-white dark:border-gray-700 flex items-center justify-center shadow-lg">
-                                      <Shield className="w-4 h-4 text-white" />
+                                    <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full border-4 border-white dark:border-gray-700 flex items-center justify-center shadow-lg" style={{ background: COLORS.darkBlue }}>
+                                      <Shield className="w-3 h-3 text-white" />
                                     </div>
                                   )}
                                 </div>
@@ -1023,7 +1032,7 @@ export function AgentBookingsPage() {
                                     <h3 className="font-bold text-xl text-gray-900 dark:text-white flex items-center gap-2">
                                       {client?.first_name || "N/A"} {client?.last_name || ""}
                                       {client?.verified_by_admin && (
-                                        <BadgeCheck className="w-5 h-5 text-violet-500" />
+                                        <BadgeCheck className="w-5 h-5" style={{ color: COLORS.teal }} />
                                       )}
                                     </h3>
                                   </div>
@@ -1033,23 +1042,23 @@ export function AgentBookingsPage() {
                                 </div>
                               </div>
                               
-                              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${config.bgColor} ${config.borderColor} border-2`}>
-                                <StatusIcon className={`w-5 h-5 ${config.textColor}`} />
-                                <span className={`font-bold text-sm ${config.textColor}`}>{config.label}</span>
+                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2" style={{ background: config.bgColor, borderColor: config.color }}>
+                                <StatusIcon className="w-5 h-5" style={{ color: config.textColor }} />
+                                <span className="font-bold text-sm" style={{ color: config.textColor }}>{config.label}</span>
                               </div>
                             </div>
 
                             {/* Booking Details Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                               {/* Rental Period */}
-                              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
-                                    <CalendarDays className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="p-2 rounded-lg" style={{ background: COLORS.tealDim }}>
+                                    <CalendarDays className="w-4 h-4" style={{ color: COLORS.teal }} />
                                   </div>
                                   <span className="font-bold text-gray-900 dark:text-white">Rental Period</span>
                                 </div>
-                                <div className="space-y-2 text-sm">
+                                <div className="space-y-1.5 text-sm">
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Start:</span>
                                     <span className="font-semibold">{formatDateTime(booking.start_datetime)}</span>
@@ -1058,9 +1067,9 @@ export function AgentBookingsPage() {
                                     <span className="text-gray-600 dark:text-gray-400">End:</span>
                                     <span className="font-semibold">{formatDateTime(booking.end_datetime)}</span>
                                   </div>
-                                  <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                                  <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
                                     <span className="text-gray-600 dark:text-gray-400">Duration:</span>
-                                    <span className="font-bold text-violet-600 dark:text-violet-400">
+                                    <span className="font-bold" style={{ color: COLORS.teal }}>
                                       {calculateDuration(booking.start_datetime, booking.end_datetime)} days
                                     </span>
                                   </div>
@@ -1068,17 +1077,17 @@ export function AgentBookingsPage() {
                               </div>
 
                               {/* Price & Location */}
-                              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                                    <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="p-2 rounded-lg" style={{ background: COLORS.limeGreenDim }}>
+                                    <DollarSign className="w-4 h-4" style={{ color: COLORS.limeGreen }} />
                                   </div>
                                   <span className="font-bold text-gray-900 dark:text-white">Payment Details</span>
                                 </div>
-                                <div className="space-y-2 text-sm">
+                                <div className="space-y-1.5 text-sm">
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Total Price:</span>
-                                    <span className="font-bold text-emerald-600 text-lg">${booking.total_booking_price}</span>
+                                    <span className="font-bold text-lg" style={{ color: COLORS.limeGreen }}>${booking.total_booking_price}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Pickup:</span>
@@ -1097,15 +1106,15 @@ export function AgentBookingsPage() {
                             </div>
 
                             {/* Client Information Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                               {[
                                 { label: "Email", value: client?.email, icon: Mail },
                                 { label: "Phone", value: client?.phone_number, icon: Phone },
                                 { label: "City", value: client?.city, icon: MapPin },
                                 { label: "Profession", value: profile?.profession, icon: Briefcase },
                               ].map((item, i) => (
-                                <div key={i} className="bg-white dark:bg-gray-700 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
-                                  <div className="flex items-center gap-2 mb-1">
+                                <div key={i} className="bg-white dark:bg-gray-700 p-2.5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
+                                  <div className="flex items-center gap-1.5 mb-1">
                                     <item.icon className="w-3 h-3 text-gray-400" />
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
                                   </div>
@@ -1117,14 +1126,14 @@ export function AgentBookingsPage() {
                             </div>
 
                             {/* Additional Info */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                               {[
                                 { label: "Age", value: profile?.age },
                                 { label: "Gender", value: client?.gender },
                                 { label: "Salary", value: profile?.avg_salary },
                                 { label: "License", value: profile?.license_number },
                               ].map((item, i) => (
-                                <div key={i} className="bg-white dark:bg-gray-700 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
+                                <div key={i} className="bg-white dark:bg-gray-700 p-2.5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
                                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{item.label}</p>
                                   <p className="font-semibold text-sm truncate text-gray-800 dark:text-gray-200">
                                     {item.value || "N/A"}
@@ -1135,9 +1144,9 @@ export function AgentBookingsPage() {
 
                             {/* Rating */}
                             {profile?.average_rating && (
-                              <div className="inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 rounded-xl mb-6 border border-amber-200 dark:border-amber-800">
-                                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                                <span className="font-bold text-amber-700 dark:text-amber-300">
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl mb-4 border" style={{ background: COLORS.limeGreenDim, borderColor: COLORS.limeGreen }}>
+                                <Star className="w-5 h-5 fill-current" style={{ color: COLORS.limeGreen }} />
+                                <span className="font-bold" style={{ color: COLORS.limeGreen }}>
                                   {profile.average_rating} Average Rating
                                 </span>
                               </div>
@@ -1145,7 +1154,7 @@ export function AgentBookingsPage() {
 
                             {/* Action Buttons */}
                             {booking.booking_request_status === "pending" && (
-                              <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-700">
                                 <motion.button
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
@@ -1154,7 +1163,8 @@ export function AgentBookingsPage() {
                                     handleAcceptBooking(booking.id);
                                   }}
                                   disabled={processingBookingId === booking.id}
-                                  className="flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="flex-1 py-2.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                  style={{ background: `linear-gradient(135deg, ${COLORS.limeGreen}, ${COLORS.teal})` }}
                                 >
                                   <Check className="w-5 h-5" />
                                   {processingBookingId === booking.id ? "Processing..." : "Accept Booking"}
@@ -1167,7 +1177,7 @@ export function AgentBookingsPage() {
                                     handleRejectBooking(booking.id);
                                   }}
                                   disabled={processingBookingId === booking.id}
-                                  className="flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="flex-1 py-2.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <XCircle className="w-5 h-5" />
                                   {processingBookingId === booking.id ? "Processing..." : "Reject Booking"}

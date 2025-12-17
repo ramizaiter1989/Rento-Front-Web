@@ -6,7 +6,7 @@ import api from '@/lib/axios';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const [favCount, setFavCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
