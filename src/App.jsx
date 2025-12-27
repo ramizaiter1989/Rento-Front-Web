@@ -2,7 +2,7 @@ import "@/index.css";
 import "@/App.css";
 import "@/i18n/config";
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/Navbar";
@@ -24,10 +24,15 @@ import CarQualificationsPage from "@/pages/CarQualificationsPage";
 import DashboardPage from "@/pages/DashoardPage";
 import { SEO } from "@/components/SEO";
 import CompleteProfilePage from "@/pages/CompleteProfilePage";
+import { ClientBookingChat } from "@/pages/ClientBookingChat";
 import api from "@/lib/axios";
 import { StatisticPage } from "@/pages/StatisticPage";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsAndConditions from "@/pages/TermsAndConditions";
 
-// Helper function to check profile status from backend
+// ============================
+// Helper functions
+// ============================
 const checkProfileComplete = async () => {
   try {
     const res = await api.get("/profile/status");
@@ -38,18 +43,15 @@ const checkProfileComplete = async () => {
   }
 };
 
-// Protected Route Component (auth-based)
+// ============================
+// Route Guards
+// ============================
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("authToken");
-
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
-
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
   return children;
 };
 
-// Profile Complete Check Route
 const ProfileCompleteRoute = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
@@ -61,35 +63,25 @@ const ProfileCompleteRoute = ({ children }) => {
         setLoading(false);
         return;
       }
-
       const complete = await checkProfileComplete();
       setIsComplete(complete);
       setLoading(false);
     };
-
     checkStatus();
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (loading) {
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
-  }
-
-  if (!isComplete) {
-    return <Navigate to="/Complete-Profile" replace />;
-  }
+  if (!isComplete) return <Navigate to="/Complete-Profile" replace />;
 
   return children;
 };
 
-// Agent-Only Route Component
 const AgentRoute = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
@@ -102,112 +94,113 @@ const AgentRoute = ({ children }) => {
         setLoading(false);
         return;
       }
-
       const complete = await checkProfileComplete();
       setIsComplete(complete);
       setLoading(false);
     };
-
     checkStatus();
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Check if user is agency or agent role
-  if (user.role !== "agency" && user.role !== "agent") {
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
+  if (user.role !== "agency" && user.role !== "agent")
     return <Navigate to="/" replace />;
-  }
-
-  if (loading) {
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
-  }
-
-  // Check if profile is incomplete - redirect to complete profile
-  if (!isComplete) {
-    return <Navigate to="/Complete-Profile" replace />;
-  }
+  if (!isComplete) return <Navigate to="/Complete-Profile" replace />;
 
   return children;
 };
 
-// Layout with Navbar and Footer
-const MainLayout = ({ children }) => (
-  <>
-    <Navbar />
-    {children}
-    <Footer />
-  </>
-);
+// ============================
+// Page Layout Wrapper
+// ============================
+const PageLayout = ({ children, noIndex = false }) => {
+  return (
+    <>
+      <SEO noIndex={noIndex} />
+      <Navbar />
+      {children}
+      <Footer />
+    </>
+  );
+};
 
+// ============================
+// App
+// ============================
 function App() {
   const { i18n } = useTranslation();
 
   useEffect(() => {
-    // Set RTL/LTR based on language
     const currentLang = localStorage.getItem("language") || "en";
-    if (currentLang === "ar") {
-      document.documentElement.dir = "rtl";
-      document.documentElement.lang = "ar";
-    } else {
-      document.documentElement.dir = "ltr";
-      document.documentElement.lang = "en";
-    }
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === "ar" ? "rtl" : "ltr";
   }, []);
 
   return (
     <div className="App">
       <BrowserRouter>
-        <SEO />
         <Routes>
-          {/* Public routes */}
+          {/* Public Routes */}
           <Route
             path="/"
             element={
-              <MainLayout>
+              <PageLayout>
                 <HomePage />
-              </MainLayout>
+              </PageLayout>
             }
           />
-          <Route path="/auth" element={<AuthPage />} />
+          <Route
+            path="/auth"
+            element={
+              <PageLayout noIndex>
+                <AuthPage />
+              </PageLayout>
+            }
+          />
           <Route
             path="/about"
             element={
-              <MainLayout>
+              <PageLayout>
                 <AboutPage />
-              </MainLayout>
+              </PageLayout>
             }
           />
           <Route
             path="/contact"
             element={
-              <MainLayout>
+              <PageLayout>
                 <ContactPage />
-              </MainLayout>
+              </PageLayout>
             }
           />
+          <Route path="/Privacy-Policy" element={<PrivacyPolicy />} />
+          <Route path="/Terms-and-Conditions" element={<TermsAndConditions />} />
 
-          {/* Profile Completion Route - Auth Only (No Profile Check) */}
+          {/* Profile Completion */}
           <Route
             path="/Complete-Profile"
             element={
               <ProtectedRoute>
-                <CompleteProfilePage />
+                <PageLayout noIndex>
+                  <CompleteProfilePage />
+                </PageLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* Agent/Agency Only Routes - Requires Profile Complete */}
+          {/* Agent / Agency Routes */}
           <Route
             path="/Dashboard"
             element={
               <AgentRoute>
-                <DashboardPage />
+                <PageLayout>
+                  <DashboardPage />
+                </PageLayout>
               </AgentRoute>
             }
           />
@@ -215,7 +208,9 @@ function App() {
             path="/Statistic"
             element={
               <AgentRoute>
-                <StatisticPage />
+                <PageLayout>
+                  <StatisticPage />
+                </PageLayout>
               </AgentRoute>
             }
           />
@@ -223,9 +218,9 @@ function App() {
             path="/Mycars"
             element={
               <AgentRoute>
-                <MainLayout>
+                <PageLayout>
                   <MyCarsPage />
-                </MainLayout>
+                </PageLayout>
               </AgentRoute>
             }
           />
@@ -233,9 +228,9 @@ function App() {
             path="/Mycars-bookings"
             element={
               <AgentRoute>
-                <MainLayout>
+                <PageLayout>
                   <AgentBookingsPage />
-                </MainLayout>
+                </PageLayout>
               </AgentRoute>
             }
           />
@@ -243,9 +238,9 @@ function App() {
             path="/add-car"
             element={
               <AgentRoute>
-                <MainLayout>
+                <PageLayout>
                   <CreateCarPage />
-                </MainLayout>
+                </PageLayout>
               </AgentRoute>
             }
           />
@@ -253,41 +248,49 @@ function App() {
             path="/Add/car/qualification"
             element={
               <AgentRoute>
-                <MainLayout>
+                <PageLayout>
                   <CarQualificationsPage />
-                </MainLayout>
+                </PageLayout>
               </AgentRoute>
             }
           />
 
-          {/* Protected routes (all authenticated users) - Requires Profile Complete */}
+          {/* Protected / Authenticated Routes */}
           <Route
             path="/BookingChat"
             element={
               <ProfileCompleteRoute>
-                <MainLayout>
+                <PageLayout>
                   <BookingChatSystem />
-                </MainLayout>
+                </PageLayout>
+              </ProfileCompleteRoute>
+            }
+          />
+          <Route
+            path="/client-Chat"
+            element={
+              <ProfileCompleteRoute>
+                <PageLayout>
+                  <ClientBookingChat />
+                </PageLayout>
               </ProfileCompleteRoute>
             }
           />
           <Route
             path="/socialmedia"
             element={
-              <ProfileCompleteRoute>
-                <MainLayout>
-                  <SocialMediaPage />
-                </MainLayout>
-              </ProfileCompleteRoute>
+              <PageLayout>
+                <SocialMediaPage />
+              </PageLayout>
             }
           />
           <Route
             path="/cars"
             element={
               <ProfileCompleteRoute>
-                <MainLayout>
+                <PageLayout>
                   <CarsPage />
-                </MainLayout>
+                </PageLayout>
               </ProfileCompleteRoute>
             }
           />
@@ -295,9 +298,9 @@ function App() {
             path="/ClientBookings"
             element={
               <ProfileCompleteRoute>
-                <MainLayout>
+                <PageLayout>
                   <ClientBookingPage />
-                </MainLayout>
+                </PageLayout>
               </ProfileCompleteRoute>
             }
           />
@@ -305,9 +308,9 @@ function App() {
             path="/luxury-car-rental-lebanon"
             element={
               <ProfileCompleteRoute>
-                <MainLayout>
+                <PageLayout>
                   <CarsPage />
-                </MainLayout>
+                </PageLayout>
               </ProfileCompleteRoute>
             }
           />
@@ -315,9 +318,9 @@ function App() {
             path="/cars/:id"
             element={
               <ProfileCompleteRoute>
-                <MainLayout>
+                <PageLayout>
                   <CarDetailPage />
-                </MainLayout>
+                </PageLayout>
               </ProfileCompleteRoute>
             }
           />
@@ -325,9 +328,9 @@ function App() {
             path="/favorites"
             element={
               <ProfileCompleteRoute>
-                <MainLayout>
+                <PageLayout>
                   <FavoritesPage />
-                </MainLayout>
+                </PageLayout>
               </ProfileCompleteRoute>
             }
           />

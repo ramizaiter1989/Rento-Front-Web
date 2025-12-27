@@ -676,7 +676,7 @@ export default function EnhancedDashboard() {
                         <CardContent className="p-0">
                           <div className="relative h-32 bg-gray-100 dark:bg-gray-800">
                             <img 
-                              src={car.image} 
+                              src={`/api/storage/${car.image}`}
                               alt={car.name}
                               className="w-full h-full object-cover"
                             />

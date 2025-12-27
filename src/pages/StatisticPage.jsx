@@ -20,6 +20,7 @@ import {
   Car
 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/lib/axios';
 
 Chart.register(...registerables);
 
@@ -34,77 +35,10 @@ const LOGO_COLORS = {
 export const StatisticPage = () => {
   const [isDark, setIsDark] = useState(false);
   const [user, setUser] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const chartsRef = useRef({});
-
-  // Mock data based on user's exact data
-  const mockData = {
-    success: true,
-    data: {
-      total_searches: 50,
-      unique_users: 4,
-      by_category: [
-        { category: 'normal', total: 15 },
-        { category: 'luxury', total: 8 },
-        { category: 'sport', total: 1 }
-      ],
-      by_make: [
-        { make: 'Toyota', total: 13 },
-        { make: 'BMW', total: 9 },
-        { make: 'Porsche', total: 5 },
-        { make: 'Range Rover', total: 2 },
-        { make: 'Tesla', total: 2 },
-        { make: 'Audi', total: 1 }
-      ],
-      by_transmission: [
-        { transmission: 'automatic', total: 10 },
-        { transmission: 'manual', total: 2 }
-      ],
-      by_fuel_type: [
-        { fuel_type: 'benz', total: 10 },
-        { fuel_type: 'diesel', total: 9 }
-      ],
-      recent_searches: [
-        {
-          id: 1,
-          make: null,
-          model: null,
-          year_min: null,
-          year_max: null,
-          transmission: null,
-          fuel_type: null,
-          search_count: 4,
-          last_searched_at: '2025-12-17T10:30:26.000Z'
-        },
-        {
-          id: 6,
-          make: 'Porsche',
-          model: null,
-          year_min: 2018,
-          year_max: 2025,
-          transmission: 'automatic',
-          fuel_type: null,
-          search_count: 2,
-          last_searched_at: '2025-12-15T15:12:19.000Z'
-        },
-        {
-          id: 3,
-          make: 'BMW',
-          model: 'serie 3',
-          year_min: 2023,
-          year_max: 2025,
-          transmission: 'automatic',
-          fuel_type: 'diesel',
-          search_count: 2,
-          last_searched_at: '2025-12-15T14:44:36.000Z'
-        }
-      ],
-      search_trends: [
-        { search_date: '2025-12-15', search_count: 21 },
-        { search_date: '2025-12-16', search_count: 11 },
-        { search_date: '2025-12-17', search_count: 18 }
-      ]
-    }
-  };
 
   // Theme Handler
   useEffect(() => {
@@ -124,9 +58,33 @@ export const StatisticPage = () => {
 
   // Load user
   useEffect(() => {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      if (storedUser) setUser(storedUser);
-    }, []);
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) setUser(storedUser);
+  }, []);
+
+  // Fetch statistics data
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/frequent-searches/statistics');
+
+        if (response.data.success) {
+          setData(response.data.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (err) {
+        console.error('Statistics fetch error:', err);
+        setError(err.message || 'Failed to load statistics');
+        toast.error('Failed to load statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStatistics();
+  }, []);
 
   // Chart colors using logo palette
   const chartColors = {
@@ -136,7 +94,6 @@ export const StatisticPage = () => {
     darkBlueSolid: LOGO_COLORS.darkBlue,
     tealSolid: LOGO_COLORS.teal,
     limeGreenSolid: LOGO_COLORS.limeGreen,
-    // Lighter versions for gradient
     darkBlueLight: `${LOGO_COLORS.darkBlue}44`,
     tealLight: `${LOGO_COLORS.teal}44`,
     limeGreenLight: `${LOGO_COLORS.limeGreen}44`
@@ -144,6 +101,8 @@ export const StatisticPage = () => {
 
   // Chart Creation with Logo Colors
   useEffect(() => {
+    if (!data) return;
+
     const destroyCharts = () => {
       Object.values(chartsRef.current).forEach(chart => {
         if (chart && typeof chart.destroy === 'function') {
@@ -237,8 +196,6 @@ export const StatisticPage = () => {
 
     destroyCharts();
 
-    const data = mockData.data;
-
     // Category Chart - Doughnut
     if (data.by_category?.length > 0) {
       createChart(
@@ -284,7 +241,7 @@ export const StatisticPage = () => {
       );
     }
 
-    // Search Trends - Line Chart with Teal Gradient (NOT BLACK)
+    // Search Trends - Line Chart with Teal Gradient
     if (data.search_trends?.length > 0) {
       const ctx = document.getElementById('trendsChart');
       if (ctx) {
@@ -295,10 +252,10 @@ export const StatisticPage = () => {
         const chart = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: data.search_trends.map(i => new Date(i.search_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+            labels: data.search_trends.map(i => new Date(i.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
             datasets: [{
               label: 'Daily Searches',
-              data: data.search_trends.map(i => i.search_count),
+              data: data.search_trends.map(i => i.total),
               backgroundColor: gradient,
               borderColor: chartColors.tealSolid,
               borderWidth: 3,
@@ -351,19 +308,48 @@ export const StatisticPage = () => {
     }
 
     return () => destroyCharts();
-  }, [isDark]);
+  }, [isDark, data]);
 
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = '/auth';
   };
 
-  const data = mockData.data;
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: LOGO_COLORS.teal, borderTopColor: 'transparent' }}></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading statistics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} style={{ backgroundColor: LOGO_COLORS.teal }}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       
-      {/* Animated Background Orbs - SMALLER */}
+      {/* Animated Background Orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <motion.div
           animate={{
@@ -394,7 +380,7 @@ export const StatisticPage = () => {
         />
       </div>
 
-      {/* Header - COMPACT */}
+      {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 md:px-6 py-3">
           <div className="flex items-center justify-between">
@@ -411,7 +397,7 @@ export const StatisticPage = () => {
               {user && (
                 <Badge variant="outline" className="hidden md:flex items-center gap-2 px-3 py-1" style={{ borderColor: LOGO_COLORS.teal }}>
                   <Users className="w-3 h-3" style={{ color: LOGO_COLORS.teal }} />
-                  <span className="text-sm font-semibold">{user?.username ? `, ${user.username}` : ""}!</span>
+                  <span className="text-sm font-semibold">{user?.username || 'User'}</span>
                 </Badge>
               )}
 
@@ -441,7 +427,7 @@ export const StatisticPage = () => {
 
       <main className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl relative z-10">
         
-        {/* KPI Cards - COMPACT */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <StatCard
             icon={Activity}
@@ -453,7 +439,7 @@ export const StatisticPage = () => {
           <StatCard
             icon={Users}
             title="Active Users"
-            value={data.unique_users?.toString() || '0'}
+            value={data.total_users?.toString() || '0'}
             gradient={`linear-gradient(135deg, ${LOGO_COLORS.teal}, ${LOGO_COLORS.limeGreen})`}
             delay={0.1}
           />
@@ -475,69 +461,79 @@ export const StatisticPage = () => {
           />
         </div>
 
-        {/* Search Trends Line Chart - COMPACT */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mb-6 md:mb-8"
-        >
-          <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-xl rounded-xl border hover:shadow-2xl transition-all duration-300" style={{ borderColor: `${LOGO_COLORS.teal}40` }}>
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LOGO_COLORS.darkBlue}, ${LOGO_COLORS.teal})` }}>
-                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
+        {/* Search Trends Line Chart */}
+        {data.search_trends?.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mb-6 md:mb-8"
+          >
+            <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-xl rounded-xl border hover:shadow-2xl transition-all duration-300" style={{ borderColor: `${LOGO_COLORS.teal}40` }}>
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LOGO_COLORS.darkBlue}, ${LOGO_COLORS.teal})` }}>
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-base md:text-lg font-bold dark:text-white">Search Trends</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Daily activity</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-base md:text-lg font-bold dark:text-white">Search Trends</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Daily activity</p>
-                  </div>
+                  <Badge className="text-xs px-2 py-1" style={{ backgroundColor: `${LOGO_COLORS.limeGreen}30`, color: LOGO_COLORS.limeGreen }}>
+                    Last {data.search_trends.length} days
+                  </Badge>
                 </div>
-                <Badge className="text-xs px-2 py-1" style={{ backgroundColor: `${LOGO_COLORS.limeGreen}30`, color: LOGO_COLORS.limeGreen }}>
-                  Last 3 days
-                </Badge>
-              </div>
-              <div className="h-48 md:h-56">
-                <canvas id="trendsChart"></canvas>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                <div className="h-48 md:h-56">
+                  <canvas id="trendsChart"></canvas>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
-        {/* Charts Grid - COMPACT */}
+        {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-          <ChartCard
-            title="By Category"
-            subtitle="Distribution"
-            icon={Car}
-            id="catChart"
-            delay={0.5}
-          />
-          <ChartCard
-            title="Top Makes"
-            subtitle="Most searched"
-            icon={Star}
-            id="makeChart"
-            delay={0.6}
-          />
-          <ChartCard
-            title="Transmission"
-            subtitle="Preferences"
-            icon={Gauge}
-            id="transChart"
-            delay={0.7}
-          />
-          <ChartCard
-            title="Fuel Type"
-            subtitle="Distribution"
-            icon={Zap}
-            id="fuelChart"
-            delay={0.8}
-          />
+          {data.by_category?.length > 0 && (
+            <ChartCard
+              title="By Category"
+              subtitle="Distribution"
+              icon={Car}
+              id="catChart"
+              delay={0.5}
+            />
+          )}
+          {data.by_make?.length > 0 && (
+            <ChartCard
+              title="Top Makes"
+              subtitle="Most searched"
+              icon={Star}
+              id="makeChart"
+              delay={0.6}
+            />
+          )}
+          {data.by_transmission?.length > 0 && (
+            <ChartCard
+              title="Transmission"
+              subtitle="Preferences"
+              icon={Gauge}
+              id="transChart"
+              delay={0.7}
+            />
+          )}
+          {data.by_fuel_type?.length > 0 && (
+            <ChartCard
+              title="Fuel Type"
+              subtitle="Distribution"
+              icon={Zap}
+              id="fuelChart"
+              delay={0.8}
+            />
+          )}
         </div>
 
-        {/* Recent Searches - COMPACT */}
+        {/* Recent Searches */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -617,7 +613,7 @@ export const StatisticPage = () => {
   );
 };
 
-// Reusable Components - COMPACT
+// Reusable Components
 const StatCard = ({ icon: Icon, title, value, subtitle, gradient, delay }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -666,4 +662,5 @@ const ChartCard = ({ title, subtitle, icon: Icon, id, delay }) => (
     </Card>
   </motion.div>
 );
+
 export default StatisticPage;

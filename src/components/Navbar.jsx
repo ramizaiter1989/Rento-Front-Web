@@ -68,7 +68,7 @@ export const Navbar = () => {
 
   const navLinks = [
     { to: '/', label: 'Home' },
-    { to: '/cars', label: 'Browse Cars' },
+    { to: '/luxury-car-rental-lebanon', label: 'Browse Cars' },
     { to: '/socialmedia', label: 'About' },
     { to: '/contact', label: 'Contact' }
   ];

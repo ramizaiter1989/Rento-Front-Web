@@ -36,25 +36,25 @@ export const ContactPage = () => {
     {
       icon: MapPin,
       title: 'Visit Us',
-      details: ['Mount Liban', 'Hazmieh, Lebanon'],
+      details: ['Mount Liban', 'Baouchrieh, Lebanon'],
       color: 'from-primary to-primary-light'
     },
     {
       icon: Phone,
       title: 'Call Us',
-      details: ['+961 (70) 041-862', '+961 (03) 520-427'],
+      details: ['+961 (70) 041-862', '+961 (81) 001-301'],
       color: 'from-secondary to-secondary-light'
     },
     {
       icon: Mail,
       title: 'Email Us',
-      details: ['hello@RENTO-LB.com', 'support@RENTO-LB.com'],
+      details: ['social@rento-lb.com'],
       color: 'from-accent to-accent-light'
     },
     {
       icon: Clock,
       title: 'Business Hours',
-      details: ['Mon - Fri: 8:00 AM - 8:00 PM', 'Sat - Sun: 9:00 AM - 6:00 PM'],
+      details: ['24/7'],
       color: 'from-primary-dark to-secondary'
     }
   ];
@@ -62,23 +62,13 @@ export const ContactPage = () => {
   const locations = [
     {
       city: 'London',
-      address: 'UK',
+      address: '124-128 City Road, London, England, EC1V 2NX',
       phone: 'Not available'
     },
     {
-      city: 'Los Angeles',
-      address: '456 Beverly Blvd, LA 90210',
-      phone: '+1 (555) 234-5678'
-    },
-    {
-      city: 'Miami',
-      address: '789 Ocean Drive, Miami 33139',
-      phone: '+1 (555) 345-6789'
-    },
-    {
-      city: 'San Francisco',
-      address: '321 Market Street, SF 94102',
-      phone: '+1 (555) 456-7890'
+      city: 'Mount Liban',
+      address: 'Baouchrieh, Lebanon',
+      phone: '+961 (81) 001-301'
     }
   ];
 
@@ -157,7 +147,7 @@ export const ContactPage = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="+96181001301"
                   />
                 </div>
 
@@ -201,7 +191,7 @@ export const ContactPage = () => {
   {/* Map Placeholder */}
   <Card className="overflow-hidden">
     <a
-      href="https://www.google.com/maps?q=34.291067,36.089723"
+      href="https://www.google.com/maps?q=33.8861985,35.5591084"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -214,7 +204,7 @@ export const ContactPage = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <div className="absolute bottom-4 left-4 text-white">
           <p className="font-bold text-lg">Main Office</p>
-          <p className="text-sm">Mount Liban, Hazmieh, Lebanon</p>
+          <p className="text-sm">Mount Liban, Baouchrieh, Lebanon</p>
         </div>
       </div>
     </a>

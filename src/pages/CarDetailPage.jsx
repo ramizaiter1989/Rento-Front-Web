@@ -365,7 +365,7 @@ export const CarDetailPage = () => {
                 <div className="aspect-[16/9] bg-muted">
                   {heroImage ? (
                     <img
-                      src={heroImage}
+                      src={`/api/storage/${heroImage}`}
                       alt={`${car.brand} ${car.model}`}
                       className="w-full h-full object-cover"
                     />
@@ -406,7 +406,7 @@ export const CarDetailPage = () => {
                         aria-label={`View image ${i + 1}`}
                       >
                         <img
-                          src={img}
+                          src={`/api/storage/${img}`}
                           alt={`Thumbnail ${i + 1}`}
                           className="h-14 w-full object-cover"
                           loading="lazy"

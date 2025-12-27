@@ -99,7 +99,8 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-pulse" />
           )}
           <img
-            src={car.image || '/placeholder.png'}
+            src={car.image ? `/api/storage/${car.image}` : '/placeholder.png'}
+
             alt={`${car.brand || car.make || ''} ${car.model || ''}`}
             onLoad={() => setImageLoaded(true)}
             className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${

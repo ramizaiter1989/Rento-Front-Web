@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { 
-  MessageCircle, Send, Phone, Mail, Calendar, Car, Check, CheckCheck, 
+import {
+  MessageCircle, Send, Phone, Mail, Calendar, Car, Check, CheckCheck,
   Paperclip, Search, MoreVertical, Star, MapPin, Clock, User, Smile,
   Image as ImageIcon, X, ChevronRight, TrendingUp, Shield
 } from 'lucide-react';
@@ -29,7 +29,7 @@ export function BookingChatSystem() {
   const [typing, setTyping] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const chatContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const echoRef = useRef(null);
@@ -43,6 +43,25 @@ export function BookingChatSystem() {
     console.log('API Base:', import.meta.env.VITE_API_BASE_URL);
   }, []);
 
+  // ✅ Normalize incoming broadcast payload to match your UI expectations
+  const normalizeIncomingMessage = (payload) => {
+    // Your backend event (broadcastWith) returns a FLAT payload (not { message: ... })
+    // So we normalize it into the message shape used by your UI.
+    const createdAt = payload?.created_at ?? payload?.createdAt ?? payload?.data?.created_at ?? null;
+
+    return {
+      id: payload?.id ?? payload?.data?.id ?? `rt-${Date.now()}`,
+      booking_id: payload?.booking_id ?? payload?.data?.booking_id ?? selectedBooking?.id,
+      sender_id: payload?.sender_id ?? payload?.data?.sender_id ?? payload?.sender?.id,
+      receiver_id: payload?.receiver_id ?? payload?.data?.receiver_id ?? null,
+      message: payload?.message ?? payload?.data?.message ?? '',
+      read_at: payload?.read_at ?? payload?.data?.read_at ?? null,
+      created_at: createdAt,
+      // Keep sender object if backend sends it
+      sender: payload?.sender ?? payload?.data?.sender ?? null,
+    };
+  };
+
   /** ------------------- INITIALIZATION ------------------- **/
   useEffect(() => {
     if (!token) {
@@ -52,11 +71,14 @@ export function BookingChatSystem() {
     }
 
     window.Pusher = Pusher;
+
     echoRef.current = new Echo({
       broadcaster: 'pusher',
       key: import.meta.env.VITE_PUSHER_APP_KEY,
       cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-      forceTLS: false,
+      forceTLS: true,
+      encrypted: true,
+      enabledTransports: ['ws', 'wss'],
       authEndpoint: `${import.meta.env.VITE_API_BASE_URL}/broadcasting/auth`,
       auth: {
         headers: {
@@ -65,6 +87,22 @@ export function BookingChatSystem() {
         },
       },
     });
+
+    // ✅ CONNECTION LOGS
+    const pusher = echoRef.current.connector.pusher;
+
+    pusher.connection.bind('initialized', () => console.log('[PUSHER] initialized'));
+    pusher.connection.bind('connecting', () => console.log('[PUSHER] connecting...'));
+    pusher.connection.bind('connected', () => console.log('[PUSHER] ✅ connected'));
+    pusher.connection.bind('disconnected', () => console.log('[PUSHER] disconnected'));
+    pusher.connection.bind('unavailable', () => console.log('[PUSHER] unavailable'));
+    pusher.connection.bind('failed', () => console.log('[PUSHER] ❌ failed'));
+    pusher.connection.bind('error', (err) => console.error('[PUSHER] error:', err));
+
+    // ✅ Useful info
+    console.log('[ECHO] authEndpoint:', `${import.meta.env.VITE_API_BASE_URL}/broadcasting/auth`);
+    console.log('[ECHO] cluster:', import.meta.env.VITE_PUSHER_APP_CLUSTER);
+    console.log('[ECHO] key:', import.meta.env.VITE_PUSHER_APP_KEY);
 
     api.get('/profile')
       .then(({ data }) => {
@@ -83,9 +121,7 @@ export function BookingChatSystem() {
 
   /** ------------------- FETCH BOOKINGS ------------------- **/
   useEffect(() => {
-    if (token) {
-      fetchBookings();
-    }
+    if (token) fetchBookings();
   }, [token]);
 
   const fetchBookings = async () => {
@@ -124,7 +160,7 @@ export function BookingChatSystem() {
       const messagesArray = data.data?.data || data.data?.messages || [];
       setMessages(messagesArray);
 
-      messagesArray.forEach(msg => {
+      messagesArray.forEach((msg) => {
         if (!msg.read_at && msg.sender_id !== currentUserId.current) {
           markMessageAsRead(msg.id);
         }
@@ -140,35 +176,65 @@ export function BookingChatSystem() {
 
   /** ------------------- ECHO REAL-TIME SETUP ------------------- **/
   useEffect(() => {
-    if (!selectedBooking || !echoRef.current) return;
-    
-    const channel = echoRef.current.private(`booking.${selectedBooking.id}`)
-      .listen('.MessageSent', (e) => {
-        setMessages(prev => [...prev, e.message]);
-        if (e.message.sender_id !== currentUserId.current) {
-          markMessageAsRead(e.message.id);
-        }
-        fetchUnreadCounts();
-      })
-      .listenForWhisper('typing', (e) => {
-        if (e.user_id !== currentUserId.current) {
-          setTyping(true);
-          setTimeout(() => setTyping(false), 3000);
-        }
-      })
-      .listen('.MessageRead', (e) => {
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === e.message_id ? { ...msg, read_at: e.read_at } : msg
-          )
-        );
-        fetchUnreadCounts();
-      });
-    
-    loadMessages(selectedBooking.id);
-    
+    if (!selectedBooking?.id || !echoRef.current) return;
+
+    const bookingId = selectedBooking.id;
+
+    // Echo private('booking.1') => Pusher channel is actually "private-booking.1"
+    const pusherChannelName = `private-booking.${bookingId}`;
+
+    console.log('[ECHO] subscribing to:', pusherChannelName);
+
+    const pusher = echoRef.current.connector.pusher;
+
+    // ✅ subscribe manually to capture subscription status
+    const raw = pusher.subscribe(pusherChannelName);
+
+    raw.bind('pusher:subscription_succeeded', () => {
+      console.log('[PUSHER] ✅ subscription_succeeded:', pusherChannelName);
+    });
+
+    raw.bind('pusher:subscription_error', (status) => {
+      console.error('[PUSHER] ❌ subscription_error:', pusherChannelName, 'status:', status);
+      console.error('-> If status=403, your /broadcasting/auth or channels.php auth is rejecting the user.');
+    });
+
+    // ✅ listen via Echo (normal way)
+const channel = echoRef.current.private(`booking.${bookingId}`);
+
+channel.listen('.message.sent', (payload) => {
+  console.log('[ECHO] ✅ message.sent received:', payload);
+
+  const normalized = normalizeIncomingMessage(payload, bookingId);
+  setMessages((prev) => [...prev, normalized]);
+
+  if (normalized.sender_id && normalized.sender_id !== currentUserId.current) {
+    markMessageAsRead(bookingId, normalized.id);
+  }
+});
+
+// OPTIONAL (only if needed in your env):
+channel.listen('message.sent', (payload) => {
+  console.log('[ECHO] ✅ message.sent (no dot) received:', payload);
+
+  const normalized = normalizeIncomingMessage(payload, bookingId);
+  setMessages((prev) => [...prev, normalized]);
+
+  if (normalized.sender_id && normalized.sender_id !== currentUserId.current) {
+    markMessageAsRead(bookingId, normalized.id);
+  }
+});
+
+
+    // (Optional) keep these logs (won't break anything)
+    channel.listen('.message.read', (e) => console.log('[ECHO] message.read:', e));
+
+    loadMessages(bookingId);
+
     return () => {
-      echoRef.current?.leave(`private-booking.${selectedBooking.id}`);
+      console.log('[ECHO] leaving:', pusherChannelName);
+      echoRef.current?.leave(`booking.${bookingId}`);
+      pusher.unsubscribe(pusherChannelName);
     };
   }, [selectedBooking?.id]);
 
@@ -185,9 +251,9 @@ export function BookingChatSystem() {
         booking_id: selectedBooking.id,
         message: messageText,
       });
-      
+
       if (data.data) {
-        setMessages(prev => [...prev, data.data]);
+        setMessages((prev) => [...prev, data.data]);
       }
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -200,7 +266,7 @@ export function BookingChatSystem() {
   const markMessageAsRead = async (messageId) => {
     try {
       await api.post(`/bookings/${selectedBooking?.id}/chat/mark-read`, {
-        message_id: messageId
+        message_id: messageId,
       });
     } catch (err) {
       console.error('Failed to mark message as read:', err);
@@ -210,15 +276,34 @@ export function BookingChatSystem() {
   /** ------------------- FETCH UNREAD COUNT ------------------- **/
   const fetchUnreadCounts = async () => {
     try {
-      const { data } = await api.get('/bookings/chat/unread-count');
-      if (data.data) {
-        setBookings(prevBookings => 
-          prevBookings.map(booking => ({
-            ...booking,
-            unread_count: data.data[booking.id] || 0
-          }))
-        );
-      }
+      if (!bookings?.length) return;
+
+      const results = await Promise.all(
+        bookings.map(async (booking) => {
+          try {
+            const { data } = await api.get(`/bookings/${booking.id}/chat/unread-count`);
+            const count =
+              data?.data?.unread_count ??
+              data?.data ??
+              data?.unread_count ??
+              0;
+
+            return { id: booking.id, count: Number(count) || 0 };
+          } catch (e) {
+            console.error(`Failed unread count for booking ${booking.id}:`, e);
+            return { id: booking.id, count: 0 };
+          }
+        })
+      );
+
+      const countsById = Object.fromEntries(results.map((r) => [r.id, r.count]));
+
+      setBookings((prev) =>
+        prev.map((b) => ({
+          ...b,
+          unread_count: countsById[b.id] ?? 0,
+        }))
+      );
     } catch (err) {
       console.error('Failed to fetch unread counts:', err);
     }
@@ -239,7 +324,7 @@ export function BookingChatSystem() {
     if (!selectedBooking) return;
 
     api.post(`/bookings/${selectedBooking.id}/chat/typing`)
-      .catch(err => console.error('Failed to send typing indicator:', err));
+      .catch((err) => console.error('Failed to send typing indicator:', err));
 
     if (echoRef.current) {
       echoRef.current.private(`booking.${selectedBooking.id}`).whisper('typing', {
@@ -247,9 +332,7 @@ export function BookingChatSystem() {
       });
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
       setTyping(false);
@@ -258,7 +341,10 @@ export function BookingChatSystem() {
 
   /** ------------------- TIME FORMAT ------------------- **/
   const formatTime = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
+
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / 60000);
 
@@ -273,7 +359,9 @@ export function BookingChatSystem() {
   };
 
   const formatDateTime = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -283,7 +371,7 @@ export function BookingChatSystem() {
   };
 
   // Filter bookings
-  const filteredBookings = bookings.filter(booking => {
+  const filteredBookings = bookings.filter((booking) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const clientName = `${booking.client?.first_name || ''} ${booking.client?.last_name || ''}`.toLowerCase();
@@ -295,7 +383,7 @@ export function BookingChatSystem() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-black dark:via-gray-900 dark:to-gray-950 pt-20">
       <div className="container mx-auto px-4 py-6">
-        
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -303,14 +391,14 @@ export function BookingChatSystem() {
           className="mb-6"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div 
+            <div
               className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
               style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
             >
               <MessageCircle className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 
+              <h1
                 className="text-3xl font-bold bg-clip-text text-transparent"
                 style={{ backgroundImage: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal}, ${COLORS.limeGreen})` }}
               >
@@ -340,10 +428,10 @@ export function BookingChatSystem() {
         </AnimatePresence>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-180px)]">
-          
+
           {/* Bookings List */}
           <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden flex flex-col border border-gray-200 dark:border-gray-700">
-            
+
             {/* Search Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
@@ -363,10 +451,10 @@ export function BookingChatSystem() {
             <div className="flex-1 overflow-y-auto">
               {loadingBookings ? (
                 <div className="flex justify-center items-center h-full">
-                  <div 
+                  <div
                     className="animate-spin rounded-full h-10 w-10 border-4 border-t-transparent"
                     style={{ borderColor: COLORS.tealDim, borderTopColor: 'transparent' }}
-                  ></div>
+                  />
                 </div>
               ) : filteredBookings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full p-8 text-gray-400">
@@ -381,19 +469,21 @@ export function BookingChatSystem() {
                     whileHover={{ x: 5 }}
                     onClick={() => setSelectedBooking(booking)}
                     className={`p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-all ${
-                      selectedBooking?.id === booking.id 
-                        ? 'border-l-4' 
+                      selectedBooking?.id === booking.id
+                        ? 'border-l-4'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
-                    style={selectedBooking?.id === booking.id ? { 
-                      background: COLORS.tealDim, 
-                      borderLeftColor: COLORS.teal 
+                    style={selectedBooking?.id === booking.id ? {
+                      background: COLORS.tealDim,
+                      borderLeftColor: COLORS.teal
                     } : {}}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <img
-                          src={booking.client?.profile_picture || '/default-avatar.png'}
+                          src={booking.client?.profile_picture
+                            ? `/api/storage/${booking.client.profile_picture}`
+                            : '/default-avatar.png'}
                           alt={booking.client?.first_name || 'Client'}
                           className="w-12 h-12 rounded-full object-cover ring-2 ring-white dark:ring-gray-700"
                         />
@@ -437,19 +527,20 @@ export function BookingChatSystem() {
             {selectedBooking ? (
               <>
                 {/* Chat Header */}
-                <div 
+                <div
                   className="p-4 text-white relative overflow-hidden"
                   style={{ background: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal}, ${COLORS.limeGreen})` }}
                 >
-                  {/* Decorative circles */}
                   <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
                   <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                  
+
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={selectedBooking.client?.profile_picture || '/default-avatar.png'}
+                          src={selectedBooking.client?.profile_picture
+                            ? `/api/storage/${selectedBooking.client.profile_picture}`
+                            : '/default-avatar.png'}
                           alt={selectedBooking.client?.first_name || 'Client'}
                           className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg"
                         />
@@ -510,14 +601,14 @@ export function BookingChatSystem() {
                 >
                   {loading ? (
                     <div className="flex justify-center items-center h-full">
-                      <div 
+                      <div
                         className="animate-spin rounded-full h-10 w-10 border-4 border-t-transparent"
                         style={{ borderColor: COLORS.tealDim, borderTopColor: 'transparent' }}
-                      ></div>
+                      />
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                      <div 
+                      <div
                         className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
                         style={{ background: COLORS.tealDim }}
                       >
@@ -529,9 +620,12 @@ export function BookingChatSystem() {
                   ) : (
                     <>
                       {messages.map((message, index) => {
-                        const isOwner = message.sender_id === currentUserId.current || 
-                                       message.sender?.id === currentUserId.current;
-                        const showAvatar = index === 0 || messages[index - 1].sender_id !== message.sender_id;
+                        const isOwner =
+                          message.sender_id === currentUserId.current ||
+                          message.sender?.id === currentUserId.current;
+
+                        const showAvatar =
+                          index === 0 || messages[index - 1].sender_id !== message.sender_id;
 
                         return (
                           <motion.div
@@ -542,13 +636,15 @@ export function BookingChatSystem() {
                           >
                             {!isOwner && showAvatar && (
                               <img
-                                src={message.sender?.profile_picture || '/default-avatar.png'}
+                                src={message.sender?.profile_picture
+                                  ? `/api/storage/${message.sender.profile_picture}`
+                                  : '/default-avatar.png'}
                                 alt={message.sender?.first_name || 'User'}
                                 className="w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-700"
                               />
                             )}
                             {!isOwner && !showAvatar && <div className="w-8"></div>}
-                            
+
                             <div className={`flex flex-col ${isOwner ? 'items-end' : 'items-start'} max-w-[70%]`}>
                               <motion.div
                                 whileHover={{ scale: 1.02 }}
@@ -579,7 +675,9 @@ export function BookingChatSystem() {
 
                             {isOwner && showAvatar && (
                               <img
-                                src={message.sender?.profile_picture || '/default-avatar.png'}
+                                src={message.sender?.profile_picture
+                                  ? `/api/storage/${message.sender.profile_picture}`
+                                  : '/default-avatar.png'}
                                 alt={message.sender?.first_name || 'You'}
                                 className="w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-700"
                               />
@@ -602,7 +700,9 @@ export function BookingChatSystem() {
                         className="flex items-center gap-2"
                       >
                         <img
-                          src={selectedBooking.client?.profile_picture || '/default-avatar.png'}
+                          src={selectedBooking.client?.profile_picture
+                            ? `/api/storage/${selectedBooking.client.profile_picture}`
+                            : '/default-avatar.png'}
                           alt={selectedBooking.client?.first_name || 'Client'}
                           className="w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-700"
                         />
@@ -644,7 +744,7 @@ export function BookingChatSystem() {
                         value={newMessage}
                         onChange={(e) => {
                           setNewMessage(e.target.value);
-                          handleTyping();
+                          // handleTyping();
                         }}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
@@ -678,7 +778,7 @@ export function BookingChatSystem() {
                   animate={{ scale: 1, opacity: 1 }}
                   className="text-center"
                 >
-                  <div 
+                  <div
                     className="w-24 h-24 rounded-full flex items-center justify-center mb-6 mx-auto"
                     style={{ background: `linear-gradient(135deg, ${COLORS.tealDim}, ${COLORS.limeGreenDim})` }}
                   >

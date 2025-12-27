@@ -1,14 +1,20 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Instagram, Twitter, Linkedin, Youtube, Globe, Bookmark } from 'lucide-react';
+import { ArrowRight, Instagram, Twitter, Linkedin, Youtube, Facebook, Globe, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const platforms = [
   {
     name: 'Instagram',
-    url: 'https://www.instagram.com/rento_lebanon/',
+    url: 'https://www.instagram.com/rentolebanon/?hl=en',
     icon: Instagram,
+    gradient: 'from-pink-500 to-purple-500'
+  },
+  {
+    name: 'Facebook',
+    url: 'https://www.facebook.com/profile.php?id=61585450048575',
+    icon: Facebook,
     gradient: 'from-pink-500 to-purple-500'
   },
   {
@@ -28,6 +34,12 @@ const platforms = [
     url: 'https://www.pinterest.com/rento1065/',
     icon: Bookmark,
     gradient: 'from-red-500 to-rose-500'
+  },
+  {
+    name: 'Tiktok',
+    url: 'https://www.tiktok.com/@rentolebanon',
+    icon: Bookmark,
+    gradient: 'from-black-500 to-white-500'
   },
   {
     name: 'YouTube',

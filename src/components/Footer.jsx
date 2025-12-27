@@ -18,7 +18,7 @@ export const Footer = () => {
   const footerLinks = {
     company: [
       { label: 'About Us', to: '/about' },
-      { label: 'Our Fleet', to: '/cars' },
+      { label: 'Our Fleet', to: '/luxury-car-rental-lebanon' },
       { label: 'Contact', to: '/contact' },
       { label: 'Careers', to: '#' }
     ],
@@ -37,9 +37,9 @@ export const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61584938841683', label: 'Facebook', color: COLORS.darkBlue },
+    { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61585450048575', label: 'Facebook', color: COLORS.darkBlue },
     { icon: Twitter, href: 'https://x.com/RENTO_lb', label: 'Twitter', color: COLORS.teal },
-    { icon: Instagram, href: 'https://www.instagram.com/rento_lebanon/', label: 'Instagram', color: COLORS.limeGreen },
+    { icon: Instagram, href: 'https://www.instagram.com/rentolebanon/?hl=en', label: 'Instagram', color: COLORS.limeGreen },
     { icon: Linkedin, href: 'https://www.linkedin.com/company/rento-lb/about/', label: 'LinkedIn', color: COLORS.darkBlue }
   ];
 
@@ -78,10 +78,6 @@ export const Footer = () => {
               </span>
             </Link>
 
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-sm leading-relaxed">
-              Experience luxury on the road with our premium fleet of high-end vehicles.
-            </p>
-
             {/* Contact Info */}
             <div className="space-y-2.5 text-sm">
               {/* Locations */}
@@ -97,7 +93,7 @@ export const Footer = () => {
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: COLORS.teal }} />
                 <div className="flex-1">
                   <p className="text-gray-700 dark:text-gray-300 leading-snug">
-                    Mount Lebanon, Hazmieh, Lebanon
+                    Mount Lebanon, Baouchrieh, Lebanon
                   </p>
                 </div>
               </div>
@@ -230,16 +226,16 @@ export const Footer = () => {
             
             {/* DMCA Badge */}
             <a
-              href="https://www.dmca.com/Protection/Status.aspx?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
+              href="https://www.dmca.com/r/em2gpk5"
               title="DMCA.com Protection Status"
               className="dmca-badge"
               target="_blank"
               rel="noopener noreferrer"
             >
               <img
-                src="https://images.dmca.com/Badges/dmca_protected_sml_120aj.png?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
+                src="https://images.dmca.com/Badges/DMCA_logo-std-btn120w.png?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
                 alt="DMCA.com Protection Status"
-                className="h-10 w-auto"
+                className="h-8 w-auto"
               />
             </a>
 

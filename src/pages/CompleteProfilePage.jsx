@@ -1,52 +1,89 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Car, Upload, AlertCircle } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Car, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CompleteProfilePage() {
   const navigate = useNavigate();
+
+  // =========================
+  // DEBUG HELPERS
+  // =========================
+  const DEBUG = true;
+
+  const debugId = useMemo(() => {
+    // correlation id so you can search logs on backend if you log headers
+    return `cp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }, []);
+
+  const log = (...args) => {
+    if (!DEBUG) return;
+    // eslint-disable-next-line no-console
+    console.log(`[CompleteProfile ${debugId}]`, ...args);
+  };
+
+  const logAxiosBase = () => {
+    try {
+      log("axios.baseURL =", api?.defaults?.baseURL);
+      log("axios.withCredentials =", api?.defaults?.withCredentials);
+      log(
+        "axios.headers.Authorization =",
+        api?.defaults?.headers?.common?.Authorization
+      );
+    } catch (e) {
+      log("Failed to read axios defaults", e);
+    }
+  };
+
+  const dumpFormData = (fd) => {
+    try {
+      const entries = [];
+      for (const [k, v] of fd.entries()) {
+        if (v instanceof File) {
+          entries.push({
+            key: k,
+            type: "File",
+            name: v.name,
+            size: v.size,
+            mime: v.type,
+          });
+        } else {
+          entries.push({ key: k, type: typeof v, value: v });
+        }
+      }
+      log("FormData entries =>", entries);
+      return entries;
+    } catch (e) {
+      log("Failed to dump FormData", e);
+      return null;
+    }
+  };
+
+  // =========================
+  // STATE
+  // =========================
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [profileStatus, setProfileStatus] = useState(null);
 
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser) {
-      toast.error("Please login first");
-      navigate("/auth");
-      return;
-    }
-    setUser(storedUser);
-    checkProfileStatus();
-  }, [navigate]);
-
-  // Check profile completion status from backend
-  const checkProfileStatus = async () => {
-    try {
-      const res = await api.get("/profile/status");
-      setProfileStatus(res.data);
-      
-      // If profile is already complete, redirect
-      if (res.data.is_complete) {
-        const userData = res.data.user;
-        if (userData.role === "agency" || userData.role === "agent") {
-          navigate("/Dashboard");
-        } else {
-          navigate("/");
-        }
-      }
-    } catch (err) {
-      console.error("Failed to check profile status:", err);
-    }
-  };
-
-  // Base fields (common for all users)
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -57,15 +94,15 @@ export default function CompleteProfilePage() {
     profile_picture: null,
     id_card_front: null,
     id_card_back: null,
-    
-    // Client-specific fields
+
+    // Client-specific
     license_number: "",
     driver_license: null,
     profession: "",
     avg_salary: "",
     promo_code: "",
-    
-    // Agency-specific fields
+
+    // Agency-specific
     business_type: "",
     company_number: "",
     business_doc: null,
@@ -76,58 +113,166 @@ export default function CompleteProfilePage() {
     website: "",
   });
 
-  // Show/hide company fields based on business type
   const [showCompanyFields, setShowCompanyFields] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (files) {
-      setForm({ ...form, [name]: files[0] });
-    } else {
-      setForm({ ...form, [name]: value });
-      
-      // Toggle company fields for agency
-      if (name === "business_type") {
-        setShowCompanyFields(value === "company");
+  const isClient = user?.role === "client";
+  const isAgency = user?.role === "agency" || user?.role === "agent"; // tolerate legacy
+
+  const normalizeDate = (d) => {
+    if (!d) return "";
+    return String(d).slice(0, 10);
+  };
+
+  const prefillFromStatus = (status) => {
+    const u = status?.user || {};
+    // NOTE: your backend returns user with .client and .agent loaded (nested),
+    // not top-level "client"/"agent". We'll support both.
+    const c = status?.client || u?.client || {};
+    const a = status?.agent || u?.agent || status?.agency || {};
+
+    setForm((prev) => ({
+      ...prev,
+      first_name: u.first_name ?? prev.first_name ?? "",
+      last_name: u.last_name ?? prev.last_name ?? "",
+      gender: u.gender ?? prev.gender ?? "",
+      birth_date: normalizeDate(u.birth_date) || prev.birth_date || "",
+      city: u.city ?? prev.city ?? "",
+      bio: u.bio ?? prev.bio ?? "",
+
+      // Client fields (prefill)
+      license_number: c.license_number ?? prev.license_number ?? "",
+      profession: c.profession ?? prev.profession ?? "",
+      avg_salary: c.avg_salary ?? prev.avg_salary ?? "",
+      promo_code: c.promo_code ?? prev.promo_code ?? "",
+
+      // Agency fields (prefill)
+      business_type: a.business_type ?? prev.business_type ?? "",
+      company_number: a.company_number ?? prev.company_number ?? "",
+      location: a.location
+        ? typeof a.location === "string"
+          ? a.location
+          : JSON.stringify(a.location)
+        : prev.location ?? "",
+      app_fees: a.app_fees ?? prev.app_fees ?? "",
+      contract_form: a.contract_form ?? prev.contract_form ?? "",
+      policies: a.policies ?? prev.policies ?? "",
+      website: a.website ?? prev.website ?? "",
+    }));
+
+    const bt = (a.business_type || "").toString();
+    setShowCompanyFields(bt === "company");
+  };
+
+  // =========================
+  // API CALLS
+  // =========================
+  const checkProfileStatus = async () => {
+    try {
+      logAxiosBase();
+      log("GET /profile/status starting...");
+      const res = await api.get("/profile/status", {
+        headers: { "X-Debug-Id": debugId },
+      });
+      log("GET /profile/status success:", res.status, res.data);
+
+      setProfileStatus(res.data);
+      prefillFromStatus(res.data);
+
+      if (res.data?.is_complete) {
+        const userData = res.data.user;
+        log("Profile already complete. Redirecting. role =", userData?.role);
+
+        if (userData?.role === "agency" || userData?.role === "agent") {
+          navigate("/Dashboard");
+        } else {
+          navigate("/");
+        }
+      }
+    } catch (err) {
+      log("GET /profile/status FAILED", err);
+      if (err?.response) {
+        log("Status error response:", err.response.status, err.response.data);
       }
     }
   };
 
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser) {
+      toast.error("Please login first");
+      navigate("/auth");
+      return;
+    }
+    setUser(storedUser);
+    log("Loaded user from localStorage:", storedUser);
+    checkProfileStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
+
+  // =========================
+  // HANDLERS
+  // =========================
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+
+    if (files) {
+      const f = files[0] || null;
+      setForm((prev) => ({ ...prev, [name]: f }));
+      log("File changed:", name, f ? { name: f.name, size: f.size, type: f.type } : null);
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
+    log("Field changed:", name, value);
+
+    if (name === "business_type") {
+      setShowCompanyFields(value === "company");
+    }
+  };
+
   const handleSelectChange = (name, value) => {
-    setForm({ ...form, [name]: value });
+    setForm((prev) => ({ ...prev, [name]: value }));
+    log("Select changed:", name, value);
+
     if (name === "business_type") {
       setShowCompanyFields(value === "company");
     }
   };
 
   const validateForm = () => {
-    // Base validation
     if (!form.first_name || !form.last_name || !form.gender || !form.birth_date || !form.city) {
       toast.error("Please fill all required base fields");
       return false;
     }
-    
+
+    // IMPORTANT: Your backend requires id_card files as REQUIRED every submit.
+    // So for now, we also require them in the frontend to avoid 422/500.
+    // (If you later change backend validation to nullable, you can relax this.)
     if (!form.id_card_front || !form.id_card_back) {
       toast.error("Please upload both ID card photos");
       return false;
     }
 
-    // Client validation
-    if (user?.role === "client") {
+    if (isClient) {
       if (!form.license_number || !form.driver_license || !form.profession || !form.avg_salary) {
         toast.error("Please fill all required client fields");
         return false;
       }
     }
 
-    // Agency validation
-    if (user?.role === "agency") {
+    if (isAgency) {
       if (!form.business_type || !form.profession || !form.location) {
         toast.error("Please fill all required agency fields");
         return false;
       }
-      
-      // Company-specific validation
+
+      try {
+        JSON.parse(form.location);
+      } catch {
+        toast.error('Location must be valid JSON (ex: {"lat":"..","lng":".."})');
+        return false;
+      }
+
       if (form.business_type === "company") {
         if (!form.company_number || !form.business_doc) {
           toast.error("Please fill company number and upload business document");
@@ -141,70 +286,88 @@ export default function CompleteProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
+
+    log("Submit clicked. role =", user?.role, "isClient =", isClient, "isAgency =", isAgency);
+    logAxiosBase();
+
+    if (!validateForm()) {
+      log("Validation failed on client side.");
+      return;
+    }
 
     try {
       setLoading(true);
+
       const formData = new FormData();
-      
-      // Add base fields (REQUIRED)
+
+      // Base fields
       formData.append("first_name", form.first_name);
       formData.append("last_name", form.last_name);
       formData.append("gender", form.gender);
       formData.append("birth_date", form.birth_date);
       formData.append("city", form.city);
-      
-      // Add FILES (REQUIRED)
-      formData.append("id_card_front", form.id_card_front);
-      formData.append("id_card_back", form.id_card_back);
-      
-      // Optional fields
+
+      // Files (backend requires these as required in your current controller)
+      if (form.id_card_front) formData.append("id_card_front", form.id_card_front);
+      if (form.id_card_back) formData.append("id_card_back", form.id_card_back);
+
       if (form.bio) formData.append("bio", form.bio);
       if (form.profile_picture) formData.append("profile_picture", form.profile_picture);
 
-      // Add role-specific fields
-      if (user?.role === "client") {
+      if (isClient) {
         formData.append("license_number", form.license_number);
-        formData.append("driver_license", form.driver_license);
+        if (form.driver_license) formData.append("driver_license", form.driver_license);
         formData.append("profession", form.profession);
         formData.append("avg_salary", form.avg_salary);
         if (form.promo_code) formData.append("promo_code", form.promo_code);
-      } else if (user?.role === "agency") {
+      } else if (isAgency) {
         formData.append("business_type", form.business_type);
         formData.append("profession", form.profession);
-        formData.append("location", form.location);
-        
-        // Optional agency fields
+
+        const cleanedLocation = JSON.stringify(JSON.parse(form.location));
+        formData.append("location", cleanedLocation);
+
         if (form.app_fees) formData.append("app_fees", form.app_fees);
         if (form.contract_form) formData.append("contract_form", form.contract_form);
         if (form.policies) formData.append("policies", form.policies);
         if (form.website) formData.append("website", form.website);
-        
-        // Company-specific fields (required if business_type === "company")
+
         if (form.business_type === "company") {
           formData.append("company_number", form.company_number);
-          formData.append("business_doc", form.business_doc);
+          if (form.business_doc) formData.append("business_doc", form.business_doc);
         }
       }
 
+      dumpFormData(formData);
+
+      log("POST /profile/complete starting...");
       const res = await api.post("/profile/complete", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "X-Debug-Id": debugId,
+        },
       });
 
-      // Update user in localStorage
+      log("POST /profile/complete success:", res.status, res.data);
+
       const updatedUser = res.data.user;
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
 
       toast.success("Profile completed successfully!");
 
-      // Check profile status from backend response
-      const statusCheck = await api.get("/profile/status");
+      log("Refreshing status...");
+      const statusCheck = await api.get("/profile/status", {
+        headers: { "X-Debug-Id": debugId },
+      });
+
+      log("GET /profile/status after submit:", statusCheck.status, statusCheck.data);
+      setProfileStatus(statusCheck.data);
+
       const isComplete = statusCheck.data.is_complete;
 
       setTimeout(() => {
         if (isComplete) {
-          // Redirect based on role
           if (updatedUser.role === "agency" || updatedUser.role === "agent") {
             navigate("/Dashboard");
           } else {
@@ -214,14 +377,39 @@ export default function CompleteProfilePage() {
           toast.warning("Please complete all required fields");
         }
       }, 500);
-
     } catch (err) {
-      if (err.response?.data?.errors) {
-        const errors = Object.values(err.response.data.errors).flat();
-        errors.forEach(error => toast.error(error));
+      log("POST /profile/complete FAILED:", err);
+
+      // Show as much detail as possible
+      if (err?.response) {
+        log("Error response status:", err.response.status);
+        log("Error response data:", err.response.data);
+        log("Error response headers:", err.response.headers);
+
+        // Laravel might return HTML on 500; show a small hint in console
+        if (typeof err.response.data === "string") {
+          log("Error response (string, first 500 chars):", err.response.data.slice(0, 500));
+        }
+
+        if (err.response?.data?.errors) {
+          const errors = Object.values(err.response.data.errors).flat();
+          errors.forEach((error) => toast.error(error));
+        } else {
+          toast.error(err.response?.data?.message || "Failed to complete profile");
+        }
+      } else if (err?.request) {
+        log("No response received. Request:", err.request);
+        toast.error("No response from server. Check network/CORS/auth.");
       } else {
-        toast.error(err.response?.data?.message || "Failed to complete profile");
+        log("Unknown error:", err?.message || err);
+        toast.error("Unexpected error occurred.");
       }
+
+      // Also help you spot the double /api issue immediately:
+      log(
+        "If you see https://.../api/api/... then your axios baseURL already contains /api and your proxy/route also adds /api."
+      );
+      log("Fix by adjusting api.defaults.baseURL OR Vite proxy OR route prefix so it becomes /api/profile/complete only once.");
     } finally {
       setLoading(false);
     }
@@ -240,16 +428,17 @@ export default function CompleteProfilePage() {
           <p className="text-muted-foreground mt-2">
             {user?.role === "client" ? "Client Profile" : "Agency Profile"}
           </p>
-          
-          {/* Show completion percentage if available */}
+
           {profileStatus && (
             <div className="mt-4 w-full max-w-md">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Profile Completion</span>
-                <span className="text-sm font-semibold">{profileStatus.completion_percentage}%</span>
+                <span className="text-sm font-semibold">
+                  {profileStatus.completion_percentage}%
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full transition-all"
                   style={{ width: `${profileStatus.completion_percentage}%` }}
                 ></div>
@@ -263,18 +452,15 @@ export default function CompleteProfilePage() {
             <CardTitle className="text-2xl">
               Complete Your {user?.role === "client" ? "Client" : "Agent"} Profile
             </CardTitle>
-            <CardDescription>
-              Please fill all required fields to continue
-            </CardDescription>
+            <CardDescription>Please fill all required fields to continue</CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              
               {/* ========== BASE FIELDS (ALL USERS) ========== */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>First Name *</Label>
@@ -324,7 +510,7 @@ export default function CompleteProfilePage() {
                       name="birth_date"
                       value={form.birth_date}
                       onChange={handleChange}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={new Date().toISOString().split("T")[0]}
                       required
                     />
                   </div>
@@ -418,7 +604,7 @@ export default function CompleteProfilePage() {
               {user?.role === "client" && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Client Information</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>License Number *</Label>
@@ -500,10 +686,10 @@ export default function CompleteProfilePage() {
               )}
 
               {/* ========== AGENCY-SPECIFIC FIELDS ========== */}
-              {user?.role === "agency" && (
+              {(user?.role === "agency" || user?.role === "agent") && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Agency Information</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Business Type *</Label>
@@ -522,6 +708,7 @@ export default function CompleteProfilePage() {
                           <SelectItem value="dealer">Dealer</SelectItem>
                           <SelectItem value="private">Private</SelectItem>
                           <SelectItem value="company">Company</SelectItem>
+                          <SelectItem value="business">Business</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -545,14 +732,13 @@ export default function CompleteProfilePage() {
                     </div>
                   </div>
 
-                  {/* Company-specific fields */}
                   {showCompanyFields && (
                     <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <AlertCircle className="w-4 h-4" />
                         <p>Company Details (Required)</p>
                       </div>
-                      
+
                       <div>
                         <Label>Company Number *</Label>
                         <Input
@@ -599,20 +785,6 @@ export default function CompleteProfilePage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                    {/* <div>
-                      <Label>App Fees (%) (optional)</Label>
-                      <Input
-                        type="number"
-                        name="app_fees"
-                        value={form.app_fees}
-                        onChange={handleChange}
-                        step="0.01"
-                        min="0"
-                        max="99.99"
-                        placeholder="15.00"
-                      />
-                    </div> */}
-
                     <div>
                       <Label>Website (optional)</Label>
                       <Input
@@ -649,7 +821,6 @@ export default function CompleteProfilePage() {
                 </div>
               )}
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-secondary to-accent font-semibold text-lg py-6"

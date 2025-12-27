@@ -173,7 +173,7 @@ const CarDetailModal = ({ car, onClose }) => {
             <div className="relative rounded-xl overflow-hidden shadow-lg" style={{ height: '240px' }}>
               {car.main_image_url ? (
                 <img
-                  src={car.main_image_url}
+                  src={`/api/storage/${car.main_image_url}`}
                   alt="Main"
                   className="w-full h-full object-cover"
                 />
@@ -188,7 +188,7 @@ const CarDetailModal = ({ car, onClose }) => {
                 car[`${dir}_image_url`] ? (
                   <div key={dir} className="relative rounded-lg overflow-hidden shadow" style={{ height: '70px' }}>
                     <img
-                      src={car[`${dir}_image_url`]}
+                      src={`/api/storage/${car[`${dir}_image_url`]}`}
                       alt={dir}
                       className="w-full h-full object-cover"
                     />
@@ -373,7 +373,7 @@ export const MyCarsPage = () => {
           </div>
 
           <Button
-            onClick={() => navigate('/Add/car')}
+            onClick={() => navigate('/add-car')}
             className="h-11 rounded-xl text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
             style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
           >
@@ -551,7 +551,7 @@ export const MyCarsPage = () => {
                           <div className="flex gap-3 items-center">
                             <div className="w-14 h-10 rounded-lg overflow-hidden shadow-sm">
                               {car.main_image_url ? (
-                                <img src={car.main_image_url} alt={car.make} className="w-full h-full object-cover" />
+                                <img src={`/api/storage/${car.main_image_url}`} alt={car.make} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center" style={{ background: COLORS.tealDim }}>
                                   <Car className="w-5 h-5" style={{ color: COLORS.teal, opacity: 0.5 }} />

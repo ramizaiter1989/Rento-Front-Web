@@ -640,10 +640,9 @@ export const CarsPage = () => {
           <div className="max-w-4xl">
 
 
-            {/* Main Title */}
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
-              Find Your Perfect Ride
-            </h1>
+            <p className="text-cyan-50 text-lg md:text-xl mb-6 max-w-2xl">
+              
+            </p>
             
             <p className="text-cyan-50 text-lg md:text-xl mb-6 max-w-2xl">
               Explore our premium collection of{' '}
@@ -653,21 +652,8 @@ export const CarsPage = () => {
               vehicles from top brands
             </p>
 
-            {/* Quick Stats */}
-            <div className="flex flex-wrap gap-4">
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-2 flex items-center gap-2">
-                <Star className="w-4 h-4 text-yellow-300" />
-                <span className="text-white text-sm font-semibold">Top Rated</span>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-2 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-green-300" />
-                <span className="text-white text-sm font-semibold">Best Prices</span>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-2 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-red-300" />
-                <span className="text-white text-sm font-semibold">Delivery Available</span>
-              </div>
-            </div>
+
+        
           </div>
         </div>
       </section>

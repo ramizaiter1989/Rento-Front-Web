@@ -99,41 +99,68 @@ export const CreateCarPage = () => {
     e.preventDefault();
     setLoading(true);
     const data = new FormData();
+    
     // Append required fields
     data.append('make', formData.make);
     data.append('model', formData.model);
     data.append('year', formData.year);
     data.append('license_plate', formData.licensePlate.toUpperCase());
-    data.append('fuel_type', formData.fuelType);
-    data.append('transmission', formData.transmission);
-    data.append('car_category', formData.carCategory);
+    
+    // Map fuel type to backend values
+    const fuelTypeMap = {
+      'Petrol': 'benz',
+      'Diesel': 'diesel',
+      'Electric': 'electric',
+      'Hybrid': 'hybrid'
+    };
+    data.append('fuel_type', fuelTypeMap[formData.fuelType] || formData.fuelType.toLowerCase());
+    
+    // Map transmission to lowercase
+    data.append('transmission', formData.transmission.toLowerCase());
+    
+    // Map car category to lowercase
+    data.append('car_category', formData.carCategory.toLowerCase());
+    
     data.append('daily_rate', formData.dailyRate);
     data.append('seats', formData.seats);
     data.append('doors', formData.doors);
+    
     // Append optional fields
     if (formData.color) data.append('color', formData.color);
     if (formData.mileage) data.append('mileage', formData.mileage);
-    if (formData.wheelsDrive) data.append('wheels_drive', formData.wheelsDrive);
+    if (formData.wheelsDrive) data.append('wheels_drive', formData.wheelsDrive.toLowerCase());
     if (formData.holidayRate) data.append('holiday_rate', formData.holidayRate);
     if (formData.notes) data.append('notes', formData.notes);
     if (formData.maxDrivingMileage) data.append('max_driving_mileage', formData.maxDrivingMileage);
     if (formData.minRentalDays) data.append('min_rental_days', formData.minRentalDays);
+    
     // Append arrays
     formData.selectedFeatures.forEach((f) => data.append('features[]', f));
     formData.selectedAddons.forEach((a) => data.append('car_add_on[]', a));
     formData.selectedReasons.forEach((r) => data.append('reason_of_rent[]', r));
+    
     // Append booleans and related fields
     data.append('is_deposit', formData.requireDeposit ? '1' : '0');
-    if (formData.requireDeposit && formData.depositAmount > 0) data.append('deposit', formData.depositAmount);
+    if (formData.requireDeposit && formData.depositAmount > 0) {
+      data.append('deposit', formData.depositAmount);
+    }
+    
     data.append('is_delivered', formData.deliveryAvailable ? '1' : '0');
-    if (formData.deliveryAvailable && formData.deliveryFees > 0) data.append('delivery_fees', formData.deliveryFees);
+    if (formData.deliveryAvailable && formData.deliveryFees > 0) {
+      data.append('delivery_fees', formData.deliveryFees);
+    }
+    
     data.append('with_driver', formData.driverAvailable ? '1' : '0');
-    if (formData.driverAvailable && formData.driverFees > 0) data.append('driver_fees', formData.driverFees);
-    // Append locations as JSON
+    if (formData.driverAvailable && formData.driverFees > 0) {
+      data.append('driver_fees', formData.driverFees);
+    }
+    
+    // Append locations as JSON strings (backend will receive and validate as arrays)
     data.append('live_location', JSON.stringify(formData.liveLocation));
     data.append('delivery_location', JSON.stringify(formData.deliveryLocation));
     data.append('return_location', JSON.stringify(formData.returnLocation));
-    // Append images
+    
+    // Append images as files
     if (images.main) data.append('main_image_url', images.main);
     if (images.front) data.append('front_image_url', images.front);
     if (images.back) data.append('back_image_url', images.back);
@@ -141,16 +168,28 @@ export const CreateCarPage = () => {
     if (images.right) data.append('right_image_url', images.right);
 
     try {
-      await api.post('/cars', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await api.post('/cars', data, {
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        },
       });
+      
+      console.log('Car created successfully:', response.data);
       toast.success('Car created successfully! Waiting for admin approval.');
       navigate('/agent/cars');
     } catch (err) {
       console.error('Create car error:', err.response?.data);
       const errors = err.response?.data?.errors;
-      const message = errors ? Object.values(errors).flat().join(', ') : err.response?.data?.error || 'Failed to create car';
-      toast.error(message);
+      
+      if (errors) {
+        // Show each validation error
+        Object.entries(errors).forEach(([field, messages]) => {
+          messages.forEach(msg => toast.error(`${field}: ${msg}`));
+        });
+      } else {
+        const message = err.response?.data?.error || err.response?.data?.message || 'Failed to create car';
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -635,7 +674,7 @@ export const CreateCarPage = () => {
                     <div className="relative">
                       {imagePreviews[type] ? (
                         <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-300">
-                          <img src={imagePreviews[type]} alt="" className="w-full h-full object-cover" />
+                          <img src={`/api/storage/${imagePreviews[type]}`} alt="" className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => removeImage(type)}

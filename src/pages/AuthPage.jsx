@@ -569,13 +569,14 @@ export function AuthPage() {
         </Button>
 
         <div className="flex flex-col items-center mb-8 animate-fade-in">
-          <div className="w-24 h-24 rounded-2xl bg-transparent flex items-center justify-center shadow-2xl shadow-[#00A19C]/20 mb-4 animate-float hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-24 h-24 rounded-2xl flex items-center justify-center mb-4 animate-float hover:scale-110 transition-transform duration-300 cursor-pointer shadow-md shadow-gray-400/20">
             <img
               src="/rentologo.png"
               alt="Rento LB Logo"
               className="w-24 h-24 object-contain"
             />
           </div>
+
           <h1 className="text-4xl font-black bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] bg-clip-text text-transparent mb-2">
             Rento LB
           </h1>

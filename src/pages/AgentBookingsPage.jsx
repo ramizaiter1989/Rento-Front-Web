@@ -465,7 +465,8 @@ export function AgentBookingsPage() {
       >
         <div className="w-56 flex items-center gap-3 px-4">
           <img 
-            src={car.main_image_url || "/placeholder.png"} 
+            src={car.main_image_url ? `/api/storage/${car.main_image_url}` : "/placeholder.png"}
+
             alt={car.model} 
             className="w-14 h-10 object-cover rounded-lg shadow-md" 
           />
@@ -603,7 +604,10 @@ export function AgentBookingsPage() {
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-3">
                     <img
-                      src={currentBooking.car?.main_image_url || "/placeholder.png"}
+                      src={currentBooking.car?.main_image_url
+                          ? `/api/storage/${currentBooking.car.main_image_url}`
+                          : "/placeholder.png"}
+
                       alt={currentBooking.car?.model}
                       className="w-12 h-12 rounded-lg object-cover border-2 border-white/30 shadow-lg"
                     />
@@ -623,7 +627,10 @@ export function AgentBookingsPage() {
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-3">
                     <img
-                      src={currentBooking.client?.profile_picture || "/default-avatar.png"}
+                      src={currentBooking.client?.profile_picture
+                          ? `/api/storage/${currentBooking.client.profile_picture}`
+                          : "/default-avatar.png"}
+
                       alt={currentBooking.client?.username}
                       className="w-12 h-12 rounded-full object-cover border-2 border-white/30 shadow-lg"
                     />
@@ -886,7 +893,10 @@ export function AgentBookingsPage() {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={car?.main_image_url || "/placeholder.png"}
+                      src={car?.main_image_url 
+                        ? `/api/storage/${car.main_image_url}` 
+                        : "/placeholder.png"}
+
                       alt={car?.model || "Car"}
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -1017,7 +1027,10 @@ export function AgentBookingsPage() {
                               <div className="flex items-center gap-4">
                                 <div className="relative">
                                   <img
-                                    src={client?.profile_picture || "/default-avatar.png"}
+                                    src={client?.profile_picture 
+                                      ? `/api/storage/${client.profile_picture}` 
+                                      : "/default-avatar.png"}
+
                                     alt={client?.username || "Client"}
                                     className="w-14 h-14 rounded-2xl object-cover border-4 border-white dark:border-gray-700 shadow-lg"
                                   />
