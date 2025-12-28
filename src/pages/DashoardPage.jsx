@@ -225,7 +225,7 @@ export default function EnhancedDashboard() {
     { 
       title: "Analytics", 
       icon: TrendingUp, 
-      href: "/statistics", 
+      href: "/statistic", 
       color: COLORS.teal,
       description: "View statistics"
     },

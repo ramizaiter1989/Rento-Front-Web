@@ -42,7 +42,7 @@ export const ContactPage = () => {
     {
       icon: Phone,
       title: 'Call Us',
-      details: ['+961 (70) 041-862', '+961 (81) 001-301'],
+      details: [ '+961 (81) 001-301'],
       color: 'from-secondary to-secondary-light'
     },
     {

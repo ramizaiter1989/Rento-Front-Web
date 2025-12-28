@@ -99,16 +99,7 @@ export const Footer = () => {
               </div>
 
               {/* Phones */}
-              <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4 flex-shrink-0" style={{ color: COLORS.darkBlue }} />
-                <a 
-                  href="tel:+96170041862" 
-                  className="text-gray-700 dark:text-gray-300 hover:underline"
-                  style={{ color: COLORS.darkBlue }}
-                >
-                  +961 (70) 041-862
-                </a>
-              </div>
+
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 flex-shrink-0" style={{ color: COLORS.darkBlue }} />
                 <a 
