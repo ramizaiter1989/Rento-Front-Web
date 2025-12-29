@@ -25,8 +25,8 @@ export const Footer = () => {
     support: [
       { label: 'Help Center', to: '#' },
       { label: 'Safety', to: '#' },
-      { label: 'Terms of Service', to: '#' },
-      { label: 'Privacy Policy', to: '#' }
+      { label: 'Terms of Service', to: '/Terms-and-Conditions' },
+      { label: 'Privacy Policy', to: '/Privacy-Policy' }
     ],
     services: [
       { label: 'Airport Pickup', to: '#' },
