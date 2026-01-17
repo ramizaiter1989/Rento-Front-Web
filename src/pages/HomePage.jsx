@@ -167,18 +167,15 @@ const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => {
     isDeposit: car.is_deposit || false,
     feedbacks: car.feedbacks || [],
     popular: car.popular || false,
+    location: car.live_location?.address || car.location || null,
   };
 
   return (
     <>
       <Link to={`/cars/${carData.id}`} className="block group">
-        <Card className="relative overflow-hidden h-full flex flex-col bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-[#00A19C] transition-all duration-500 hover:shadow-2xl hover:shadow-[#00A19C]/20 hover:-translate-y-2">
-          
-          {/* Animated Background Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1e5f7a]/0 via-[#00A19C]/0 to-[#8EDC81]/0 group-hover:from-[#1e5f7a]/5 group-hover:via-[#00A19C]/5 group-hover:to-[#8EDC81]/5 transition-all duration-500 pointer-events-none" />
-          
+        <Card className="relative overflow-hidden h-full flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#00A19C] transition-all duration-300 hover:shadow-lg hover:shadow-[#00A19C]/20 hover:-translate-y-1">
           {/* Image Section */}
-          <div className="relative overflow-hidden aspect-[16/9] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+          <div className="relative overflow-hidden aspect-square bg-gray-100 dark:bg-gray-700">
             {!imageLoaded && (
               <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-pulse" />
             )}
@@ -186,139 +183,147 @@ const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => {
               src={`/api/storage/${carData.image}`} 
               alt={`${carData.brand} ${carData.model}`}
               onLoad={() => setImageLoaded(true)}
-              className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
+              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'
               }`}
             />
 
-            {/* Enhanced Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
 
             {/* Favorite Button */}
             <button
               onClick={toggleFavorite}
               disabled={favLoading}
               aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-              className={`absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 z-20 shadow-lg ${
+              className={`absolute top-2 right-2 w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center transition-all duration-300 z-20 ${
                 favorite
-                  ? 'bg-gradient-to-r from-red-500 to-pink-500 scale-110'
-                  : 'bg-white/95 dark:bg-gray-800/95 hover:scale-110'
+                  ? 'bg-red-500 shadow-md'
+                  : 'bg-white/90 dark:bg-gray-800/90 hover:scale-110'
               } ${favLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               <Heart
-                className={`w-5 h-5 transition-all ${
-                  favorite ? 'fill-white text-white scale-110' : 'text-gray-700 dark:text-gray-300'
+                className={`w-4 h-4 transition-all ${
+                  favorite ? 'fill-white text-white' : 'text-gray-700 dark:text-gray-300'
                 }`}
               />
             </button>
 
             {/* Category Badge */}
-            <div className="absolute top-3 left-3 z-10">
-              <Badge className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm text-[#00A19C] dark:text-[#8EDC81] border border-[#00A19C]/30 dark:border-[#8EDC81]/30 text-xs font-semibold px-3 py-1 shadow-lg">
+            <div className="absolute top-2 left-2 z-10">
+              <Badge className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm text-[#00A19C] dark:text-[#8EDC81] border border-[#00A19C]/30 dark:border-[#8EDC81]/30 text-xs font-semibold px-2 py-0.5">
                 {carData.category}
               </Badge>
             </div>
 
             {/* Popular Badge */}
             {carData.popular && (
-              <div className="absolute bottom-3 left-3 z-10">
-                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold border-0 px-3 py-1 flex items-center gap-1.5 shadow-lg">
-                  <Star className="w-3.5 h-3.5 fill-white" />
+              <div className="absolute bottom-2 left-2 z-10">
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold border-0 px-2 py-0.5 flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-white" />
                   Popular
                 </Badge>
               </div>
             )}
 
             {/* Price Badge */}
-            <div className="absolute top-3 right-16 md:right-3 md:top-16 z-10">
-              <Badge className="bg-gradient-to-r from-[#00A19C] to-[#8EDC81] text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-lg">
+            <div className="absolute bottom-2 right-2 z-10">
+              <Badge className="bg-gradient-to-r from-[#00A19C] to-[#8EDC81] text-white text-xs font-bold px-2 py-1">
                 ${carData.price}/day
               </Badge>
             </div>
           </div>
 
           {/* Content Section */}
-          <CardContent className="p-4 flex-grow relative z-10">
+          <CardContent className="p-2.5 flex-grow">
             {/* Brand & Model */}
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-[#00A19C] dark:text-[#8EDC81] uppercase tracking-wide">
-                {carData.brand}
-              </p>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-[#00A19C] dark:group-hover:text-[#8EDC81] transition-colors">
+            <div className="mb-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-xs font-semibold text-[#00A19C] dark:text-[#8EDC81] uppercase tracking-wide">
+                  {carData.brand}
+                </p>
+                <div className="flex flex-col items-end">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">{carData.year}</p>
+                  {carData.location && (
+                    <div className="flex items-center gap-0.5 mt-0.5">
+                      <MapPin className="w-2.5 h-2.5 text-gray-400 dark:text-gray-500" />
+                      <p className="text-[9px] text-gray-500 dark:text-gray-400 line-clamp-1">{carData.location}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-[#00A19C] dark:group-hover:text-[#8EDC81] transition-colors">
                 {carData.model}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                Year {carData.year}
-              </p>
             </div>
 
             {/* Specs Grid */}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <div className="flex flex-col items-center p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors border border-gray-200 dark:border-gray-700">
-                <Users className="w-4 h-4 text-[#00A19C] dark:text-[#8EDC81] mb-1" />
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <div className="grid grid-cols-3 gap-1 mb-1.5">
+              <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors">
+                <Users className="w-3 h-3 text-[#00A19C] dark:text-[#8EDC81] mb-0.5" />
+                <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">
                   {carData.seats}
                 </span>
               </div>
 
-              <div className="flex flex-col items-center p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors border border-gray-200 dark:border-gray-700">
-                <Settings className="w-4 h-4 text-[#00A19C] dark:text-[#8EDC81] mb-1" />
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
+              <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors">
+                <Settings className="w-3 h-3 text-[#00A19C] dark:text-[#8EDC81] mb-0.5" />
+                <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
                   {carData.transmission.slice(0, 4)}
                 </span>
               </div>
 
-              <div className="flex flex-col items-center p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors border border-gray-200 dark:border-gray-700">
-                <Fuel className="w-4 h-4 text-[#00A19C] dark:text-[#8EDC81] mb-1" />
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
+              <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors">
+                <Fuel className="w-3 h-3 text-[#00A19C] dark:text-[#8EDC81] mb-0.5" />
+                <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
                   {carData.fuelType.slice(0, 4)}
                 </span>
               </div>
             </div>
 
-            {/* Pricing Info */}
+            {/* Pricing Info - Compact */}
             {(carData.holidayRate || carData.isDeposit) && (
-              <div className="flex items-center gap-2 mb-3 text-xs">
+              <div className="flex items-center gap-1 mb-1.5 text-[10px]">
                 {carData.holidayRate && (
-                  <div className="flex-1 text-center p-2 bg-gradient-to-br from-[#00A19C]/10 to-[#8EDC81]/10 dark:from-[#1e5f7a]/20 dark:to-[#00A19C]/20 rounded-lg border border-[#00A19C]/20">
-                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5">Holiday</p>
-                    <p className="font-bold text-[#1e5f7a] dark:text-[#8EDC81]">${carData.holidayRate}</p>
+                  <div className="flex-1 text-center p-1 bg-gradient-to-br from-[#00A19C]/10 to-[#8EDC81]/10 dark:from-[#1e5f7a]/20 dark:to-[#00A19C]/20 rounded border border-[#00A19C]/20">
+                    <p className="text-gray-600 dark:text-gray-400 font-medium text-[9px] leading-tight">Holiday</p>
+                    <p className="font-bold text-[#1e5f7a] dark:text-[#8EDC81] text-xs leading-tight">${carData.holidayRate}</p>
                   </div>
                 )}
                 {carData.isDeposit && (
-                  <div className="flex-1 text-center p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5">Deposit</p>
-                    <p className="font-bold text-amber-600 dark:text-amber-400">${carData.deposit}</p>
+                  <div className="flex-1 text-center p-1 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                    <p className="text-gray-600 dark:text-gray-400 font-medium text-[9px] leading-tight">Deposit</p>
+                    <p className="font-bold text-amber-600 dark:text-amber-400 text-xs leading-tight">${carData.deposit}</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Feedback Button */}
+            {/* Feedback Button - Compact */}
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setShowFeedbacksModal(true);
               }}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-[#00A19C]/10 dark:hover:bg-[#00A19C]/20 transition-all border border-gray-200 dark:border-gray-700 hover:border-[#00A19C] group/feedback"
+              className="w-full flex items-center justify-between p-1 rounded bg-gray-50 dark:bg-gray-700/50 hover:bg-[#00A19C]/10 dark:hover:bg-[#00A19C]/20 transition-all border border-gray-200 dark:border-gray-700 hover:border-[#00A19C] group/feedback mb-1.5"
               aria-label="Open customer feedback"
             >
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#00A19C] dark:text-[#8EDC81] group-hover/feedback:scale-110 transition-transform" />
-                <span className="text-xs font-semibold text-gray-900 dark:text-white">Reviews</span>
+              <div className="flex items-center gap-1">
+                <MessageSquare className="w-3 h-3 text-[#00A19C] dark:text-[#8EDC81]" />
+                <span className="text-[10px] font-semibold text-gray-900 dark:text-white">Reviews</span>
               </div>
-              <Badge className="bg-gradient-to-r from-[#00A19C] to-[#8EDC81] text-white text-xs font-bold px-2 py-0.5">
+              <Badge className="bg-gradient-to-r from-[#00A19C] to-[#8EDC81] text-white text-[10px] font-bold px-1.5 py-0">
                 {carData.feedbacks.length}
               </Badge>
             </button>
 
-            {/* CTA Button */}
-            <Button className="w-full mt-3 bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105 group/btn">
-              <span className="flex items-center justify-center gap-2">
-                <Eye className="w-4 h-4" />
+            {/* CTA Button - Compact */}
+            <Button className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-2 text-xs rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group/btn">
+              <span className="flex items-center justify-center gap-1">
+                <Eye className="w-3 h-3" />
                 View Details
-                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform" />
               </span>
             </Button>
           </CardContent>

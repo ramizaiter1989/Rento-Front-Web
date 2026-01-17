@@ -2,6 +2,7 @@ import '../styles/auth-animations.css';
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
+import { sendOtp, sendForgotPasswordOtp, verifyOtp } from "@/lib/otpApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -193,13 +194,31 @@ export function AuthPage() {
 
     try {
       setLoading(true);
-      await api.post("/auth/send-otp", { phone_number: fullPhone });
-      toast.success("OTP sent! Check your phone.");
+      const response = await sendOtp(fullPhone);
+      
+      // Handle success message
+      if (response.message) {
+        toast.success(response.message);
+      }
+      
+      // Handle warning (e.g., SMS delivery may be delayed)
+      if (response.warning) {
+        toast.warning(response.warning);
+      }
+      
       setOtpSent(true);
       setCanResend(false);
       setResendTimer(60);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP.");
+      // Handle validation errors
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        Object.keys(errors).forEach((key) => {
+          errors[key].forEach((error) => toast.error(error));
+        });
+      } else {
+        toast.error(err.response?.data?.message || "Failed to send OTP.");
+      }
     } finally {
       setLoading(false);
     }
@@ -212,18 +231,27 @@ export function AuthPage() {
 
   const handleVerifyOtp = async () => {
     if (!otpCode) return toast.error("Please enter the OTP code.");
+    if (otpCode.length !== 6) return toast.error("OTP code must be 6 digits.");
     const fullPhone = `${getDialCode(regCountryIso2)}${regPhone.replace(/^0+/, "")}`;
 
     try {
       setLoading(true);
-      await api.post("/auth/verify-otp", {
-        phone_number: fullPhone,
-        otp_code: otpCode,
-      });
-      toast.success("OTP verified! Complete your registration.");
+      const response = await verifyOtp(fullPhone, otpCode);
+      
+      if (response.message) {
+        toast.success(response.message);
+      } else {
+        toast.success("OTP verified! Complete your registration.");
+      }
+      
       setOtpVerified(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid OTP.");
+      // Handle error response
+      if (err.response?.data?.error) {
+        toast.error(err.response.data.error);
+      } else {
+        toast.error(err.response?.data?.message || "Invalid or expired OTP.");
+      }
     } finally {
       setLoading(false);
     }
@@ -240,8 +268,11 @@ export function AuthPage() {
 
     try {
       setLoading(true);
+      // Remove + sign from phone number for API (as per API documentation)
+      const cleanPhone = fullPhone.replace(/^\+/, '');
+      
       const payload = {
-        phone_number: fullPhone,
+        phone_number: cleanPhone,
         otp_code: otpCode,
         ...registerData,
         ...(registerData.role === "agency" && { business_type: registerData.business_type }),
@@ -321,19 +352,37 @@ export function AuthPage() {
   const handleSendForgotOtp = async () => {
     if (!forgotPhone) return toast.error("Please enter your phone number.");
     const fullPhone = `${getDialCode(forgotCountryIso2)}${forgotPhone.replace(/^0+/, "")}`;
-    if (!/^\+\d{10,15}$/.test(fullPhone)) {
+    if (!/^\+\d{8,15}$/.test(fullPhone)) {
       return toast.error("Please enter a valid phone number with country code.");
     }
 
     try {
       setLoading(true);
-      await api.post("/auth/forgot-password", { phone_number: fullPhone });
-      toast.success("OTP sent! Check your phone.");
+      const response = await sendForgotPasswordOtp(fullPhone);
+      
+      // Handle success message
+      if (response.message) {
+        toast.success(response.message);
+      }
+      
+      // Handle warning (e.g., SMS delivery may be delayed)
+      if (response.warning) {
+        toast.warning(response.warning);
+      }
+      
       setForgotOtpSent(true);
       setForgotCanResend(false);
       setForgotResendTimer(60);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP.");
+      // Handle validation errors
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        Object.keys(errors).forEach((key) => {
+          errors[key].forEach((error) => toast.error(error));
+        });
+      } else {
+        toast.error(err.response?.data?.message || "Failed to send OTP.");
+      }
     } finally {
       setLoading(false);
     }
@@ -346,6 +395,7 @@ export function AuthPage() {
 
   const handleResetPassword = async () => {
     if (!forgotOtpCode) return toast.error("Please enter the OTP code.");
+    if (forgotOtpCode.length !== 6) return toast.error("OTP code must be 6 digits.");
     if (!newPassword || !confirmNewPassword) {
       return toast.error("Please enter your new password.");
     }
@@ -356,11 +406,13 @@ export function AuthPage() {
       return toast.error("Password must be at least 6 characters long.");
     }
     const fullPhone = `${getDialCode(forgotCountryIso2)}${forgotPhone.replace(/^0+/, "")}`;
+    // Remove + sign from phone number for API (as per API documentation)
+    const cleanPhone = fullPhone.replace(/^\+/, '');
 
     try {
       setLoading(true);
       await api.post("/auth/reset-password", {
-        phone_number: fullPhone,
+        phone_number: cleanPhone,
         otp_code: forgotOtpCode,
         new_password: newPassword,
         new_password_confirmation: confirmNewPassword,
@@ -369,7 +421,15 @@ export function AuthPage() {
       resetForgotPasswordFlow();
       setActiveTab("login");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reset password.");
+      // Handle validation errors
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        Object.keys(errors).forEach((key) => {
+          errors[key].forEach((error) => toast.error(error));
+        });
+      } else {
+        toast.error(err.response?.data?.message || "Failed to reset password.");
+      }
     } finally {
       setLoading(false);
     }
@@ -444,8 +504,12 @@ export function AuthPage() {
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">OTP Code</Label>
                       <Input
                         type="text"
+                        inputMode="numeric"
                         value={forgotOtpCode}
-                        onChange={(e) => setForgotOtpCode(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, ''); // Only digits
+                          if (value.length <= 6) setForgotOtpCode(value);
+                        }}
                         placeholder="Enter 6-digit OTP"
                         maxLength={6}
                         className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
@@ -708,8 +772,12 @@ export function AuthPage() {
                         <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">OTP Code</Label>
                         <Input
                           type="text"
+                          inputMode="numeric"
                           value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, ''); // Only digits
+                            if (value.length <= 6) setOtpCode(value);
+                          }}
                           placeholder="Enter 6-digit OTP"
                           maxLength={6}
                           className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all text-center text-2xl font-bold tracking-widest"

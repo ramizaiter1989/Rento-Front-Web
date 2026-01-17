@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { AgentLayout } from "@/components/AgentLayout";
 import { AuthPage } from "@/pages/AuthPage";
 import { HomePage } from "@/pages/HomePage";
 import { CarsPage } from "@/pages/CarsPage";
@@ -29,6 +30,11 @@ import api from "@/lib/axios";
 import { StatisticPage } from "@/pages/StatisticPage";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsAndConditions from "@/pages/TermsAndConditions";
+import AdminPanelPage from "@/pages/AdminPanelPage";
+import AdminAuthPage from "@/pages/AdminAuthPage";
+import RealUserDataPage from "@/pages/RealUserDataPage";
+import AdsAnalyticsPage from "@/pages/AdsAnalyticsPage";
+import AdsPopup from "@/components/AdsPopup";
 
 // ============================
 // Helper functions
@@ -115,6 +121,17 @@ const AgentRoute = ({ children }) => {
   return children;
 };
 
+const AdminRoute = ({ children }) => {
+  const isAuthenticated = !!localStorage.getItem("authToken");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (!isAuthenticated) return <Navigate to="/admin-auth" replace />;
+  if (user.role !== "admin")
+    return <Navigate to="/admin-auth" replace />;
+
+  return children;
+};
+
 // ============================
 // Page Layout Wrapper
 // ============================
@@ -149,9 +166,12 @@ function App() {
           <Route
             path="/"
             element={
-              <PageLayout>
-                <HomePage />
-              </PageLayout>
+              <>
+                <PageLayout>
+                  <HomePage />
+                </PageLayout>
+                <AdsPopup />
+              </>
             }
           />
           <Route
@@ -181,6 +201,46 @@ function App() {
           <Route path="/Privacy-Policy" element={<PrivacyPolicy />} />
           <Route path="/Terms-and-Conditions" element={<TermsAndConditions />} />
 
+          {/* Admin Routes */}
+          <Route
+            path="/admin-auth"
+            element={
+              <PageLayout noIndex>
+                <AdminAuthPage />
+              </PageLayout>
+            }
+          />
+          <Route
+            path="/admin-panel-page"
+            element={
+              <AdminRoute>
+                <PageLayout noIndex>
+                  <AdminPanelPage />
+                </PageLayout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/real-user-data"
+            element={
+              <AdminRoute>
+                <PageLayout noIndex>
+                  <RealUserDataPage />
+                </PageLayout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/ads-analytics"
+            element={
+              <AdminRoute>
+                <PageLayout noIndex>
+                  <AdsAnalyticsPage />
+                </PageLayout>
+              </AdminRoute>
+            }
+          />
+
           {/* Profile Completion */}
           <Route
             path="/Complete-Profile"
@@ -198,9 +258,9 @@ function App() {
             path="/Dashboard"
             element={
               <AgentRoute>
-                <PageLayout>
+                <AgentLayout>
                   <DashboardPage />
-                </PageLayout>
+                </AgentLayout>
               </AgentRoute>
             }
           />
@@ -208,9 +268,9 @@ function App() {
             path="/Statistic"
             element={
               <AgentRoute>
-                <PageLayout>
+                <AgentLayout>
                   <StatisticPage />
-                </PageLayout>
+                </AgentLayout>
               </AgentRoute>
             }
           />
@@ -218,9 +278,9 @@ function App() {
             path="/Mycars"
             element={
               <AgentRoute>
-                <PageLayout>
+                <AgentLayout>
                   <MyCarsPage />
-                </PageLayout>
+                </AgentLayout>
               </AgentRoute>
             }
           />
@@ -228,9 +288,9 @@ function App() {
             path="/Mycars-bookings"
             element={
               <AgentRoute>
-                <PageLayout>
+                <AgentLayout>
                   <AgentBookingsPage />
-                </PageLayout>
+                </AgentLayout>
               </AgentRoute>
             }
           />
@@ -238,9 +298,9 @@ function App() {
             path="/add-car"
             element={
               <AgentRoute>
-                <PageLayout>
+                <AgentLayout>
                   <CreateCarPage />
-                </PageLayout>
+                </AgentLayout>
               </AgentRoute>
             }
           />
@@ -248,9 +308,9 @@ function App() {
             path="/Add/car/qualification"
             element={
               <AgentRoute>
-                <PageLayout>
+                <AgentLayout>
                   <CarQualificationsPage />
-                </PageLayout>
+                </AgentLayout>
               </AgentRoute>
             }
           />
@@ -287,11 +347,14 @@ function App() {
           <Route
             path="/cars"
             element={
-              <ProfileCompleteRoute>
-                <PageLayout>
-                  <CarsPage />
-                </PageLayout>
-              </ProfileCompleteRoute>
+              <>
+                <ProfileCompleteRoute>
+                  <PageLayout>
+                    <CarsPage />
+                  </PageLayout>
+                </ProfileCompleteRoute>
+                <AdsPopup />
+              </>
             }
           />
           <Route
@@ -307,11 +370,14 @@ function App() {
           <Route
             path="/luxury-car-rental-lebanon"
             element={
-              <ProfileCompleteRoute>
-                <PageLayout>
-                  <CarsPage />
-                </PageLayout>
-              </ProfileCompleteRoute>
+              <>
+                <ProfileCompleteRoute>
+                  <PageLayout>
+                    <CarsPage />
+                  </PageLayout>
+                </ProfileCompleteRoute>
+                <AdsPopup />
+              </>
             }
           />
           <Route

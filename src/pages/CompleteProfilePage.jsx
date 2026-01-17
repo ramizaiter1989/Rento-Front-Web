@@ -18,7 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Car, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Car, AlertCircle, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CompleteProfilePage() {
@@ -30,13 +37,11 @@ export default function CompleteProfilePage() {
   const DEBUG = true;
 
   const debugId = useMemo(() => {
-    // correlation id so you can search logs on backend if you log headers
     return `cp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   }, []);
 
   const log = (...args) => {
     if (!DEBUG) return;
-    // eslint-disable-next-line no-console
     console.log(`[CompleteProfile ${debugId}]`, ...args);
   };
 
@@ -114,9 +119,12 @@ export default function CompleteProfilePage() {
   });
 
   const [showCompanyFields, setShowCompanyFields] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [mapCenter, setMapCenter] = useState({ lat: 33.8547, lng: 35.8623 }); // Default: Beirut
 
   const isClient = user?.role === "client";
-  const isAgency = user?.role === "agency" || user?.role === "agent"; // tolerate legacy
+  const isAgency = user?.role === "agency" || user?.role === "agent";
 
   const normalizeDate = (d) => {
     if (!d) return "";
@@ -125,8 +133,6 @@ export default function CompleteProfilePage() {
 
   const prefillFromStatus = (status) => {
     const u = status?.user || {};
-    // NOTE: your backend returns user with .client and .agent loaded (nested),
-    // not top-level "client"/"agent". We'll support both.
     const c = status?.client || u?.client || {};
     const a = status?.agent || u?.agent || status?.agency || {};
 
@@ -161,6 +167,84 @@ export default function CompleteProfilePage() {
 
     const bt = (a.business_type || "").toString();
     setShowCompanyFields(bt === "company");
+
+    // Parse existing location if available
+    if (a.location) {
+      try {
+        const locData = typeof a.location === "string" ? JSON.parse(a.location) : a.location;
+        if (locData.latitude && locData.longitude) {
+          setSelectedLocation({ lat: locData.latitude, lng: locData.longitude });
+          setMapCenter({ lat: locData.latitude, lng: locData.longitude });
+        }
+      } catch (e) {
+        log("Failed to parse existing location", e);
+      }
+    }
+  };
+
+  // =========================
+  // LOCATION HANDLERS
+  // =========================
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    toast.info("Getting your location...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          lat: parseFloat(position.coords.latitude.toFixed(6)),
+          lng: parseFloat(position.coords.longitude.toFixed(6)),
+        };
+        setSelectedLocation(location);
+        setMapCenter(location);
+        
+        // Store as proper JSON structure for backend
+        const locationJson = {
+          latitude: location.lat,
+          longitude: location.lng,
+          country: "Lebanon"
+        };
+        setForm((prev) => ({ ...prev, location: JSON.stringify(locationJson) }));
+        toast.success("Location detected successfully!");
+        log("Current location:", locationJson);
+      },
+      (error) => {
+        log("Geolocation error:", error);
+        toast.error("Could not get your location. Please select manually.");
+      }
+    );
+  };
+
+  const openMapPicker = () => {
+    setShowMapModal(true);
+  };
+
+  const handleMapClick = (lat, lng) => {
+    const location = {
+      lat: parseFloat(lat.toFixed(6)),
+      lng: parseFloat(lng.toFixed(6)),
+    };
+    setSelectedLocation(location);
+    log("Map clicked location:", location);
+  };
+
+  const confirmLocationSelection = () => {
+    if (selectedLocation) {
+      // Store as proper JSON structure for backend
+      const locationJson = {
+        latitude: selectedLocation.lat,
+        longitude: selectedLocation.lng,
+        country: "Lebanon"
+      };
+      setForm((prev) => ({ ...prev, location: JSON.stringify(locationJson) }));
+      toast.success("Location selected!");
+      setShowMapModal(false);
+    } else {
+      toast.error("Please select a location on the map");
+    }
   };
 
   // =========================
@@ -240,39 +324,79 @@ export default function CompleteProfilePage() {
   };
 
   const validateForm = () => {
+    // Base fields validation
     if (!form.first_name || !form.last_name || !form.gender || !form.birth_date || !form.city) {
       toast.error("Please fill all required base fields");
       return false;
     }
 
-    // IMPORTANT: Your backend requires id_card files as REQUIRED every submit.
-    // So for now, we also require them in the frontend to avoid 422/500.
-    // (If you later change backend validation to nullable, you can relax this.)
+    // ID cards are required
     if (!form.id_card_front || !form.id_card_back) {
       toast.error("Please upload both ID card photos");
       return false;
     }
 
     if (isClient) {
+      // Client-specific validation
       if (!form.license_number || !form.driver_license || !form.profession || !form.avg_salary) {
         toast.error("Please fill all required client fields");
+        return false;
+      }
+
+      // Validate profession enum
+      const validClientProfessions = ['employee', 'freelancer', 'business', 'student', 'other'];
+      if (!validClientProfessions.includes(form.profession)) {
+        toast.error("Please select a valid profession");
+        return false;
+      }
+
+      // Validate avg_salary enum
+      const validSalaryRanges = ['200-500', '500-1000', '1000-2000', '2000+'];
+      if (!validSalaryRanges.includes(form.avg_salary)) {
+        toast.error("Please select a valid salary range");
         return false;
       }
     }
 
     if (isAgency) {
-      if (!form.business_type || !form.profession || !form.location) {
+      // Agency-specific validation
+      if (!form.business_type || !form.profession) {
         toast.error("Please fill all required agency fields");
         return false;
       }
 
-      try {
-        JSON.parse(form.location);
-      } catch {
-        toast.error('Location must be valid JSON (ex: {"lat":"..","lng":".."})');
+      if (!form.location) {
+        toast.error("Please select your location using one of the location buttons");
         return false;
       }
 
+      // Validate business_type enum
+      const allowedBusinessTypes = ['rental', 'dealer', 'private', 'company', 'business'];
+      if (!allowedBusinessTypes.includes(form.business_type)) {
+        toast.error("Please select a valid business type");
+        return false;
+      }
+
+      // Validate profession enum for agency
+      const validAgencyProfessions = ['manager', 'agent', 'driver', 'other'];
+      if (!validAgencyProfessions.includes(form.profession)) {
+        toast.error("Please select a valid profession");
+        return false;
+      }
+
+      // Validate location JSON
+      try {
+        const locationData = JSON.parse(form.location);
+        if (!locationData.latitude || !locationData.longitude) {
+          toast.error('Invalid location data. Please select your location again');
+          return false;
+        }
+      } catch {
+        toast.error('Invalid location format. Please select your location again');
+        return false;
+      }
+
+      // Company-specific validation
       if (form.business_type === "company") {
         if (!form.company_number || !form.business_doc) {
           toast.error("Please fill company number and upload business document");
@@ -300,38 +424,61 @@ export default function CompleteProfilePage() {
 
       const formData = new FormData();
 
-      // Base fields
+      // Base fields - ALWAYS LOWERCASE ENUMS
       formData.append("first_name", form.first_name);
       formData.append("last_name", form.last_name);
-      formData.append("gender", form.gender);
+      formData.append("gender", form.gender.toLowerCase()); // ✅ Lowercase
       formData.append("birth_date", form.birth_date);
-      formData.append("city", form.city);
+      formData.append("city", form.city.toLowerCase()); // ✅ Lowercase
 
-      // Files (backend requires these as required in your current controller)
+      // ✅ ALWAYS send bio (even if empty)
+      formData.append("bio", form.bio || "");
+
+      // Files (backend requires these as required)
       if (form.id_card_front) formData.append("id_card_front", form.id_card_front);
       if (form.id_card_back) formData.append("id_card_back", form.id_card_back);
 
-      if (form.bio) formData.append("bio", form.bio);
+      // Profile picture is optional
       if (form.profile_picture) formData.append("profile_picture", form.profile_picture);
 
       if (isClient) {
         formData.append("license_number", form.license_number);
         if (form.driver_license) formData.append("driver_license", form.driver_license);
-        formData.append("profession", form.profession);
-        formData.append("avg_salary", form.avg_salary);
-        if (form.promo_code) formData.append("promo_code", form.promo_code);
+        formData.append("profession", form.profession.toLowerCase()); // ✅ Lowercase
+        formData.append("avg_salary", form.avg_salary); // Already in correct format
+        
+        // ✅ Only send promo_code if not empty
+        if (form.promo_code?.trim()) {
+          formData.append("promo_code", form.promo_code.trim());
+        }
       } else if (isAgency) {
-        formData.append("business_type", form.business_type);
-        formData.append("profession", form.profession);
+        formData.append("business_type", form.business_type.toLowerCase()); // ✅ Lowercase
+        formData.append("profession", form.profession.toLowerCase()); // ✅ Lowercase
 
-        const cleanedLocation = JSON.stringify(JSON.parse(form.location));
+        // ✅ Location as JSON string with correct structure
+        const locationData = JSON.parse(form.location);
+        const cleanedLocation = JSON.stringify({
+          latitude: parseFloat(locationData.latitude),
+          longitude: parseFloat(locationData.longitude),
+          country: locationData.country || "Lebanon"
+        });
         formData.append("location", cleanedLocation);
 
-        if (form.app_fees) formData.append("app_fees", form.app_fees);
-        if (form.contract_form) formData.append("contract_form", form.contract_form);
-        if (form.policies) formData.append("policies", form.policies);
-        if (form.website) formData.append("website", form.website);
+        // Optional fields - only send if not empty
+        if (form.app_fees?.trim()) {
+          formData.append("app_fees", form.app_fees.trim());
+        }
+        if (form.contract_form?.trim()) {
+          formData.append("contract_form", form.contract_form.trim());
+        }
+        if (form.policies?.trim()) {
+          formData.append("policies", form.policies.trim());
+        }
+        if (form.website?.trim()) {
+          formData.append("website", form.website.trim());
+        }
 
+        // Company-specific fields
         if (form.business_type === "company") {
           formData.append("company_number", form.company_number);
           if (form.business_doc) formData.append("business_doc", form.business_doc);
@@ -380,13 +527,18 @@ export default function CompleteProfilePage() {
     } catch (err) {
       log("POST /profile/complete FAILED:", err);
 
-      // Show as much detail as possible
       if (err?.response) {
         log("Error response status:", err.response.status);
         log("Error response data:", err.response.data);
         log("Error response headers:", err.response.headers);
 
-        // Laravel might return HTML on 500; show a small hint in console
+        // Handle 403 Forbidden
+        if (err.response.status === 403) {
+          const errorMessage = err.response?.data?.message || err.response?.data?.error || "You do not have permission to update your profile. Please contact administrator.";
+          toast.error(errorMessage);
+          return;
+        }
+
         if (typeof err.response.data === "string") {
           log("Error response (string, first 500 chars):", err.response.data.slice(0, 500));
         }
@@ -405,7 +557,6 @@ export default function CompleteProfilePage() {
         toast.error("Unexpected error occurred.");
       }
 
-      // Also help you spot the double /api issue immediately:
       log(
         "If you see https://.../api/api/... then your axios baseURL already contains /api and your proxy/route also adds /api."
       );
@@ -457,7 +608,7 @@ export default function CompleteProfilePage() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* ========== BASE FIELDS (ALL USERS) ========== */}
+              {/* BASE FIELDS */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
 
@@ -600,7 +751,7 @@ export default function CompleteProfilePage() {
 
               <hr className="my-6" />
 
-              {/* ========== CLIENT-SPECIFIC FIELDS ========== */}
+              {/* CLIENT FIELDS */}
               {user?.role === "client" && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Client Information</h3>
@@ -685,7 +836,7 @@ export default function CompleteProfilePage() {
                 </div>
               )}
 
-              {/* ========== AGENCY-SPECIFIC FIELDS ========== */}
+              {/* AGENCY FIELDS */}
               {(user?.role === "agency" || user?.role === "agent") && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Agency Information</h3>
@@ -769,19 +920,65 @@ export default function CompleteProfilePage() {
                   )}
 
                   <div>
-                    <Label>Location (JSON format) *</Label>
-                    <textarea
-                      name="location"
-                      value={form.location}
-                      onChange={handleChange}
-                      rows={2}
-                      className="w-full px-3 py-2 rounded-md border border-input bg-background font-mono text-sm"
-                      placeholder='{"lat": "33.8547", "lng": "35.8623"}'
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter location in JSON format
-                    </p>
+                    <Label>Location *</Label>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={getCurrentLocation}
+                        >
+                          <Navigation className="w-4 h-4 mr-2" />
+                          Use Current Location
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={openMapPicker}
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Select on Map
+                        </Button>
+                      </div>
+                      
+                      {selectedLocation ? (
+                        <div className="p-4 bg-primary/10 border-2 border-primary/20 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm mb-1">Location Selected</p>
+                              <p className="text-sm text-muted-foreground">
+                                Latitude: {selectedLocation.lat}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Longitude: {selectedLocation.lng}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-muted/30 border-2 border-dashed rounded-lg text-center">
+                          <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            No location selected yet
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Click one of the buttons above to set your location
+                          </p>
+                        </div>
+                      )}
+
+                      <input
+                        type="hidden"
+                        name="location"
+                        value={form.location}
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
@@ -832,6 +1029,115 @@ export default function CompleteProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Map Modal */}
+      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Select Your Location</DialogTitle>
+            <DialogDescription>
+              Click on the map to select your business location
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="w-full h-[500px] bg-muted rounded-lg overflow-hidden">
+              <MapComponent
+                center={mapCenter}
+                selectedLocation={selectedLocation}
+                onLocationSelect={handleMapClick}
+              />
+            </div>
+
+            {selectedLocation && (
+              <div className="p-3 bg-muted/50 rounded-md">
+                <p className="text-sm">
+                  <span className="font-medium">Selected:</span> {selectedLocation.lat}, {selectedLocation.lng}
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowMapModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmLocationSelection}>
+                Confirm Location
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// Simple Map Component using Leaflet
+function MapComponent({ center, selectedLocation, onLocationSelect }) {
+  const mapRef = React.useRef(null);
+  const markerRef = React.useRef(null);
+
+  useEffect(() => {
+    // Load Leaflet dynamically
+    if (typeof window !== "undefined" && !window.L) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => initMap();
+      document.head.appendChild(script);
+    } else if (window.L) {
+      initMap();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mapRef.current && window.L) {
+      mapRef.current.setView([parseFloat(center.lat), parseFloat(center.lng)], 13);
+    }
+  }, [center]);
+
+  useEffect(() => {
+    if (selectedLocation && markerRef.current && window.L) {
+      markerRef.current.setLatLng([
+        parseFloat(selectedLocation.lat),
+        parseFloat(selectedLocation.lng),
+      ]);
+    }
+  }, [selectedLocation]);
+
+  const initMap = () => {
+    if (!window.L || mapRef.current) return;
+
+    const map = window.L.map("map-container").setView(
+      [parseFloat(center.lat), parseFloat(center.lng)],
+      13
+    );
+
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    const marker = window.L.marker([parseFloat(center.lat), parseFloat(center.lng)], {
+      draggable: true,
+    }).addTo(map);
+
+    marker.on("dragend", (e) => {
+      const pos = e.target.getLatLng();
+      onLocationSelect(pos.lat, pos.lng);
+    });
+
+    map.on("click", (e) => {
+      marker.setLatLng(e.latlng);
+      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    });
+
+    mapRef.current = map;
+    markerRef.current = marker;
+  };
+
+  return <div id="map-container" className="w-full h-full" />;
 }
