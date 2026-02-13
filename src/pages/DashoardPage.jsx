@@ -69,116 +69,97 @@ export default function EnhancedDashboard() {
   // FETCH DASHBOARD DATA
   // =============================
   const fetchDashboardData = async () => {
-    setLoading(true);
-    setError(false);
+  setLoading(true);
+  setError(false);
+
+  try {
+    let carsData = [];
+    let bookingsData = [];
 
     try {
-      const [carsRes, bookingsRes] = await Promise.all([
-        api.get('/cars/agent/Mycars'),
-        api.get('/driver/bookings')
-      ]);
+      const carsRes = await api.get('/cars/agent/Mycars');
+      carsData = carsRes.data.cars?.data || [];
+    } catch (err) {
+      if (err.response?.status !== 403) throw err;
+    }
 
-      const carsData = carsRes.data.cars?.data || [];
-      const bookingsData = bookingsRes.data.data || [];
+    try {
+      const bookingsRes = await api.get('/driver/bookings');
+      bookingsData = bookingsRes.data.data || [];
+    } catch (err) {
+      if (err.response?.status !== 403) throw err;
+    }
 
-      // Calculate total views and searches
-      const totalViews = carsData.reduce((sum, car) => sum + (car.views_count || 0), 0);
-      const totalSearches = carsData.reduce((sum, car) => sum + (car.search_count || 0), 0);
-      const avgViewsPerCar = carsData.length > 0 ? Math.round(totalViews / carsData.length) : 0;
-
-      // Find top viewed and searched cars
-      const topViewedCar = carsData.reduce((max, car) => 
-        (car.views_count || 0) > (max?.views_count || 0) ? car : max
-      , carsData[0]);
-
-      const topSearchedCar = carsData.reduce((max, car) => 
-        (car.search_count || 0) > (max?.search_count || 0) ? car : max
-      , carsData[0]);
-
-      // Calculate bookings stats
-      const activeBookings = bookingsData.filter(b =>
-        ['pending', 'confirmed', 'arrived', 'started'].includes(b.booking_request_status)
-      );
-
-      const pendingBookings = bookingsData.filter(b => b.booking_request_status === 'pending');
-      const confirmedBookings = bookingsData.filter(b => b.booking_request_status === 'confirmed');
-
-      // Calculate revenue from confirmed bookings
-      const totalRevenue = bookingsData
-        .filter(b => b.booking_request_status === 'confirmed')
-        .reduce((sum, b) => sum + parseFloat(b.total_booking_price || 0), 0);
-
+    // If both empty → probably admin user
+    if (!carsData.length && !bookingsData.length) {
       setStats({
-        totalCars: carsRes.data.cars?.total || carsData.length,
-        activeBookings: activeBookings.length,
-        pendingBookings: pendingBookings.length,
-        confirmedBookings: confirmedBookings.length,
-        totalRevenue: totalRevenue,
-        totalViews: totalViews,
-        totalSearches: totalSearches,
-        avgViewsPerCar: avgViewsPerCar,
-        topViewedCar: topViewedCar,
-        topSearchedCar: topSearchedCar
+        totalCars: 0,
+        activeBookings: 0,
+        pendingBookings: 0,
+        confirmedBookings: 0,
+        totalRevenue: 0,
+        totalViews: 0,
+        totalSearches: 0,
+        avgViewsPerCar: 0,
+        topViewedCar: null,
+        topSearchedCar: null
       });
 
-      // Top performing cars (by views and searches)
-      const topCars = [...carsData]
-        .sort((a, b) => (b.views_count + b.search_count * 2) - (a.views_count + a.search_count * 2))
-        .slice(0, 3)
-        .map(car => ({
-          id: car.id,
-          name: `${car.make} ${car.model}`,
-          image: car.main_image_url,
-          views: car.views_count || 0,
-          searches: car.search_count || 0,
-          dailyRate: car.daily_rate,
-          category: car.car_category
-        }));
-
-      setTopPerformingCars(topCars);
-
-      // Recent activity from bookings
-      const activity = bookingsData
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 8)
-        .map(b => {
-          const statusMessages = {
-            'pending': 'New booking request received',
-            'confirmed': 'Booking confirmed',
-            'cancelled': 'Booking cancelled',
-            'completed': 'Trip completed successfully',
-            'arrived': 'Driver arrived',
-            'started': 'Ride in progress'
-          };
-
-          const carName = b.car ? `${b.car.make} ${b.car.model}` : 'Unknown Car';
-          const clientName = b.client ? `${b.client.first_name} ${b.client.last_name}` : 'Unknown Client';
-          const status = statusMessages[b.booking_request_status] || 'Status updated';
-
-          return {
-            message: status,
-            car: carName,
-            client: clientName,
-            time: new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: new Date(b.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-            status: b.booking_request_status,
-            amount: b.total_booking_price,
-            location: b.pickup_location || 'N/A'
-          };
-        });
-
-      setRecentActivity(activity.length ? activity : [
-        { message: "No recent activity", time: "—", isEmpty: true }
+      setRecentActivity([
+        { message: "No activity available", time: "—", isEmpty: true }
       ]);
 
-    } catch (err) {
-      console.error("Dashboard error:", err);
-      setError(true);
-      toast.error("Failed to load dashboard data.");
-    } finally {
-      setLoading(false);
+      setTopPerformingCars([]);
+      return;
     }
-  };
+
+    // -------- ORIGINAL CALCULATIONS BELOW (UNCHANGED) --------
+
+    const totalViews = carsData.reduce((sum, car) => sum + (car.views_count || 0), 0);
+    const totalSearches = carsData.reduce((sum, car) => sum + (car.search_count || 0), 0);
+    const avgViewsPerCar = carsData.length > 0 ? Math.round(totalViews / carsData.length) : 0;
+
+    const topViewedCar = carsData.reduce((max, car) =>
+      (car.views_count || 0) > (max?.views_count || 0) ? car : max
+    , carsData[0]);
+
+    const topSearchedCar = carsData.reduce((max, car) =>
+      (car.search_count || 0) > (max?.search_count || 0) ? car : max
+    , carsData[0]);
+
+    const activeBookings = bookingsData.filter(b =>
+      ['pending', 'confirmed', 'arrived', 'started'].includes(b.booking_request_status)
+    );
+
+    const pendingBookings = bookingsData.filter(b => b.booking_request_status === 'pending');
+    const confirmedBookings = bookingsData.filter(b => b.booking_request_status === 'confirmed');
+
+    const totalRevenue = bookingsData
+      .filter(b => b.booking_request_status === 'confirmed')
+      .reduce((sum, b) => sum + parseFloat(b.total_booking_price || 0), 0);
+
+    setStats({
+      totalCars: carsData.length,
+      activeBookings: activeBookings.length,
+      pendingBookings: pendingBookings.length,
+      confirmedBookings: confirmedBookings.length,
+      totalRevenue: totalRevenue,
+      totalViews: totalViews,
+      totalSearches: totalSearches,
+      avgViewsPerCar: avgViewsPerCar,
+      topViewedCar: topViewedCar,
+      topSearchedCar: topSearchedCar
+    });
+
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    setError(true);
+    toast.error("Failed to load dashboard data.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));

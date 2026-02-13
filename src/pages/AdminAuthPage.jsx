@@ -61,7 +61,7 @@ export default function AdminAuthPage() {
       localStorage.setItem('user', JSON.stringify(user));
 
       toast.success('Login successful!');
-      navigate('/admin-panel-page');
+      navigate('/admin');
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Login failed.';
       toast.error(errorMessage);
