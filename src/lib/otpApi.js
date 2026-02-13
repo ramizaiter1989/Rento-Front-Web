@@ -25,17 +25,15 @@ export const sendOtp = async (phoneNumber) => {
 
 /**
  * Send OTP for password reset
- * @param {string} phoneNumber - Phone number with country code (must exist in users table)
+ * @param {string} phoneNumber - Phone number with country code, with or without + (e.g. +96170123456)
  * @returns {Promise} Response with OTP sent confirmation
  */
 export const sendForgotPasswordOtp = async (phoneNumber) => {
-  // Remove + sign if present (API expects format without +)
-  const cleanPhone = phoneNumber.replace(/^\+/, '');
-  
+  // API accepts with or without +; backend normalizes. Send with + per doc.
+  const normalized = phoneNumber.trim().startsWith('+') ? phoneNumber.trim() : `+${phoneNumber.trim()}`;
   const response = await api.post('/auth/forgot-password', {
-    phone_number: cleanPhone
+    phone_number: normalized
   });
-  
   return response.data;
 };
 

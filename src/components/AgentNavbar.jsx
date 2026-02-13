@@ -10,7 +10,8 @@ import {
   FileCheck,
   LogOut,
   User,
-  Home
+  Home,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -61,6 +62,11 @@ export const AgentNavbar = () => {
       to: '/Mycars-bookings', 
       label: 'Bookings', 
       icon: Calendar 
+    },
+    { 
+      to: '/Balance', 
+      label: 'Balance', 
+      icon: Wallet 
     },
     { 
       to: '/add-car', 

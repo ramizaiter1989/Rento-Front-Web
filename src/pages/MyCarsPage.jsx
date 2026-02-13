@@ -130,7 +130,7 @@ const CarDetailModal = ({ car, onClose }) => {
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
             <div className="bg-gradient-to-br p-3 rounded-xl" style={{ background: COLORS.tealDim }}>
               <div className="flex items-center gap-2 mb-1">
                 <Eye className="w-4 h-4" style={{ color: COLORS.teal }} />
@@ -144,7 +144,7 @@ const CarDetailModal = ({ car, onClose }) => {
                 <MousePointerClick className="w-4 h-4" style={{ color: COLORS.darkBlue }} />
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Clicks</span>
               </div>
-              <p className="text-xl font-bold" style={{ color: COLORS.darkBlue }}>{car.search_count || 0}</p>
+              <p className="text-xl font-bold" style={{ color: COLORS.darkBlue }}>{car.clicks_count ?? 0}</p>
             </div>
 
             <div className="bg-gradient-to-br p-3 rounded-xl" style={{ background: COLORS.limeGreenDim }}>
@@ -348,9 +348,9 @@ export const MyCarsPage = () => {
 
   const goToPage = (page) => setPagination(prev => ({ ...prev, currentPage: Math.max(1, Math.min(page, totalPages)) }));
 
-  // Calculate total stats
+  // Calculate total stats (views = impressions in list; clicks = detail page opens)
   const totalViews = allCars.reduce((sum, car) => sum + (car.views_count || 0), 0);
-  const totalClicks = allCars.reduce((sum, car) => sum + (car.search_count || 0), 0);
+  const totalClicks = allCars.reduce((sum, car) => sum + (car.clicks_count || 0), 0);
   const approvedCars = allCars.filter(c => c.status === 'approved').length;
 
   return (
@@ -584,16 +584,16 @@ export const MyCarsPage = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" title="Impressions in list/search">
                               <Eye className="w-4 h-4" style={{ color: COLORS.darkBlue }} />
                               <span className="text-sm font-semibold" style={{ color: COLORS.darkBlue }}>
-                                {car.views_count || 0}
+                                {car.views_count ?? 0}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" title="Detail page opens">
                               <MousePointerClick className="w-4 h-4" style={{ color: COLORS.teal }} />
                               <span className="text-sm font-semibold" style={{ color: COLORS.teal }}>
-                                {car.search_count || 0}
+                                {car.clicks_count ?? 0}
                               </span>
                             </div>
                           </div>

@@ -136,8 +136,12 @@ export function ClientBookingChat() {
     try {
       // ✅ Your response shape is: { bookings: { data: [...] } }
       const { data } = await api.get('/bookings');
-      const list = data?.bookings?.data ?? [];
-      setBookings(list);
+      const all = data?.bookings?.data ?? [];
+      // Only show confirmed (or accepted) bookings in chat
+      const confirmedOnly = all.filter(
+        (b) => b.booking_request_status === 'confirmed' || b.booking_request_status === 'accepted'
+      );
+      setBookings(confirmedOnly);
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
       setError('Failed to load bookings');
@@ -207,30 +211,23 @@ export function ClientBookingChat() {
       console.error('-> If status=403, your /broadcasting/auth or channels.php auth is rejecting the user.');
     });
 
-const channel = echoRef.current.private(`booking.${bookingId}`);
+    const channel = echoRef.current.private(`booking.${bookingId}`);
 
-channel.listen('.message.sent', (payload) => {
-  console.log('[ECHO] ✅ message.sent received:', payload);
+    const handleMessageSent = (payload) => {
+      const normalized = normalizeIncomingMessage(payload, bookingId);
+      // Dedupe: don't add if we already have this message (e.g. added from API after send)
+      setMessages((prev) => {
+        const exists = prev.some((m) => String(m.id) === String(normalized.id));
+        if (exists) return prev;
+        return [...prev, normalized];
+      });
+      if (normalized.sender_id && normalized.sender_id !== currentUserId.current) {
+        markMessageAsRead(bookingId, normalized.id);
+      }
+    };
 
-  const normalized = normalizeIncomingMessage(payload, bookingId);
-  setMessages((prev) => [...prev, normalized]);
-
-  if (normalized.sender_id && normalized.sender_id !== currentUserId.current) {
-    markMessageAsRead(bookingId, normalized.id);
-  }
-});
-
-// OPTIONAL (only if needed in your env):
-channel.listen('message.sent', (payload) => {
-  console.log('[ECHO] ✅ message.sent (no dot) received:', payload);
-
-  const normalized = normalizeIncomingMessage(payload, bookingId);
-  setMessages((prev) => [...prev, normalized]);
-
-  if (normalized.sender_id && normalized.sender_id !== currentUserId.current) {
-    markMessageAsRead(bookingId, normalized.id);
-  }
-});
+    channel.listen('.message.sent', handleMessageSent);
+    channel.listen('message.sent', handleMessageSent);
 
 
     // ✅ typing whisper (you already whisper; this is the receiver side)

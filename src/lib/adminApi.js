@@ -86,10 +86,10 @@ export const updateUserPhoto = (id, photo) => {
 
 /**
  * Link real user data to user
- * @param {number} userId - User ID
- * @param {Object} data - Link data
- * @param {string} data.real_user_id - Real user ID to link
- * @returns {Promise} Response with updated user
+ * PUT /api/admin/users/{userId}/link-real-user-data
+ * @param {number} userId - User ID to link to
+ * @param {Object} data - { real_user_data_id: number }
+ * @returns {Promise} Response with { message, user, real_user_data }
  */
 export const linkRealUserData = (userId, data) => {
   return api.put(`/admin/users/${userId}/link-real-user-data`, data);
@@ -102,11 +102,14 @@ export const linkRealUserData = (userId, data) => {
 /**
  * Get all cars with optional filters
  * @param {Object} params - Query parameters
- * @param {string} params.status - Filter by status (available, rented, maintenance, unavailable)
- * @param {boolean} params.car_accepted - Filter by approval status
- * @param {number} params.agent_id - Filter by agent ID
+ * @param {string} params.status - Filter: available, not_available, rented, maintenance
+ * @param {string} params.car_accepted - Filter: true or false
+ * @param {number} params.agent_id - Filter by owner (agency user ID)
+ * @param {string} params.is_private - Filter: true or false
+ * @param {string} params.search - Search in make, model, license_plate, color
  * @param {boolean} params.with_images - Include car images (default: true)
- * @param {number} params.per_page - Number of items per page (default: 50)
+ * @param {number} params.per_page - Items per page (default: 50)
+ * @param {number} params.page - Page number
  * @returns {Promise} Response with paginated cars
  */
 export const getCars = (params = {}) => {
@@ -139,22 +142,40 @@ export const getCar = (id) => {
  */
 export const updateCar = (id, data) => {
   const formData = new FormData();
-  
-  // Handle regular fields
+
   Object.keys(data).forEach(key => {
-    if (key.endsWith('_image') && data[key] instanceof File) {
-      formData.append(key, data[key]);
-    } else if (key.endsWith('_image') && typeof data[key] === 'string') {
-      formData.append(key, data[key]);
+    const value = data[key];
+    if (value === undefined || value === null) return;
+    if (key.endsWith('_image') && value instanceof File) {
+      formData.append(key, value);
+    } else if (key.endsWith('_image') && typeof value === 'string') {
+      formData.append(key, value);
     } else if (!key.endsWith('_image')) {
-      formData.append(key, data[key]);
+      if (Array.isArray(value) || (typeof value === 'object' && value !== null && !(value instanceof File))) {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, value);
+      }
     }
   });
-  
+
   return api.put(`/admin/cars/${id}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+  });
+};
+
+/**
+ * Accept or reject car (super_admin)
+ * PUT /api/admin/cars/{id} with JSON body { car_accepted: true|false }
+ * @param {number} id - Car ID
+ * @param {boolean} accepted - true to accept, false to reject
+ * @returns {Promise} Response with { message, car }
+ */
+export const updateCarAcceptReject = (id, accepted) => {
+  return api.put(`/admin/cars/${id}`, { car_accepted: accepted }, {
+    headers: { 'Content-Type': 'application/json' },
   });
 };
 
@@ -168,7 +189,8 @@ export const deleteCar = (id) => {
 };
 
 /**
- * Update car photo
+ * Update car photo (replace single image by type)
+ * POST /api/admin/cars/{id}/photo
  * @param {number} id - Car ID
  * @param {File} image - Image file (jpg, jpeg, png, max 5MB)
  * @param {string} imageType - Image type: main, front, back, left, right
@@ -177,12 +199,26 @@ export const deleteCar = (id) => {
 export const updateCarPhoto = (id, image, imageType) => {
   const formData = new FormData();
   formData.append('image', image);
-  formData.append('image_type', imageType);
+  formData.append('type', imageType); // API expects "type"
   return api.post(`/admin/cars/${id}/photo`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
+};
+
+/**
+ * Download car image as file (attachment)
+ * GET /api/admin/cars/{id}/images/{type}/download
+ * @param {number} id - Car ID
+ * @param {string} type - main, front, back, left, or right
+ * @returns {Promise<Blob>} Image blob for download
+ */
+export const downloadCarImage = async (id, type) => {
+  const res = await api.get(`/admin/cars/${id}/images/${type}/download`, {
+    responseType: 'blob',
+  });
+  return res.data;
 };
 
 // ============================
@@ -657,54 +693,71 @@ export const getRealUserData = (params = {}) => {
 
 /**
  * Get real user data for specific user
+ * GET /api/admin/real-user-data/{userId}
  * @param {number} userId - User ID
- * @returns {Promise} Response with real user data
+ * @returns {Promise} Response with { success, data }
  */
 export const getRealUserDataByUser = (userId) => {
-  return api.get(`/admin/real-user-data/user/${userId}`);
+  return api.get(`/admin/real-user-data/${userId}`);
 };
 
 /**
- * Create or update real user data for a user
+ * Create or update real user data for a user (verify user)
+ * POST /api/admin/real-user-data/{userId}
+ * On success, user becomes verified (verified_by_admin = true)
  * @param {number} userId - User ID
- * @param {Object} data - Real user data (all fields optional except user_id from URL)
- * @param {string} data.id_number - ID number
- * @param {string} data.passport_number - Passport number
- * @param {string} data.driver_license_number - Driver license number
- * @param {string} data.first_name - First name
- * @param {string} data.middle_name - Middle name
- * @param {string} data.last_name - Last name
- * @param {string} data.mother_name - Mother's name
- * @param {string} data.place_of_birth - Place of birth
- * @param {string} data.gender - Gender
- * @param {string} data.date_of_birth - Date of birth
- * @param {string} data.status - Status (pending, approved, not_approved) (optional, default: approved)
- * @param {string} data.reason_of_status - Reason for status
- * @returns {Promise} Response with created/updated real user data
+ * @param {Object} data - Real user data
+ * @param {string} data.first_name - First name (required, max 100)
+ * @param {string} data.last_name - Last name (required, max 100)
+ * @param {string} data.gender - Gender (required: male | female)
+ * @param {string} data.id_number - ID number (optional, max 50)
+ * @param {string} data.passport_number - Passport number (optional, max 50)
+ * @param {string} data.driver_license_number - Driver license number (optional, max 50)
+ * @param {string} data.middle_name - Middle name (optional, max 100)
+ * @param {string} data.mother_name - Mother's name (optional, max 100)
+ * @param {string} data.place_of_birth - Place of birth (optional, max 100)
+ * @param {string} data.date_of_birth - Date of birth (optional, Y-m-d)
+ * @returns {Promise} Response with { success, data, user_verified }
  */
 export const createOrUpdateRealUserData = (userId, data) => {
-  return api.post(`/admin/real-user-data/user/${userId}`, data);
+  return api.post(`/admin/real-user-data/${userId}`, data);
 };
 
 /**
- * Update real user data status
- * @param {number} id - Real user data ID
+ * Update real user data status (approve/reject)
+ * PATCH /api/admin/real-user-data/{id}/status
+ * {id} is the real_user_data record ID, not user_id.
+ * @param {number} id - Real user data record ID
  * @param {Object} data - Status update data
- * @param {string} data.status - New status (pending, approved, not_approved) (required)
- * @param {string} data.reason_of_status - Reason for status change (optional)
- * @returns {Promise} Response with updated real user data
+ * @param {string} data.status - New status: pending | approved | not_approved (required)
+ * @param {string} data.reason_of_status - Reason/note (optional)
+ * @returns {Promise} Response with { success, data, user_verified }
  */
 export const updateRealUserDataStatus = (id, data) => {
-  return api.put(`/admin/real-user-data/${id}/status`, data);
+  return api.patch(`/admin/real-user-data/${id}/status`, data);
 };
 
 /**
- * Delete real user data
+ * Delete real user data for a user
+ * DELETE /api/admin/real-user-data/{userId}
  * @param {number} userId - User ID
- * @returns {Promise} Response with success message
+ * @returns {Promise} Response with { success, message }
  */
 export const deleteRealUserData = (userId) => {
-  return api.delete(`/admin/real-user-data/user/${userId}`);
+  return api.delete(`/admin/real-user-data/${userId}`);
+};
+
+/**
+ * Link existing real user data to another user
+ * PUT /api/admin/users/{userId}/link-real-user-data
+ * @param {number} userId - User ID to link to
+ * @param {Object} data - { real_user_data_id: number }
+ * @returns {Promise} Response with { message, user, real_user_data }
+ */
+export const linkRealUserDataToUser = (userId, realUserDataId) => {
+  return api.put(`/admin/users/${userId}/link-real-user-data`, {
+    real_user_data_id: realUserDataId,
+  });
 };
 
 // ============================
@@ -740,6 +793,170 @@ export const updateSuggestion = (id, data) => {
  */
 export const deleteSuggestion = (id) => {
   return api.delete(`/admin/suggestions/${id}`);
+};
+
+// ============================
+// Promo Codes & Broker Referrals (Admin)
+// ============================
+
+/**
+ * List promo codes (paginated) with optional filters.
+ * GET /api/admin/promo-codes
+ * @param {Object} params
+ * @param {number} [params.broker_id] - Filter by broker user ID
+ * @param {string} [params.is_active] - "true" or "false"
+ * @param {number} [params.per_page] - Items per page (default 50)
+ */
+export const getPromoCodes = (params = {}) => {
+  return api.get('/admin/promo-codes', { params });
+};
+
+/**
+ * Get single promo code by ID.
+ * GET /api/admin/promo-codes/{id}
+ * @param {number} id - Promo code ID
+ */
+export const getPromoCode = (id) => {
+  return api.get(`/admin/promo-codes/${id}`);
+};
+
+/**
+ * Create a new promo code.
+ * POST /api/admin/promo-codes
+ * @param {Object} data - Promo code payload
+ */
+export const createPromoCode = (data) => {
+  return api.post('/admin/promo-codes', data);
+};
+
+/**
+ * Update an existing promo code.
+ * PUT /api/admin/promo-codes/{id}
+ * @param {number} id - Promo code ID
+ * @param {Object} data - Fields to update
+ */
+export const updatePromoCode = (id, data) => {
+  return api.put(`/admin/promo-codes/${id}`, data);
+};
+
+/**
+ * Delete a promo code.
+ * DELETE /api/admin/promo-codes/{id}
+ * @param {number} id - Promo code ID
+ */
+export const deletePromoCode = (id) => {
+  return api.delete(`/admin/promo-codes/${id}`);
+};
+
+/**
+ * Get users who used a specific promo code.
+ * GET /api/admin/promo-codes/{id}/users
+ * @param {number} id - Promo code ID
+ * @param {Object} params - { per_page? }
+ */
+export const getPromoCodeUsers = (id, params = {}) => {
+  return api.get(`/admin/promo-codes/${id}/users`, { params });
+};
+
+/**
+ * Get broker referrals for a given broker.
+ * GET /api/admin/brokers/{brokerId}/referrals
+ * @param {number} brokerId - Broker user ID
+ * @param {Object} params - { per_page? }
+ */
+export const getBrokerReferrals = (brokerId, params = {}) => {
+  return api.get(`/admin/brokers/${brokerId}/referrals`, { params });
+};
+
+/**
+ * Create a new broker user.
+ * POST /api/admin/users with role=broker
+ * @param {Object} data - Broker user data
+ * @param {string} data.username - Username (required, max 100, unique)
+ * @param {string} data.phone_number - Phone number (required, max 20, unique)
+ * @param {string} [data.email] - Email (optional, valid email, max 255)
+ * @param {string} data.password - Password (required, min 6 chars)
+ * @param {string} data.password_confirmation - Must match password (required)
+ * @param {string} data.first_name - First name (required, max 100)
+ * @param {string} data.last_name - Last name (required, max 100)
+ * @returns {Promise} Response with created broker/user
+ */
+export const createBroker = (data) => {
+  return api.post('/admin/users', { ...data, role: 'broker' });
+};
+
+/**
+ * Get broker balance (total commissions − total payouts).
+ * GET /api/admin/brokers/{brokerId}/balance
+ * @param {number} brokerId - Broker user ID
+ */
+export const getBrokerBalance = (brokerId) => {
+  return api.get(`/admin/brokers/${brokerId}/balance`);
+};
+
+/**
+ * List broker payouts (invoices with type broker_payout).
+ * GET /api/admin/brokers/{brokerId}/payouts
+ * @param {number} brokerId - Broker user ID
+ * @param {Object} params - { per_page? }
+ */
+export const getBrokerPayouts = (brokerId, params = {}) => {
+  return api.get(`/admin/brokers/${brokerId}/payouts`, { params });
+};
+
+/**
+ * List broker commissions with statistics.
+ * GET /api/admin/brokers/{brokerId}/commissions
+ * @param {number} brokerId - Broker user ID
+ * @param {Object} params - { status?, per_page? }
+ */
+export const getBrokerCommissions = (brokerId, params = {}) => {
+  return api.get(`/admin/brokers/${brokerId}/commissions`, { params });
+};
+
+/**
+ * Create broker payout (invoice). Allocates amount to pending commissions (FIFO).
+ * POST /api/admin/broker-payouts
+ * @param {Object} data - { broker_id, amount, reference?, notes? }
+ */
+export const createBrokerPayout = (data) => {
+  return api.post('/admin/broker-payouts', data);
+};
+
+/**
+ * List all broker commissions (global).
+ * GET /api/admin/broker-commissions
+ * @param {Object} params - { broker_id?, status?, per_page? }
+ */
+export const getBrokerCommissionsList = (params = {}) => {
+  return api.get('/admin/broker-commissions', { params });
+};
+
+/**
+ * Get single commission.
+ * GET /api/admin/broker-commissions/{id}
+ * @param {number} id - Commission ID
+ */
+export const getBrokerCommission = (id) => {
+  return api.get(`/admin/broker-commissions/${id}`);
+};
+
+/**
+ * Cancel a pending commission.
+ * PUT /api/admin/broker-commissions/{id}/cancel
+ * @param {number} id - Commission ID
+ */
+export const cancelBrokerCommission = (id) => {
+  return api.put(`/admin/broker-commissions/${id}/cancel`);
+};
+
+/**
+ * Delete a broker referral.
+ * DELETE /api/admin/broker-referrals/{id}
+ * @param {number} id - Referral ID
+ */
+export const deleteBrokerReferral = (id) => {
+  return api.delete(`/admin/broker-referrals/${id}`);
 };
 
 // ============================
@@ -825,6 +1042,242 @@ export const deleteOtp = (id) => {
 };
 
 // ============================
+// Services Management (Admin)
+// ============================
+
+/**
+ * Get all services with optional filters
+ * Uses public endpoint /api/services (admin can access this too)
+ * @param {Object} params - Query parameters
+ * @param {string} params.category - Filter by category
+ * @param {string} params.city - Filter by city
+ * @param {number} params.min_price - Minimum price filter
+ * @param {number} params.max_price - Maximum price filter
+ * @param {number} params.min_rating - Minimum rating filter
+ * @param {boolean} params.featured - Filter by featured status
+ * @param {string} params.search - Search term
+ * @param {string} params.sort_by - Sort field (name, price, rating)
+ * @param {string} params.sort_order - Sort direction (asc, desc)
+ * @param {number} params.per_page - Number of items per page
+ * @returns {Promise} Response with paginated services
+ */
+export const getAdminServices = (params = {}) => {
+  // Use public endpoint /api/services (admin can access this)
+  // Note: /admin/services doesn't exist - services are nested under third-parties
+  return api.get('/services', { params });
+};
+
+/**
+ * Get service details by ID
+ * Uses public endpoint /api/services/{id} (admin can access this too)
+ * @param {number} id - Service ID
+ * @returns {Promise} Response with service details
+ */
+export const getAdminService = (id) => {
+  // Use public endpoint /api/services/{id} (admin can access this)
+  return api.get(`/services/${id}`);
+};
+
+/**
+ * Create service for a specific third party
+ * POST /api/admin/third-parties/{thirdPartyId}/services
+ *
+ * NOTE: This endpoint expects multipart/form-data because of images.
+ * We build a FormData payload from the provided data object.
+ *
+ * @param {number} thirdPartyId - Third party ID (required, from route)
+ * @param {Object} data - Service data
+ * @returns {Promise} Response with created service
+ */
+export const createAdminServiceForThirdParty = (thirdPartyId, data) => {
+  const formData = new FormData();
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+
+    if (Array.isArray(value)) {
+      // For array fields (amenities, cuisine_types, etc.), append each value
+      value.forEach((v) => {
+        formData.append(key, v);
+      });
+    } else {
+      formData.append(key, value);
+    }
+  });
+
+  return api.post(`/admin/third-parties/${thirdPartyId}/services`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+/**
+ * Update service
+ * @param {number} id - Service ID
+ * @param {Object} data - Service data to update
+ * @returns {Promise} Response with updated service
+ */
+export const updateAdminService = (id, data) => {
+  return api.put(`/admin/services/${id}`, data);
+};
+
+/**
+ * Delete service
+ * @param {number} id - Service ID
+ * @returns {Promise} Response with success message
+ */
+export const deleteAdminService = (id) => {
+  return api.delete(`/admin/services/${id}`);
+};
+
+// ============================
+// Service Items Management (Admin)
+// ============================
+
+/**
+ * Get items for a service
+ * Uses public endpoint /api/services/{serviceId}/items (admin can access this too)
+ * Note: /admin/services/{serviceId}/items only supports POST, not GET
+ * @param {number} serviceId - Service ID
+ * @returns {Promise} Response with service items
+ */
+export const getAdminServiceItems = (serviceId) => {
+  // Use public endpoint since admin endpoint only supports POST
+  return api.get(`/services/${serviceId}/items`);
+};
+
+/**
+ * Get service item details
+ * @param {number} itemId - Item ID
+ * @returns {Promise} Response with item details
+ */
+export const getAdminServiceItem = (itemId) => {
+  return api.get(`/admin/services/items/${itemId}`);
+};
+
+/**
+ * Create service item
+ * @param {number} serviceId - Service ID
+ * @param {Object} data - Item data
+ * @param {string} data.name - Item name (required)
+ * @param {string} data.description - Item description (optional)
+ * @param {number} data.price - Item price (required)
+ * @param {string} data.image - Item image URL (optional)
+ * @returns {Promise} Response with created item
+ */
+export const createAdminServiceItem = (serviceId, data) => {
+  return api.post(`/admin/services/${serviceId}/items`, data);
+};
+
+/**
+ * Update service item
+ * @param {number} itemId - Item ID
+ * @param {Object} data - Item data to update
+ * @returns {Promise} Response with updated item
+ */
+export const updateAdminServiceItem = (itemId, data) => {
+  return api.put(`/admin/services/items/${itemId}`, data);
+};
+
+/**
+ * Delete service item
+ * @param {number} itemId - Item ID
+ * @returns {Promise} Response with success message
+ */
+export const deleteAdminServiceItem = (itemId) => {
+  return api.delete(`/admin/services/items/${itemId}`);
+};
+
+// ============================
+// Third Party Management (Admin)
+// ============================
+
+/**
+ * Get all third parties with optional filters
+ * @param {Object} params - Query parameters
+ * @param {number} params.per_page - Number of items per page
+ * @returns {Promise} Response with paginated third parties
+ */
+export const getAdminThirdParties = (params = {}) => {
+  return api.get('/admin/third-parties', { params });
+};
+
+/**
+ * Get third party details by ID
+ * @param {number} id - Third party ID
+ * @returns {Promise} Response with third party details
+ */
+export const getAdminThirdParty = (id) => {
+  return api.get(`/admin/third-parties/${id}`);
+};
+
+/**
+ * Create third party
+ * @param {Object} data - Third party data
+ * @param {string} data.name - Name (required)
+ * @param {string} data.email - Email (required)
+ * @param {string} data.password - Password (required)
+ * @param {string} data.subscription - Subscription type (optional)
+ * @param {string[]} data.permissions - Array of permissions (optional)
+ * @returns {Promise} Response with created third party
+ */
+export const createAdminThirdParty = (data) => {
+  return api.post('/admin/third-parties', data);
+};
+
+/**
+ * Update third party
+ * @param {number} id - Third party ID
+ * @param {Object} data - Third party data to update
+ * @returns {Promise} Response with updated third party
+ */
+export const updateAdminThirdParty = (id, data) => {
+  return api.put(`/admin/third-parties/${id}`, data);
+};
+
+/**
+ * Delete third party
+ * @param {number} id - Third party ID
+ * @returns {Promise} Response with success message
+ */
+export const deleteAdminThirdParty = (id) => {
+  return api.delete(`/admin/third-parties/${id}`);
+};
+
+// ============================
+// Service Feedbacks Management (Admin)
+// ============================
+
+/**
+ * Get feedbacks for a service
+ * @param {number} serviceId - Service ID
+ * @returns {Promise} Response with service feedbacks
+ */
+export const getAdminServiceFeedbacks = (serviceId) => {
+  return api.get(`/admin/services/${serviceId}/feedbacks`);
+};
+
+/**
+ * Get all feedbacks (admin view)
+ * @param {Object} params - Query parameters
+ * @param {number} params.per_page - Number of items per page
+ * @returns {Promise} Response with paginated feedbacks
+ */
+export const getAdminFeedbacks = (params = {}) => {
+  return api.get('/admin/feedbacks', { params });
+};
+
+/**
+ * Delete feedback
+ * @param {number} feedbackId - Feedback ID
+ * @returns {Promise} Response with success message
+ */
+export const deleteAdminFeedback = (feedbackId) => {
+  return api.delete(`/admin/feedbacks/${feedbackId}`);
+};
+
+// ============================
 // Reports & Statistics
 // ============================
 
@@ -892,8 +1345,10 @@ export default {
   getCars,
   getCar,
   updateCar,
+  updateCarAcceptReject,
   deleteCar,
   updateCarPhoto,
+  downloadCarImage,
   
   // Bookings
   getBookings,
@@ -954,12 +1409,30 @@ export default {
   createOrUpdateRealUserData,
   updateRealUserDataStatus,
   deleteRealUserData,
+  linkRealUserDataToUser,
   
   // Suggestions
   getSuggestions,
   updateSuggestion,
   deleteSuggestion,
-  
+  // Promo codes & referrals
+  getPromoCodes,
+  getPromoCode,
+  createPromoCode,
+  updatePromoCode,
+  deletePromoCode,
+  getPromoCodeUsers,
+  getBrokerReferrals,
+  createBroker,
+  getBrokerBalance,
+  getBrokerPayouts,
+  getBrokerCommissions,
+  createBrokerPayout,
+  getBrokerCommissionsList,
+  getBrokerCommission,
+  cancelBrokerCommission,
+  deleteBrokerReferral,
+
   // Notifications
   getNotifications,
   sendNotificationToAll,
@@ -977,5 +1450,31 @@ export default {
   getRevenueReport,
   getChartData,
   getSystemLogs,
+  
+  // Services Management
+  getAdminServices,
+  getAdminService,
+  createAdminServiceForThirdParty,
+  updateAdminService,
+  deleteAdminService,
+  
+  // Service Items Management
+  getAdminServiceItems,
+  getAdminServiceItem,
+  createAdminServiceItem,
+  updateAdminServiceItem,
+  deleteAdminServiceItem,
+  
+  // Third Party Management
+  getAdminThirdParties,
+  getAdminThirdParty,
+  createAdminThirdParty,
+  updateAdminThirdParty,
+  deleteAdminThirdParty,
+  
+  // Service Feedbacks Management
+  getAdminServiceFeedbacks,
+  getAdminFeedbacks,
+  deleteAdminFeedback,
 };
 

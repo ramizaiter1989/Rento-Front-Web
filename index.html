@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index,follow" />
     <meta http-equiv="Permissions-Policy" content="local-network=(), cast=(), display-capture=()">
     <title>Rento LB | Rent & Compare Cars in Lebanon</title>
     <meta name="description" content="Compare and book rental cars in Lebanon..." />
@@ -25,8 +26,12 @@
 <!-- Canonical -->
     <link rel="canonical" href="https://rento-lb.com" />
 
-    <!-- Favicon (optional) -->
-    <link rel="icon" href="/favicon.ico" />
+    <!-- Favicon & site icon for Google Search and browsers (absolute URLs for reliable crawling) -->
+    <link rel="icon" type="image/x-icon" href="https://rento-lb.com/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="https://rento-lb.com/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="48x48" href="https://rento-lb.com/rento-512.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://rento-lb.com/rento-512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://rento-lb.com/rento-512.png" />
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-13QSYTLK5D"></script>
@@ -37,8 +42,27 @@
 
   gtag('config', 'G-13QSYTLK5D');
 </script>
+
+    <!-- Meta Pixel (Facebook) -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '882085247864603');
+      fbq('track', 'PageView');
+    </script>
+    <!-- End Meta Pixel Code -->
   </head>
   <body>
+    <!-- Meta Pixel noscript fallback (must be in body: img not allowed in noscript in head) -->
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=882085247864603&ev=PageView&noscript=1"
+      alt="" /></noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.jsx"></script>
   </body>

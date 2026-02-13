@@ -32,6 +32,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import api from '../lib/axios';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import {
   Search,
   MapPin,
@@ -119,6 +121,7 @@ const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => {
   const [favLoading, setFavLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFeedbacksModal, setShowFeedbacksModal] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (forceFavorite) {
@@ -133,6 +136,10 @@ const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => {
     e.stopPropagation();
 
     if (!car?.id || favLoading) return;
+    if (!isAuthenticated) {
+      toast.error('Please log in to save favorites.');
+      return;
+    }
     if (onToggleFavoriteApi) return onToggleFavoriteApi();
 
     const next = !favorite;
@@ -531,8 +538,8 @@ export const HomePage = () => {
             </div>
           ) : cars.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-10 sm:mb-12">
-                {cars.slice(0, 8).map((car, index) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-10 sm:mb-12">
+                {cars.slice(0, 4).map((car, index) => (
                   <div 
                     key={car.id} 
                     className="animate-fade-in-up"

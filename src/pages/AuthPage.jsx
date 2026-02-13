@@ -1,5 +1,5 @@
 import '../styles/auth-animations.css';
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
 import { sendOtp, sendForgotPasswordOtp, verifyOtp } from "@/lib/otpApi";
@@ -12,6 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Phone, Lock, User, RefreshCw, ArrowLeft, Car, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import countriesData from "@/lib/countries.json";
+
+// ===================
+// Feature flags
+// ===================
+// Toggle this to false later to re‑enable web OTP flows
+const OTP_PAUSED = true;
 
 // ===================
 // PhoneRow Component
@@ -106,7 +112,7 @@ export function AuthPage() {
         return;
       }
 
-      if (res.data.user.role === "agency" || res.data.user.role === "agent") {
+      if (res.data.user.role === "agency" || res.data.user.role === "agency") {
         navigate("/Dashboard");
       } else {
         navigate("/");
@@ -139,6 +145,29 @@ export function AuthPage() {
     role: "client",
     business_type: "",
   });
+  const [registerErrors, setRegisterErrors] = useState({
+    username: false,
+    first_name: false,
+    last_name: false,
+    license_number: false,
+    password: false,
+    password_confirmation: false,
+    role: false,
+    business_type: false,
+    terms: false,
+  });
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Refs for scrolling/focusing first invalid field
+  const usernameRef = useRef(null);
+  const firstNameRef = useRef(null);
+  const lastNameRef = useRef(null);
+  const licenseNumberRef = useRef(null);
+  const passwordRef = useRef(null);
+  const passwordConfirmRef = useRef(null);
+  const roleRef = useRef(null);
+  const businessTypeRef = useRef(null);
+  const termsRef = useRef(null);
 
   // Timer for resend OTP
   useEffect(() => {
@@ -164,6 +193,7 @@ export function AuthPage() {
     setOtpVerified(false);
     setCanResend(false);
     setResendTimer(0);
+    setTermsAccepted(false);
     setRegisterData({
       username: "",
       first_name: "",
@@ -173,6 +203,17 @@ export function AuthPage() {
       password_confirmation: "",
       role: "client",
       business_type: "",
+    });
+    setRegisterErrors({
+      username: false,
+      first_name: false,
+      last_name: false,
+      license_number: false,
+      password: false,
+      password_confirmation: false,
+      role: false,
+      business_type: false,
+      terms: false,
     });
   };
 
@@ -186,6 +227,12 @@ export function AuthPage() {
   };
 
   const handleSendOtp = async () => {
+    if (OTP_PAUSED) {
+      toast.info(
+        "Web OTP registration is temporarily disabled. Please use our mobile app at https://rento-lb.com/mobile-app."
+      );
+      return;
+    }
     if (!regPhone) return toast.error("Please enter a phone number.");
     const fullPhone = `${getDialCode(regCountryIso2)}${regPhone.replace(/^0+/, "")}`;
     if (!/^\+\d{8,15}$/.test(fullPhone)) {
@@ -258,12 +305,110 @@ export function AuthPage() {
   };
 
   const handleRegister = async () => {
+    // Reset errors
+    let hasError = false;
+    const nextErrors = {
+      username: false,
+      first_name: false,
+      last_name: false,
+      license_number: false,
+      password: false,
+      password_confirmation: false,
+      role: false,
+      business_type: false,
+      terms: false,
+    };
+
+    if (!registerData.username.trim()) {
+      nextErrors.username = true;
+      hasError = true;
+    }
+    if (!registerData.first_name.trim()) {
+      nextErrors.first_name = true;
+      hasError = true;
+    }
+    if (!registerData.last_name.trim()) {
+      nextErrors.last_name = true;
+      hasError = true;
+    }
+    if (registerData.role === "client" && !registerData.license_number.trim()) {
+      nextErrors.license_number = true;
+      hasError = true;
+    }
+    if (!registerData.password) {
+      nextErrors.password = true;
+      hasError = true;
+    }
     if (registerData.password !== registerData.password_confirmation) {
-      return toast.error("Passwords do not match!");
+      nextErrors.password = true;
+      nextErrors.password_confirmation = true;
+      hasError = true;
     }
     if (registerData.password.length < 6) {
-      return toast.error("Password must be at least 6 characters long.");
+      nextErrors.password = true;
+      hasError = true;
     }
+    if (!registerData.password_confirmation) {
+      nextErrors.password_confirmation = true;
+      hasError = true;
+    }
+    if (!registerData.role) {
+      nextErrors.role = true;
+      hasError = true;
+    }
+    // Business type is required when registering as agency
+    if (registerData.role === "agency" && !registerData.business_type?.trim()) {
+      nextErrors.business_type = true;
+      hasError = true;
+    }
+    if (!termsAccepted) {
+      nextErrors.terms = true;
+      hasError = true;
+    }
+
+    if (hasError) {
+      setRegisterErrors(nextErrors);
+
+      // Scroll/focus first invalid field
+      const fieldOrder = [
+        "username",
+        "first_name",
+        "last_name",
+        "license_number",
+        "password",
+        "password_confirmation",
+        "role",
+        "business_type",
+        "terms",
+      ];
+      const fieldRefs = {
+        username: usernameRef,
+        first_name: firstNameRef,
+        last_name: lastNameRef,
+        license_number: licenseNumberRef,
+        password: passwordRef,
+        password_confirmation: passwordConfirmRef,
+        role: roleRef,
+        business_type: businessTypeRef,
+        terms: termsRef,
+      };
+
+      const firstInvalidKey = fieldOrder.find((key) => nextErrors[key]);
+      if (firstInvalidKey) {
+        const ref = fieldRefs[firstInvalidKey];
+        const el = ref?.current;
+        if (el) {
+          if (typeof el.focus === "function") {
+            el.focus();
+          }
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+
+      toast.error("Please fill in the required fields highlighted in red.");
+      return;
+    }
+
     const fullPhone = `${getDialCode(regCountryIso2)}${regPhone.replace(/^0+/, "")}`;
 
     try {
@@ -275,7 +420,7 @@ export function AuthPage() {
         phone_number: cleanPhone,
         otp_code: otpCode,
         ...registerData,
-        ...(registerData.role === "agency" && { business_type: registerData.business_type }),
+        ...((registerData.role === "agency" || registerData.role === "agnecy") && { business_type: registerData.business_type }),
       };
 
       const res = await api.post("/auth/register", payload);
@@ -350,6 +495,12 @@ export function AuthPage() {
   };
 
   const handleSendForgotOtp = async () => {
+    if (OTP_PAUSED) {
+      toast.info(
+        "Web password reset via OTP is temporarily disabled. Please use our mobile app at https://rento-lb.com/mobile-app."
+      );
+      return;
+    }
     if (!forgotPhone) return toast.error("Please enter your phone number.");
     const fullPhone = `${getDialCode(forgotCountryIso2)}${forgotPhone.replace(/^0+/, "")}`;
     if (!/^\+\d{8,15}$/.test(fullPhone)) {
@@ -359,23 +510,19 @@ export function AuthPage() {
     try {
       setLoading(true);
       const response = await sendForgotPasswordOtp(fullPhone);
-      
-      // Handle success message
-      if (response.message) {
-        toast.success(response.message);
-      }
-      
-      // Handle warning (e.g., SMS delivery may be delayed)
-      if (response.warning) {
-        toast.warning(response.warning);
-      }
-      
+
+      if (response.message) toast.success(response.message);
+      if (response.warning) toast.warning(response.warning);
+
       setForgotOtpSent(true);
       setForgotCanResend(false);
       setForgotResendTimer(60);
     } catch (err) {
-      // Handle validation errors
-      if (err.response?.data?.errors) {
+      if (err.response?.status === 429) {
+        toast.error("Too many requests. Please try again in a minute.");
+      } else if (err.response?.data?.error) {
+        toast.error(err.response.data.error);
+      } else if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
         Object.keys(errors).forEach((key) => {
           errors[key].forEach((error) => toast.error(error));
@@ -406,23 +553,24 @@ export function AuthPage() {
       return toast.error("Password must be at least 6 characters long.");
     }
     const fullPhone = `${getDialCode(forgotCountryIso2)}${forgotPhone.replace(/^0+/, "")}`;
-    // Remove + sign from phone number for API (as per API documentation)
-    const cleanPhone = fullPhone.replace(/^\+/, '');
+    // Same format as forgot-password: phone with + (backend normalizes)
+    const phoneForApi = fullPhone.trim().startsWith("+") ? fullPhone : `+${fullPhone}`;
 
     try {
       setLoading(true);
-      await api.post("/auth/reset-password", {
-        phone_number: cleanPhone,
+      const res = await api.post("/auth/reset-password", {
+        phone_number: phoneForApi,
         otp_code: forgotOtpCode,
         new_password: newPassword,
         new_password_confirmation: confirmNewPassword,
       });
-      toast.success("Password reset successfully! You can now login.");
+      toast.success(res.data?.message || "Password reset successfully! You can now login.");
       resetForgotPasswordFlow();
       setActiveTab("login");
     } catch (err) {
-      // Handle validation errors
-      if (err.response?.data?.errors) {
+      if (err.response?.data?.error) {
+        toast.error(err.response.data.error);
+      } else if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
         Object.keys(errors).forEach((key) => {
           errors[key].forEach((error) => toast.error(error));
@@ -860,11 +1008,17 @@ export function AuthPage() {
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
                           type="text"
+                          ref={usernameRef}
                           value={registerData.username}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, username: e.target.value })
+                            {
+                              setRegisterData({ ...registerData, username: e.target.value });
+                              setRegisterErrors((prev) => ({ ...prev, username: false }));
+                            }
                           }
-                          className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                          className={`pl-10 border-2 ${
+                            registerErrors.username ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
                           placeholder="Choose a username"
                         />
                       </div>
@@ -875,11 +1029,17 @@ export function AuthPage() {
                         <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">First Name</Label>
                         <Input
                           type="text"
+                          ref={firstNameRef}
                           value={registerData.first_name}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, first_name: e.target.value })
+                            {
+                              setRegisterData({ ...registerData, first_name: e.target.value });
+                              setRegisterErrors((prev) => ({ ...prev, first_name: false }));
+                            }
                           }
-                          className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                          className={`border-2 ${
+                            registerErrors.first_name ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
                           placeholder="First name"
                         />
                       </div>
@@ -887,11 +1047,17 @@ export function AuthPage() {
                         <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Last Name</Label>
                         <Input
                           type="text"
+                          ref={lastNameRef}
                           value={registerData.last_name}
                           onChange={(e) =>
-                            setRegisterData({ ...registerData, last_name: e.target.value })
+                            {
+                              setRegisterData({ ...registerData, last_name: e.target.value });
+                              setRegisterErrors((prev) => ({ ...prev, last_name: false }));
+                            }
                           }
-                          className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                          className={`border-2 ${
+                            registerErrors.last_name ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
                           placeholder="Last name"
                         />
                       </div>
@@ -901,11 +1067,17 @@ export function AuthPage() {
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Driver's License Number</Label>
                       <Input
                         type="text"
+                        ref={licenseNumberRef}
                         value={registerData.license_number}
                         onChange={(e) =>
-                          setRegisterData({ ...registerData, license_number: e.target.value })
+                          {
+                            setRegisterData({ ...registerData, license_number: e.target.value });
+                            setRegisterErrors((prev) => ({ ...prev, license_number: false }));
+                          }
                         }
-                        className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                        className={`border-2 ${
+                          registerErrors.license_number ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                        } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
                         placeholder="License number"
                       />
                     </div>
@@ -917,12 +1089,18 @@ export function AuthPage() {
                       </Label>
                       <Input
                         type="password"
+                        ref={passwordRef}
                         value={registerData.password}
                         onChange={(e) =>
-                          setRegisterData({ ...registerData, password: e.target.value })
+                          {
+                            setRegisterData({ ...registerData, password: e.target.value });
+                            setRegisterErrors((prev) => ({ ...prev, password: false }));
+                          }
                         }
                         minLength={6}
-                        className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                        className={`border-2 ${
+                          registerErrors.password ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                        } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
                         placeholder="At least 6 characters"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 6 characters</p>
@@ -932,14 +1110,22 @@ export function AuthPage() {
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Confirm Password</Label>
                       <Input
                         type="password"
+                        ref={passwordConfirmRef}
                         value={registerData.password_confirmation}
                         onChange={(e) =>
-                          setRegisterData({
-                            ...registerData,
-                            password_confirmation: e.target.value,
-                          })
+                          {
+                            setRegisterData({
+                              ...registerData,
+                              password_confirmation: e.target.value,
+                            });
+                            setRegisterErrors((prev) => ({ ...prev, password_confirmation: false }));
+                          }
                         }
-                        className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                        className={`border-2 ${
+                          registerErrors.password_confirmation
+                            ? "border-red-500"
+                            : "border-gray-300 dark:border-gray-600"
+                        } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
                         placeholder="Re-enter password"
                       />
                     </div>
@@ -948,11 +1134,22 @@ export function AuthPage() {
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Role</Label>
                       <Select
                         value={registerData.role}
-                        onValueChange={(value) =>
-                          setRegisterData({ ...registerData, role: value })
-                        }
+                        onValueChange={(value) => {
+                          setRegisterData({ ...registerData, role: value });
+                          setRegisterErrors((prev) => ({
+                            ...prev,
+                            role: false,
+                            license_number: false,
+                            business_type: false,
+                          }));
+                        }}
                       >
-                        <SelectTrigger className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all">
+                        <SelectTrigger
+                          ref={roleRef}
+                          className={`border-2 ${
+                            registerErrors.role ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                        >
                           <SelectValue placeholder="Select Role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -964,18 +1161,61 @@ export function AuthPage() {
 
                     {registerData.role === "agency" && (
                       <div className="space-y-2 animate-fade-in-up">
-                        <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Business Type</Label>
-                        <Input
-                          type="text"
+                        <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          Business Type <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
                           value={registerData.business_type}
-                          onChange={(e) =>
-                            setRegisterData({ ...registerData, business_type: e.target.value })
-                          }
-                          placeholder="e.g., Company, Individual"
-                          className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
-                        />
+                          onValueChange={(value) => {
+                            setRegisterData({ ...registerData, business_type: value });
+                            setRegisterErrors((prev) => ({ ...prev, business_type: false }));
+                          }}
+                        >
+                          <SelectTrigger
+                            ref={businessTypeRef}
+                            className={`border-2 ${
+                              registerErrors.business_type ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                            } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                          >
+                            <SelectValue placeholder="Select Business Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {/* Must match backend: rental, private, company, marina */}
+                            <SelectItem value="rental">Rental</SelectItem>
+                            <SelectItem value="private">Private</SelectItem>
+                            <SelectItem value="company">Company</SelectItem>
+                            <SelectItem value="marina">Marina</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
+
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        id="terms-accept"
+                        ref={termsRef}
+                        checked={termsAccepted}
+                        onChange={(e) => {
+                          setTermsAccepted(e.target.checked);
+                          setRegisterErrors((prev) => ({ ...prev, terms: false }));
+                        }}
+                        className={`mt-1 h-4 w-4 rounded ${
+                          registerErrors.terms ? "border-red-500" : "border-gray-300"
+                        } text-[#00A19C] focus:ring-[#00A19C]`}
+                      />
+                      <Label htmlFor="terms-accept" className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer leading-tight">
+                        I accept the{" "}
+                        <a href="/Terms-and-Conditions" target="_blank" rel="noopener noreferrer" className="text-[#00A19C] hover:underline font-medium">
+                          Terms of Use
+                        </a>{" "}
+                        and{" "}
+                        <a href="/Privacy-Policy" target="_blank" rel="noopener noreferrer" className="text-[#00A19C] hover:underline font-medium">
+                          Privacy Policy
+                        </a>
+                        <span className="text-red-500"> *</span>
+                      </Label>
+                    </div>
 
                     <div className="flex gap-3">
                       <Button

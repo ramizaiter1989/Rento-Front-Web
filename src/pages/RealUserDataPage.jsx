@@ -152,7 +152,7 @@ export default function RealUserDataPage() {
       // Fetch existing real user data if available
       try {
         const realDataResponse = await getRealUserDataByUser(user.id);
-        const realData = realDataResponse.data.real_user_data;
+        const realData = realDataResponse.data?.data ?? realDataResponse.data?.real_user_data;
         
         if (realData) {
           setFormData({

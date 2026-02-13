@@ -2,7 +2,7 @@ import "@/index.css";
 import "@/App.css";
 import "@/i18n/config";
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/Navbar";
@@ -23,6 +23,7 @@ import { AgentBookingsPage } from "@/pages/AgentBookingsPage";
 import { SocialMediaPage } from "@/pages/SocialMediaPage";
 import CarQualificationsPage from "@/pages/CarQualificationsPage";
 import DashboardPage from "@/pages/DashoardPage";
+import BalancePage from "@/pages/BalancePage";
 import { SEO } from "@/components/SEO";
 import CompleteProfilePage from "@/pages/CompleteProfilePage";
 import { ClientBookingChat } from "@/pages/ClientBookingChat";
@@ -30,11 +31,32 @@ import api from "@/lib/axios";
 import { StatisticPage } from "@/pages/StatisticPage";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsAndConditions from "@/pages/TermsAndConditions";
+import MobileAppPage from "@/pages/MobileAppPage";
 import AdminPanelPage from "@/pages/AdminPanelPage";
 import AdminAuthPage from "@/pages/AdminAuthPage";
-import RealUserDataPage from "@/pages/RealUserDataPage";
+
+// New admin dashboard layout & pages
+import { AdminLayout } from "@/pages/admin/AdminLayout";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminCarsPage from "@/pages/admin/AdminCarsPage";
+import AdminBookingsPage from "@/pages/admin/AdminBookingsPage";
+import AdminPaymentsPage from "@/pages/admin/AdminPaymentsPage";
+import AdminAdsPage from "@/pages/admin/AdminAdsPage";
+import AdminFeaturedCarsPage from "@/pages/admin/AdminFeaturedCarsPage";
+import AdminHolidaysPage from "@/pages/admin/AdminHolidaysPage";
+import AdminAnnouncementsPage from "@/pages/admin/AdminAnnouncementsPage";
+import AdminAppealsPage from "@/pages/admin/AdminAppealsPage";
+import AdminSuggestionsPage from "@/pages/admin/AdminSuggestionsPage";
+import AdminNotificationsPage from "@/pages/admin/AdminNotificationsPage";
+import AdminOtpsPage from "@/pages/admin/AdminOtpsPage";
+import AdminPromoCodesPage from "@/pages/admin/AdminPromoCodesPage";
+import AdminBrokersPage from "@/pages/admin/AdminBrokersPage";
+import AdminServicesPage from "@/pages/admin/AdminServicesPage";
+import AdminRealUserDataPage from "@/pages/admin/AdminRealUserDataPage";
 import AdsAnalyticsPage from "@/pages/AdsAnalyticsPage";
 import AdsPopup from "@/components/AdsPopup";
+import { WatchPage } from "@/pages/WatchPage";
 
 // ============================
 // Helper functions
@@ -149,8 +171,9 @@ const PageLayout = ({ children, noIndex = false }) => {
 // ============================
 // App
 // ============================
-function App() {
+function AppContent() {
   const { i18n } = useTranslation();
+  const location = useLocation();
 
   useEffect(() => {
     const currentLang = localStorage.getItem("language") || "en";
@@ -158,10 +181,16 @@ function App() {
     document.documentElement.dir = currentLang === "ar" ? "rtl" : "ltr";
   }, []);
 
+  // Meta Pixel: track PageView on route change (SPA)
+  useEffect(() => {
+    if (typeof window.fbq === "function") {
+      window.fbq("track", "PageView");
+    }
+  }, [location.pathname]);
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
+    <div className="min-h-screen">
+      <Routes>
           {/* Public Routes */}
           <Route
             path="/"
@@ -198,6 +227,18 @@ function App() {
               </PageLayout>
             }
           />
+          <Route
+            path="/watch"
+            element={<WatchPage />}
+          />
+          <Route
+            path="/mobile-app"
+            element={
+              <PageLayout>
+                <MobileAppPage />
+              </PageLayout>
+            }
+          />
           <Route path="/Privacy-Policy" element={<PrivacyPolicy />} />
           <Route path="/Terms-and-Conditions" element={<TermsAndConditions />} />
 
@@ -221,16 +262,6 @@ function App() {
             }
           />
           <Route
-            path="/admin/real-user-data"
-            element={
-              <AdminRoute>
-                <PageLayout noIndex>
-                  <RealUserDataPage />
-                </PageLayout>
-              </AdminRoute>
-            }
-          />
-          <Route
             path="/admin/ads-analytics"
             element={
               <AdminRoute>
@@ -240,6 +271,39 @@ function App() {
               </AdminRoute>
             }
           />
+
+          {/* New Admin Dashboard (nested under /admin) */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminLayout />
+              </AdminRoute>
+            }
+          >
+            {/* Default admin dashboard */}
+            <Route index element={<AdminDashboard />} />
+
+            {/* Management */}
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="cars" element={<AdminCarsPage />} />
+            <Route path="bookings" element={<AdminBookingsPage />} />
+            <Route path="real-user-data" element={<AdminRealUserDataPage />} />
+            <Route path="payments" element={<AdminPaymentsPage />} />
+            <Route path="promo-codes" element={<AdminPromoCodesPage />} />
+            <Route path="brokers" element={<AdminBrokersPage />} />
+            <Route path="ads" element={<AdminAdsPage />} />
+            <Route path="featured" element={<AdminFeaturedCarsPage />} />
+            <Route path="holidays" element={<AdminHolidaysPage />} />
+
+            {/* System */}
+            <Route path="announcements" element={<AdminAnnouncementsPage />} />
+            <Route path="appeals" element={<AdminAppealsPage />} />
+            <Route path="suggestions" element={<AdminSuggestionsPage />} />
+            <Route path="services" element={<AdminServicesPage />} />
+            <Route path="notifications" element={<AdminNotificationsPage />} />
+            <Route path="otps" element={<AdminOtpsPage />} />
+          </Route>
 
           {/* Profile Completion */}
           <Route
@@ -290,6 +354,16 @@ function App() {
               <AgentRoute>
                 <AgentLayout>
                   <AgentBookingsPage />
+                </AgentLayout>
+              </AgentRoute>
+            }
+          />
+          <Route
+            path="/Balance"
+            element={
+              <AgentRoute>
+                <AgentLayout>
+                  <BalancePage />
                 </AgentLayout>
               </AgentRoute>
             }
@@ -404,7 +478,16 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div className="App">
+      <BrowserRouter>
+        <AppContent />
       </BrowserRouter>
     </div>
   );

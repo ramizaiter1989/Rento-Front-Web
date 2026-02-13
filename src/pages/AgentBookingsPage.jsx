@@ -1,14 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
+import { getFeedbackTemplates, submitClientRating } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, X, Check, XCircle, Calendar, MapPin, Phone, Mail, Shield, Star, 
   Wallet, Award, ChevronLeft, ChevronRight, AlertCircle, Clock, Car,
   TrendingUp, Eye, Filter, Search, Download, RefreshCw, Zap, CheckCircle2,
   Timer, Activity, DollarSign, UserCheck, BadgeCheck, Briefcase, Hash,
-  Navigation, MapPinned, CalendarDays, CreditCard, FileText
+  Navigation, MapPinned, CalendarDays, CreditCard, FileText, Table2
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Logo colors
 const COLORS = {
@@ -31,6 +46,11 @@ export function AgentBookingsPage() {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  // Agency rate client (feedback)
+  const [agentTemplates, setAgentTemplates] = useState([]);
+  const [rateClientBooking, setRateClientBooking] = useState(null);
+  const [rateForm, setRateForm] = useState({ rating: 0, template_selections: [], comment: "" });
+  const [rateSubmitting, setRateSubmitting] = useState(false);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -48,6 +68,18 @@ export function AgentBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
+  }, []);
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const { data } = await getFeedbackTemplates();
+        setAgentTemplates(data?.agent_rates_client || []);
+      } catch (err) {
+        console.error("Failed to load feedback templates:", err);
+      }
+    };
+    loadTemplates();
   }, []);
 
   // Auto-swipe banner every 5 seconds
@@ -129,6 +161,67 @@ export function AgentBookingsPage() {
   const closeModal = () => {
     setSelectedCar(null);
     setModalOpen(false);
+  };
+
+  // Agency can rate client when: confirmed/accepted, trip ended (end_datetime in past), not already rated
+  const canShowRateClient = (booking) => {
+    const status = booking?.booking_request_status;
+    const isConfirmed = status === "confirmed" || status === "accepted";
+    const tripEnded = booking?.end_datetime && new Date(booking.end_datetime) < new Date();
+    const notRated = !booking?.client_rating;
+    return Boolean(isConfirmed && tripEnded && notRated);
+  };
+
+  const openRateClientForm = (booking) => {
+    setRateClientBooking(booking);
+    setRateForm({ rating: 0, template_selections: [], comment: "" });
+  };
+
+  const closeRateClientForm = () => {
+    setRateClientBooking(null);
+    setRateForm({ rating: 0, template_selections: [], comment: "" });
+  };
+
+  const toggleTemplateSelection = (id) => {
+    setRateForm((prev) => ({
+      ...prev,
+      template_selections: prev.template_selections.includes(id)
+        ? prev.template_selections.filter((t) => t !== id)
+        : [...prev.template_selections, id],
+    }));
+  };
+
+  const handleSubmitClientRating = async () => {
+    if (!rateClientBooking || rateForm.rating < 1 || rateForm.rating > 5) {
+      toast.error("Please select a rating (1–5 stars).");
+      return;
+    }
+    setRateSubmitting(true);
+    try {
+      await submitClientRating(rateClientBooking.id, {
+        rating: rateForm.rating,
+        template_selections: rateForm.template_selections,
+        comment: rateForm.comment.slice(0, 1000),
+      });
+      toast.success("Rating submitted successfully.");
+      closeRateClientForm();
+      await fetchBookings();
+      if (selectedCar?.bookings?.length) {
+        const updatedBookings = selectedCar.bookings.map((b) =>
+          b.id === rateClientBooking.id ? { ...b, client_rating: true } : b
+        );
+        setSelectedCar({ ...selectedCar, bookings: updatedBookings });
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        (err.response?.data?.errors && Object.values(err.response.data.errors).flat().join(" ")) ||
+        "Failed to submit rating.";
+      toast.error(msg);
+    } finally {
+      setRateSubmitting(false);
+    }
   };
 
   const getStatusConfig = (status) => {
@@ -657,6 +750,12 @@ export function AgentBookingsPage() {
                   <DollarSign className="w-4 h-4" />
                   <span className="font-bold">${currentBooking.total_booking_price}</span>
                 </div>
+                {currentBooking.app_fees_amount != null && (
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg">
+                    <span className="opacity-90">App fee:</span>
+                    <span>${currentBooking.app_fees_amount}</span>
+                  </div>
+                )}
                 <div className="px-3 py-1.5 rounded-lg font-semibold text-xs bg-white/20">
                   {currentBooking.booking_request_status.toUpperCase()}
                 </div>
@@ -826,6 +925,7 @@ export function AgentBookingsPage() {
         <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
           {[
             { id: "list", label: "List View", icon: FileText },
+            { id: "table", label: "Table", icon: Table2 },
             { id: "timeline", label: "Timeline", icon: Activity },
             { id: "calendar", label: "Calendar", icon: Calendar },
           ].map((tab) => (
@@ -871,11 +971,77 @@ export function AgentBookingsPage() {
           <CalendarView />
         ) : activeTab === "timeline" ? (
           <TimelineView />
+        ) : activeTab === "table" ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700"
+          >
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-200 dark:border-gray-700">
+                    <TableHead className="text-gray-700 dark:text-gray-300">Car</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">Client</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">Dates</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300">Status</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 text-right">Amount</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 text-right">App Fee</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 text-right">Net</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.values(filteredGroupedByCar)
+                    .flatMap((g) => g.bookings)
+                    .map((booking) => {
+                      const config = getStatusConfig(booking.booking_request_status);
+                      const amount = parseFloat(booking.total_booking_price || 0);
+                      const appFee = Number(booking.app_fees_amount) || 0;
+                      const net = amount - appFee;
+                      return (
+                        <TableRow
+                          key={booking.id}
+                          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-gray-200 dark:border-gray-700"
+                          onClick={() => openModal({ car: booking.car, bookings: [booking] })}
+                        >
+                          <TableCell className="font-medium text-gray-900 dark:text-white">
+                            {booking.car?.make} {booking.car?.model}
+                          </TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-400">
+                            {booking.client?.first_name} {booking.client?.last_name}
+                          </TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-400 text-sm">
+                            {formatDateShort(booking.start_datetime)} – {formatDateShort(booking.end_datetime)}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className="px-2 py-1 rounded-lg text-xs font-semibold"
+                              style={{ background: config.bgColor, color: config.textColor }}
+                            >
+                              {config.label}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold" style={{ color: COLORS.limeGreen }}>
+                            ${amount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-gray-600 dark:text-gray-400">
+                            ${appFee.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold" style={{ color: COLORS.teal }}>
+                            ${net.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </div>
+          </motion.div>
         ) : (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5"
           >
             {Object.values(filteredGroupedByCar).map(({ car, bookings: carBookings }, index) => {
               const pendingCount = carBookings.filter((b) => b.booking_request_status === "pending").length;
@@ -1099,9 +1265,23 @@ export function AgentBookingsPage() {
                                 </div>
                                 <div className="space-y-1.5 text-sm">
                                   <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Total Price:</span>
-                                    <span className="font-bold text-lg" style={{ color: COLORS.limeGreen }}>${booking.total_booking_price}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">Total (client paid):</span>
+                                    <span className="font-bold text-lg" style={{ color: COLORS.limeGreen }}>${booking.total_booking_price ?? "0.00"}</span>
                                   </div>
+                                  {booking.app_fees_amount != null && (
+                                    <>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600 dark:text-gray-400">App fee:</span>
+                                        <span className="font-semibold text-gray-700 dark:text-gray-300">${booking.app_fees_amount}</span>
+                                      </div>
+                                      <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
+                                        <span className="text-gray-600 dark:text-gray-400">Your net:</span>
+                                        <span className="font-bold" style={{ color: COLORS.teal }}>
+                                          ${(parseFloat(booking.total_booking_price || 0) - (booking.app_fees_amount || 0)).toFixed(2)}
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Pickup:</span>
                                     <span className="font-semibold text-right truncate max-w-[160px]">
@@ -1165,6 +1345,32 @@ export function AgentBookingsPage() {
                               </div>
                             )}
 
+                            {/* Rate client (agency) – after trip ended, confirmed, not yet rated */}
+                            {booking.client_rating && (
+                              <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-4 border" style={{ background: COLORS.limeGreenDim, borderColor: COLORS.limeGreen }}>
+                                <CheckCircle2 className="w-5 h-5" style={{ color: COLORS.limeGreen }} />
+                                <span className="font-semibold" style={{ color: COLORS.limeGreen }}>Rating submitted</span>
+                              </div>
+                            )}
+                            {!booking.client_rating && canShowRateClient(booking) && (
+                              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mb-4">
+                                <motion.button
+                                  type="button"
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openRateClientForm(booking);
+                                  }}
+                                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                                  style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
+                                >
+                                  <Star className="w-5 h-5" />
+                                  Rate client
+                                </motion.button>
+                              </div>
+                            )}
+
                             {/* Action Buttons */}
                             {booking.booking_request_status === "pending" && (
                               <div className="flex gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -1207,6 +1413,123 @@ export function AgentBookingsPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Rate client dialog */}
+        <Dialog open={!!rateClientBooking} onOpenChange={(open) => !open && closeRateClientForm()}>
+          <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2" style={{ color: COLORS.darkBlue }}>
+                <Star className="w-5 h-5" style={{ color: COLORS.teal }} />
+                Rate client
+                {rateClientBooking?.client && (
+                  <span className="font-normal text-gray-600 dark:text-gray-400">
+                    — {rateClientBooking.client.first_name} {rateClientBooking.client.last_name}
+                  </span>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              {/* Star rating (required) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Rating <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <motion.button
+                      key={star}
+                      type="button"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setRateForm((prev) => ({ ...prev, rating: star }))}
+                      className={`p-2 rounded-lg border-2 transition-colors ${
+                        rateForm.rating >= star
+                          ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-gray-200 dark:border-gray-600 hover:border-amber-300"
+                      }`}
+                    >
+                      <Star
+                        className={`w-6 h-6 ${
+                          rateForm.rating >= star ? "fill-amber-400 text-amber-400" : "text-gray-400"
+                        }`}
+                      />
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Template tags (optional) */}
+              {agentTemplates.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Tags (optional)
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {agentTemplates.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleTemplateSelection(t.id)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium border-2 transition-colors ${
+                          rateForm.template_selections.includes(t.id)
+                            ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
+                            : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
+                        }`}
+                        style={
+                          rateForm.template_selections.includes(t.id)
+                            ? { borderColor: COLORS.teal, background: COLORS.tealDim, color: COLORS.teal }
+                            : {}
+                        }
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Comment (optional, max 1000) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Comment (optional, max 1000 characters)
+                </label>
+                <textarea
+                  value={rateForm.comment}
+                  onChange={(e) => setRateForm((prev) => ({ ...prev, comment: e.target.value.slice(0, 1000) }))}
+                  placeholder="e.g. Very good renter. Would rent to again."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {rateForm.comment.length}/1000
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={closeRateClientForm}
+                  className="flex-1 py-2.5 px-4 rounded-xl font-semibold border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSubmitClientRating}
+                  disabled={rateSubmitting || rateForm.rating < 1}
+                  className="flex-1 py-2.5 px-4 rounded-xl font-bold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
+                >
+                  {rateSubmitting ? "Submitting…" : "Submit rating"}
+                </motion.button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
