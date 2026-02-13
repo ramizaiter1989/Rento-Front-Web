@@ -8,9 +8,10 @@ import {
   Plus, CalendarCheck, Settings, Wallet, Bell, LogOut, Car, AlertCircle, 
   TrendingUp, Clock, Menu, Moon, Sun, ChevronRight, Activity, 
   DollarSign, Eye, Zap, ArrowUpRight, ArrowDownRight,
-  CheckCircle2, XCircle, Timer, MapPin, MousePointerClick, Users
+  CheckCircle2, XCircle, Timer, MapPin, MousePointerClick, Users, Search
 } from 'lucide-react';
 import api from '@/lib/axios';
+import { getOwnerEarnings } from '@/lib/api';
 import { toast } from 'sonner';
 
 // Logo Color Palette
@@ -34,14 +35,17 @@ export default function EnhancedDashboard() {
     confirmedBookings: 0,
     totalRevenue: 0,
     totalViews: 0,
+    totalClicks: 0,
     totalSearches: 0,
     avgViewsPerCar: 0,
     topViewedCar: null,
+    topClickedCar: null,
     topSearchedCar: null
   });
 
   const [recentActivity, setRecentActivity] = useState([]);
   const [topPerformingCars, setTopPerformingCars] = useState([]);
+  const [earnings, setEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -69,97 +73,126 @@ export default function EnhancedDashboard() {
   // FETCH DASHBOARD DATA
   // =============================
   const fetchDashboardData = async () => {
-  setLoading(true);
-  setError(false);
-
-  try {
-    let carsData = [];
-    let bookingsData = [];
+    setLoading(true);
+    setError(false);
 
     try {
-      const carsRes = await api.get('/cars/agent/Mycars');
-      carsData = carsRes.data.cars?.data || [];
-    } catch (err) {
-      if (err.response?.status !== 403) throw err;
-    }
-
-    try {
-      const bookingsRes = await api.get('/driver/bookings');
-      bookingsData = bookingsRes.data.data || [];
-    } catch (err) {
-      if (err.response?.status !== 403) throw err;
-    }
-
-    // If both empty → probably admin user
-    if (!carsData.length && !bookingsData.length) {
-      setStats({
-        totalCars: 0,
-        activeBookings: 0,
-        pendingBookings: 0,
-        confirmedBookings: 0,
-        totalRevenue: 0,
-        totalViews: 0,
-        totalSearches: 0,
-        avgViewsPerCar: 0,
-        topViewedCar: null,
-        topSearchedCar: null
-      });
-
-      setRecentActivity([
-        { message: "No activity available", time: "—", isEmpty: true }
+      const [carsRes, bookingsRes, earningsRes] = await Promise.all([
+        api.get('/cars/agent/Mycars'),
+        api.get('/driver/bookings'),
+        getOwnerEarnings().catch(() => ({ data: null }))
       ]);
 
-      setTopPerformingCars([]);
-      return;
+      const carsData = carsRes.data.cars?.data || [];
+      const bookingsData = bookingsRes.data.data || [];
+      setEarnings(earningsRes?.data ?? null);
+
+      // Calculate total views and clicks (views = impressions; clicks = detail opens)
+      const totalViews = carsData.reduce((sum, car) => sum + (car.views_count || 0), 0);
+      const totalClicks = carsData.reduce((sum, car) => sum + (car.clicks_count || 0), 0);
+      const totalSearches = carsData.reduce((sum, car) => sum + (car.search_count || 0), 0);
+      const avgViewsPerCar = carsData.length > 0 ? Math.round(totalViews / carsData.length) : 0;
+
+      // Find top viewed and top clicked cars
+      const topViewedCar = carsData.length ? carsData.reduce((max, car) =>
+        (car.views_count || 0) > (max?.views_count || 0) ? car : max
+      , carsData[0]) : null;
+
+      const topClickedCar = carsData.length ? carsData.reduce((max, car) =>
+        (car.clicks_count || 0) > (max?.clicks_count || 0) ? car : max
+      , carsData[0]) : null;
+
+      const topSearchedCar = carsData.length ? carsData.reduce((max, car) =>
+        (car.search_count || 0) > (max?.search_count || 0) ? car : max
+      , carsData[0]) : null;
+
+      // Calculate bookings stats
+      const activeBookings = bookingsData.filter(b =>
+        ['pending', 'confirmed', 'arrived', 'started'].includes(b.booking_request_status)
+      );
+
+      const pendingBookings = bookingsData.filter(b => b.booking_request_status === 'pending');
+      const confirmedBookings = bookingsData.filter(b => b.booking_request_status === 'confirmed');
+
+      // Calculate revenue from confirmed bookings
+      const totalRevenue = bookingsData
+        .filter(b => b.booking_request_status === 'confirmed')
+        .reduce((sum, b) => sum + parseFloat(b.total_booking_price || 0), 0);
+
+      setStats({
+        totalCars: carsRes.data.cars?.total || carsData.length,
+        activeBookings: activeBookings.length,
+        pendingBookings: pendingBookings.length,
+        confirmedBookings: confirmedBookings.length,
+        totalRevenue: totalRevenue,
+        totalViews: totalViews,
+        totalClicks: totalClicks,
+        totalSearches: totalSearches,
+        avgViewsPerCar: avgViewsPerCar,
+        topViewedCar: topViewedCar,
+        topClickedCar: topClickedCar,
+        topSearchedCar: topSearchedCar
+      });
+
+      // Top performing cars (by views, clicks, and search count)
+      const topCars = [...carsData]
+        .sort((a, b) => (b.views_count || 0) + (b.clicks_count || 0) * 2 + (b.search_count || 0) - ((a.views_count || 0) + (a.clicks_count || 0) * 2 + (a.search_count || 0)))
+        .slice(0, 3)
+        .map(car => ({
+          id: car.id,
+          name: `${car.make} ${car.model}`,
+          image: car.main_image_url,
+          views: car.views_count || 0,
+          clicks: car.clicks_count || 0,
+          searches: car.search_count || 0,
+          dailyRate: car.daily_rate,
+          category: car.car_category
+        }));
+
+      setTopPerformingCars(topCars);
+
+      // Recent activity from bookings
+      const activity = bookingsData
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 8)
+        .map(b => {
+          const statusMessages = {
+            'pending': 'New booking request received',
+            'confirmed': 'Booking confirmed',
+            'cancelled': 'Booking cancelled',
+            'completed': 'Trip completed successfully',
+            'arrived': 'Driver arrived',
+            'started': 'Ride in progress'
+          };
+
+          const carName = b.car ? `${b.car.make} ${b.car.model}` : 'Unknown Car';
+          const clientName = b.client ? `${b.client.first_name} ${b.client.last_name}` : 'Unknown Client';
+          const status = statusMessages[b.booking_request_status] || 'Status updated';
+
+          return {
+            message: status,
+            car: carName,
+            client: clientName,
+            time: new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: new Date(b.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+            status: b.booking_request_status,
+            amount: b.total_booking_price,
+            location: b.pickup_location || 'N/A'
+          };
+        });
+
+      setRecentActivity(activity.length ? activity : [
+        { message: "No recent activity", time: "—", isEmpty: true }
+      ]);
+
+    } catch (err) {
+      console.error("Dashboard error:", err);
+      setError(true);
+      toast.error("Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
     }
-
-    // -------- ORIGINAL CALCULATIONS BELOW (UNCHANGED) --------
-
-    const totalViews = carsData.reduce((sum, car) => sum + (car.views_count || 0), 0);
-    const totalSearches = carsData.reduce((sum, car) => sum + (car.search_count || 0), 0);
-    const avgViewsPerCar = carsData.length > 0 ? Math.round(totalViews / carsData.length) : 0;
-
-    const topViewedCar = carsData.reduce((max, car) =>
-      (car.views_count || 0) > (max?.views_count || 0) ? car : max
-    , carsData[0]);
-
-    const topSearchedCar = carsData.reduce((max, car) =>
-      (car.search_count || 0) > (max?.search_count || 0) ? car : max
-    , carsData[0]);
-
-    const activeBookings = bookingsData.filter(b =>
-      ['pending', 'confirmed', 'arrived', 'started'].includes(b.booking_request_status)
-    );
-
-    const pendingBookings = bookingsData.filter(b => b.booking_request_status === 'pending');
-    const confirmedBookings = bookingsData.filter(b => b.booking_request_status === 'confirmed');
-
-    const totalRevenue = bookingsData
-      .filter(b => b.booking_request_status === 'confirmed')
-      .reduce((sum, b) => sum + parseFloat(b.total_booking_price || 0), 0);
-
-    setStats({
-      totalCars: carsData.length,
-      activeBookings: activeBookings.length,
-      pendingBookings: pendingBookings.length,
-      confirmedBookings: confirmedBookings.length,
-      totalRevenue: totalRevenue,
-      totalViews: totalViews,
-      totalSearches: totalSearches,
-      avgViewsPerCar: avgViewsPerCar,
-      topViewedCar: topViewedCar,
-      topSearchedCar: topSearchedCar
-    });
-
-  } catch (err) {
-    console.error("Dashboard error:", err);
-    setError(true);
-    toast.error("Failed to load dashboard data.");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -209,6 +242,13 @@ export default function EnhancedDashboard() {
       href: "/statistic", 
       color: COLORS.teal,
       description: "View statistics"
+    },
+    { 
+      title: "Balance", 
+      icon: Wallet, 
+      href: "/Balance", 
+      color: COLORS.limeGreen,
+      description: "Earnings & app fees"
     },
   ];
 
@@ -299,13 +339,13 @@ export default function EnhancedDashboard() {
       description: "All time views"
     },
     { 
-      title: "Searches", 
-      value: stats.totalSearches, 
+      title: "Total Clicks", 
+      value: stats.totalClicks.toLocaleString(), 
       icon: MousePointerClick, 
       color: COLORS.limeGreen,
-      change: "Search interest",
+      change: "Detail opens",
       changeType: "neutral",
-      description: "Search appearances"
+      description: "Car detail page opens"
     },
     { 
       title: "Active Bookings", 
@@ -572,6 +612,32 @@ export default function EnhancedDashboard() {
                   </Card>
                 </motion.div>
               ))}
+              {/* Net earnings card (links to Balance) */}
+              {earnings != null && (
+                <motion.div variants={itemVariants}>
+                  <Card 
+                    className="relative overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 bg-white dark:bg-gray-900 cursor-pointer"
+                    onClick={() => navigate('/Balance')}
+                  >
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300" style={{ backgroundColor: COLORS.limeGreen }} />
+                    <CardContent className="p-3 md:p-4 relative">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg p-2 shadow-md group-hover:scale-110 transition-transform duration-300" style={{ backgroundColor: COLORS.limeGreen }}>
+                          <Wallet className="w-full h-full text-white" />
+                        </div>
+                        <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">Net earnings</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">Your earnings</p>
+                        <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                          ${(parseFloat(earnings?.net_earnings) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-500">View balance →</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
             </div>
             {/* Quick Actions */}
             <motion.div variants={itemVariants}>
@@ -640,11 +706,11 @@ export default function EnhancedDashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Top Performing Cars</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Most viewed and searched</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Views, clicks & search count</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 md:gap-4">
                   {topPerformingCars.map((car, i) => (
                     <motion.div
                       key={car.id}
@@ -671,16 +737,20 @@ export default function EnhancedDashboard() {
                           </div>
                           <div className="p-3">
                             <h4 className="font-bold text-sm mb-2 text-gray-900 dark:text-white truncate">{car.name}</h4>
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-1" style={{ color: COLORS.teal }}>
-                                <Eye className="w-3 h-3" />
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                              <div className="flex items-center gap-1" style={{ color: COLORS.teal }} title="Views (impressions)">
+                                <Eye className="w-3 h-3 shrink-0" />
                                 <span className="font-semibold">{car.views}</span>
                               </div>
-                              <div className="flex items-center gap-1" style={{ color: COLORS.limeGreen }}>
-                                <MousePointerClick className="w-3 h-3" />
+                              <div className="flex items-center gap-1" style={{ color: COLORS.limeGreen }} title="Clicks (detail opens)">
+                                <MousePointerClick className="w-3 h-3 shrink-0" />
+                                <span className="font-semibold">{car.clicks}</span>
+                              </div>
+                              <div className="flex items-center gap-1" style={{ color: COLORS.darkBlue }} title="Search count">
+                                <Search className="w-3 h-3 shrink-0" />
                                 <span className="font-semibold">{car.searches}</span>
                               </div>
-                              <div className="font-bold" style={{ color: COLORS.darkBlue }}>
+                              <div className="font-bold ml-auto" style={{ color: COLORS.darkBlue }}>
                                 ${car.dailyRate}/day
                               </div>
                             </div>
@@ -692,10 +762,49 @@ export default function EnhancedDashboard() {
                 </div>
               </motion.div>
             )}
+            {/* Earnings Summary Block (GET /api/owner/earnings) */}
+            {earnings != null && (
+              <motion.div variants={itemVariants}>
+                <Card
+                  className="overflow-hidden border-0 shadow-lg cursor-pointer hover:shadow-xl transition-all"
+                  style={{ background: `linear-gradient(to bottom right, ${COLORS.darkBlue}, ${COLORS.teal})` }}
+                  onClick={() => navigate('/Balance')}
+                >
+                  <CardContent className="p-4 md:p-6 text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold">Earnings & Balance</h3>
+                      <span className="text-xs opacity-90">View details →</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-xs font-medium opacity-90">Total booking amount</p>
+                        <p className="text-xl md:text-2xl font-bold">${(parseFloat(earnings.total_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium opacity-90">App fees</p>
+                        <p className="text-xl md:text-2xl font-bold">${(parseFloat(earnings.app_fees_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium opacity-90">Your net earnings</p>
+                        <p className="text-xl md:text-2xl font-bold" style={{ color: COLORS.limeGreen }}>${(parseFloat(earnings.net_earnings) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium opacity-90">From bookings</p>
+                        <p className="text-xl md:text-2xl font-bold">{earnings.bookings_count ?? 0}</p>
+                      </div>
+                    </div>
+                    {(earnings.app_fees_percentage != null) && (
+                      <p className="text-xs mt-3 opacity-90">Fee: {earnings.app_fees_percentage}%</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {/* Performance Summary */}
             <motion.div variants={itemVariants}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                {/* Revenue Card */}
+                {/* Revenue Card - uses earnings API when available */}
                 <Card 
                   className="overflow-hidden border-0 shadow-lg text-white"
                   style={{ background: `linear-gradient(to bottom right, ${COLORS.teal}, ${COLORS.limeGreen})` }}
@@ -704,7 +813,11 @@ export default function EnhancedDashboard() {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <p className="text-xs font-medium mb-1 opacity-90">Total Revenue</p>
-                        <h3 className="text-3xl md:text-4xl font-bold">${stats.totalRevenue.toFixed(2)}</h3>
+                        <h3 className="text-3xl md:text-4xl font-bold">
+                          ${earnings != null 
+                            ? (parseFloat(earnings.total_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : stats.totalRevenue.toFixed(2)}
+                        </h3>
                       </div>
                       <div className="w-11 h-11 md:w-12 md:h-12 rounded-lg bg-white/20 backdrop-blur-sm p-2.5">
                         <DollarSign className="w-full h-full" />
@@ -713,7 +826,7 @@ export default function EnhancedDashboard() {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-semibold">
                         <TrendingUp className="w-2.5 h-2.5" />
-                        {stats.confirmedBookings} confirmed bookings
+                        {earnings != null ? `${earnings.bookings_count ?? 0} confirmed + completed` : `${stats.confirmedBookings} confirmed`} bookings
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/20">
@@ -734,7 +847,8 @@ export default function EnhancedDashboard() {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <p className="text-xs font-medium mb-1 opacity-90">Fleet Visibility</p>
-                        <h3 className="text-3xl md:text-4xl font-bold">{stats.totalViews}</h3>
+                        <h3 className="text-3xl md:text-4xl font-bold">{stats.totalViews.toLocaleString()}</h3>
+                        <p className="text-xs opacity-90 mt-0.5">Total views (impressions)</p>
                       </div>
                       <div className="w-11 h-11 md:w-12 md:h-12 rounded-lg bg-white/20 backdrop-blur-sm p-2.5">
                         <Eye className="w-full h-full" />
@@ -742,20 +856,30 @@ export default function EnhancedDashboard() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs">
+                        <span className="opacity-90">Total clicks (detail opens)</span>
+                        <span className="font-bold">{stats.totalClicks.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
                         <span className="opacity-90">Total searches</span>
-                        <span className="font-bold">{stats.totalSearches}</span>
+                        <span className="font-bold">{stats.totalSearches.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="opacity-90">Avg per vehicle</span>
                         <span className="font-bold">{stats.avgViewsPerCar} views</span>
                       </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-white/20">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-semibold">
-                          <MousePointerClick className="w-2.5 h-2.5" />
-                          Top: {stats.topViewedCar?.make} {stats.topViewedCar?.model}
-                        </div>
+                    <div className="mt-4 pt-4 border-t border-white/20 space-y-2">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-semibold w-fit">
+                        <Eye className="w-2.5 h-2.5" />
+                        Most viewed: {stats.topViewedCar?.make} {stats.topViewedCar?.model}
+                      </div>
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-semibold w-fit">
+                        <MousePointerClick className="w-2.5 h-2.5" />
+                        Most clicked: {stats.topClickedCar?.make} {stats.topClickedCar?.model}
+                      </div>
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-semibold w-fit">
+                        <Search className="w-2.5 h-2.5" />
+                        Most searched: {stats.topSearchedCar?.make} {stats.topSearchedCar?.model}
                       </div>
                     </div>
                   </CardContent>

@@ -199,7 +199,7 @@ export const FavoritesPage = () => {
 
       <div className="container mx-auto px-4 py-12">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="p-6">
                 <div className="h-40 rounded-xl bg-muted animate-pulse mb-4" />
@@ -210,7 +210,7 @@ export const FavoritesPage = () => {
           </div>
         ) : favorites.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
               {favorites.map((car) => (
                 <CarCard
                   key={car.id}

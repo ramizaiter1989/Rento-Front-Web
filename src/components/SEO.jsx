@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { partners } from './partners';
 
 export const SEO = ({ noIndex = false }) => {
+  // Sync critical meta to document.head so crawlers (and Google) see index/noindex correctly.
+  // React renders meta inside body; search engines expect robots/title in <head>.
+  useEffect(() => {
+    document.title = 'Rento LB | Rent & Compare Cars in Lebanon';
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.setAttribute('name', 'robots');
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute('content', noIndex ? 'noindex,nofollow' : 'index,follow');
+  }, [noIndex]);
 
   const INCLUDE_AGGREGATE_RATING = false;
 
@@ -163,9 +175,7 @@ export const SEO = ({ noIndex = false }) => {
 
   return (
     <>
-      {/* BASIC META */}
-      <title>Rento LB | Rent & Compare Cars in Lebanon</title>
-
+      {/* BASIC META - title and robots are set in document.head via useEffect */}
       <meta
         name="trustpilot-one-time-domain-verification-id"
         content="2ddec9a3-46a7-4ab8-a397-7482d145e508"
@@ -179,11 +189,6 @@ export const SEO = ({ noIndex = false }) => {
       <meta
         name="keywords"
         content="car rental Lebanon, rent a car Beirut, private car rental Lebanon"
-      />
-
-      <meta
-        name="robots"
-        content={noIndex ? "noindex,nofollow" : "index,follow"}
       />
 
       <meta name="viewport" content="width=device-width, initial-scale=1" />

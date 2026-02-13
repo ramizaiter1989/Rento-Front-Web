@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heart, Users, Fuel, Settings, Star, Eye, MessageSquare, MapPin, ArrowRight } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 // Modal Component for Feedbacks
 const FeedbacksModal = ({ feedbacks, onClose }) => {
@@ -55,6 +56,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
   const [favLoading, setFavLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFeedbacksModal, setShowFeedbacksModal] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (forceFavorite) {
@@ -69,6 +71,10 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
     e.stopPropagation();
 
     if (!car?.id || favLoading) return;
+    if (!isAuthenticated) {
+      toast.error('Please log in to save favorites.');
+      return;
+    }
 
     if (onToggleFavoriteApi) return onToggleFavoriteApi();
 
@@ -109,6 +115,17 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
     location: car.live_location?.address || car.location || null,
   };
 
+  const resolveImageSrc = (rawSrc) => {
+    if (!rawSrc) return '/placeholder.png';
+    if (rawSrc.startsWith('data:') || /^https?:\/\//i.test(rawSrc)) return rawSrc;
+    if (rawSrc.startsWith('/api/')) return rawSrc;
+    if (rawSrc.startsWith('/storage/')) return `/api${rawSrc}`;
+    const cleaned = rawSrc.replace(/^storage\//i, '');
+    return `/api/storage/${cleaned}`;
+  };
+
+  const imageSrc = resolveImageSrc(carData.image);
+
   return (
     <Link to={`/cars/${carData.id}`} className="block group">
       <Card className="relative overflow-hidden h-full flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#00A19C] transition-all duration-300 hover:shadow-lg hover:shadow-[#00A19C]/20 hover:-translate-y-1 aspect-[2/3]">
@@ -119,9 +136,15 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-pulse" />
           )}
           <img
-            src={`/api/storage/${carData.image}`}
+            src={imageSrc}
             alt={`${carData.brand} ${carData.model}`}
             onLoad={() => setImageLoaded(true)}
+            onError={(e) => {
+              if (e.currentTarget.src.endsWith('/placeholder.png')) return;
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/placeholder.png';
+              setImageLoaded(true);
+            }}
             className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}

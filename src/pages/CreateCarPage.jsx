@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Car, Upload, MapPin, DollarSign, Settings, Image, FileText, Sparkles, Check, X, Navigation } from 'lucide-react';
+import { ArrowLeft, Car, Upload, MapPin, DollarSign, Settings, Image, FileText, Sparkles, Check, X, Navigation, Search, Building2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -113,7 +113,69 @@ const FEATURES = ['GPS', 'Bluetooth', 'Backup Camera', 'Sunroof', 'Leather Seats
 const ADD_ONS = ['Child Seat', 'GPS Device', 'Phone Holder', 'WiFi Hotspot', 'Roof Rack'];
 const REASONS = ['Vacation', 'Business Trip', 'Wedding', 'Daily Use', 'Long Trip', 'Airport Transfer'];
 
-// Map Component
+// Lebanese governorates / regions for address dropdown
+const ADDRESS_OPTIONS = [
+  'Beirut',
+  'Mount Lebanon',
+  'North',
+  'South',
+  'Bekaa',
+  'Baalbek',
+  'Keserwan',
+  'Nabatieh',
+  'Akkar',
+];
+
+/**
+ * Parse Google Maps URL to extract lat, lng.
+ * Supports: ?q=lat,lng | @lat,lng | place links with coordinates
+ */
+function parseGoogleMapsLink(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  // @lat,lng (e.g. https://www.google.com/maps/@33.8938,35.5018,17z)
+  const atMatch = trimmed.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (atMatch) return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
+  // q=lat,lng (e.g. https://www.google.com/maps?q=33.8938,35.5018)
+  const qMatch = trimmed.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (qMatch) return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+  // place/... or maps?...
+  const llMatch = trimmed.match(/(?:!3d|!4d|!1d)(-?\d+\.?\d*)/g);
+  if (llMatch && llMatch.length >= 2) {
+    const lat = parseFloat(llMatch[0].replace(/\D/g, ''));
+    const lng = parseFloat(llMatch[1].replace(/\D/g, ''));
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+  return null;
+}
+
+/**
+ * Get agency office location from stored user (user.agent.location).
+ * location can be JSON string like "{\"city\":\"beirut\",\"lat\":33.8938,\"lng\":35.5018}"
+ */
+function getAgencyOfficeLocation() {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    let loc = user?.agent?.location;
+    if (!loc) return null;
+    if (typeof loc === 'string') {
+      loc = JSON.parse(loc);
+      if (typeof loc === 'string') loc = JSON.parse(loc);
+    }
+    const lat = loc?.lat ?? loc?.latitude;
+    const lng = loc?.lng ?? loc?.longitude;
+    if (lat != null && lng != null) {
+      return { latitude: String(Number(lat)), longitude: String(Number(lng)) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Map Component (supports search via center/selectedLocation updates from parent)
 function MapComponent({ center, selectedLocation, onLocationSelect }) {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -135,10 +197,12 @@ function MapComponent({ center, selectedLocation, onLocationSelect }) {
   }, []);
 
   useEffect(() => {
-    if (mapRef.current && window.L) {
-      mapRef.current.setView([parseFloat(center.latitude), parseFloat(center.longitude)], 13);
+    if (mapRef.current && window.L && center?.latitude != null && center?.longitude != null) {
+      const lat = parseFloat(center.latitude);
+      const lng = parseFloat(center.longitude);
+      mapRef.current.setView([lat, lng], 13);
     }
-  }, [center]);
+  }, [center?.latitude, center?.longitude]);
 
   useEffect(() => {
     if (selectedLocation && markerRef.current && window.L) {
@@ -151,17 +215,16 @@ function MapComponent({ center, selectedLocation, onLocationSelect }) {
 
   const initMap = () => {
     if (!window.L || mapRef.current) return;
+    const lat = parseFloat(center?.latitude) || 33.8547;
+    const lng = parseFloat(center?.longitude) || 35.8623;
 
-    const map = window.L.map("map-container").setView(
-      [parseFloat(center.latitude), parseFloat(center.longitude)],
-      13
-    );
+    const map = window.L.map("map-container").setView([lat, lng], 13);
 
     window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
-    const marker = window.L.marker([parseFloat(center.latitude), parseFloat(center.longitude)], {
+    const marker = window.L.marker([lat, lng], {
       draggable: true,
     }).addTo(map);
 
@@ -189,10 +252,15 @@ export const CreateCarPage = () => {
   const [showMapModal, setShowMapModal] = useState(false);
   const [currentLocationField, setCurrentLocationField] = useState(null);
   const [tempMapLocation, setTempMapLocation] = useState(null);
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
+  const [googleLinkInputs, setGoogleLinkInputs] = useState({ liveLocation: '', deliveryLocation: '', returnLocation: '' });
   
   const [formData, setFormData] = useState({
     make: '',
     model: '',
+    customMake: '',
+    customModel: '',
     year: new Date().getFullYear(),
     licensePlate: '',
     color: '',
@@ -243,11 +311,14 @@ export const CreateCarPage = () => {
     if (formData.make && CAR_DATA[formData.make]) {
       setAvailableModels(CAR_DATA[formData.make]);
       // Reset model if it's not valid for the new make
-      if (!CAR_DATA[formData.make].includes(formData.model)) {
+      if (!CAR_DATA[formData.make].includes(formData.model) && formData.model !== 'Other') {
         setFormData(prev => ({ ...prev, model: '' }));
       }
     } else {
       setAvailableModels([]);
+      if (formData.make && formData.make !== 'Other' && formData.model) {
+        setFormData(prev => ({ ...prev, model: '' }));
+      }
     }
   }, [formData.make]);
 
@@ -341,14 +412,101 @@ export const CreateCarPage = () => {
     }));
   };
 
+  const applyGoogleLink = (field, url) => {
+    const coords = parseGoogleMapsLink(url);
+    if (coords) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: {
+          ...prev[field],
+          latitude: coords.lat.toFixed(6),
+          longitude: coords.lng.toFixed(6),
+          address: prev[field].address || '',
+        },
+      }));
+      toast.success('Location set from Google Maps link.');
+    } else {
+      toast.error('Could not read coordinates from this link. Use a link with lat,lng (e.g. @33.89,35.50 or ?q=33.89,35.50).');
+    }
+  };
+
+  const handleMapSearch = async () => {
+    const q = mapSearchQuery.trim();
+    if (!q) return;
+    setMapSearchLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`,
+        { headers: { Accept: 'application/json' } }
+      );
+      const data = await res.json();
+      if (data && data[0]) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        setTempMapLocation({ latitude: lat.toFixed(6), longitude: lng.toFixed(6) });
+        toast.success('Location found. Adjust marker if needed.');
+      } else {
+        toast.error('No results found. Try another search.');
+      }
+    } catch {
+      toast.error('Search failed. Try again.');
+    } finally {
+      setMapSearchLoading(false);
+    }
+  };
+
+  const useOfficeLocation = () => {
+    const office = getAgencyOfficeLocation();
+    if (office) {
+      setTempMapLocation(office);
+      toast.success('Office location set. Confirm to use it.');
+    } else {
+      toast.error('Office location not found. Complete your agency profile with a location first.');
+    }
+  };
+
+  const applyOfficeLocationToField = (field) => {
+    const office = getAgencyOfficeLocation();
+    if (office) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: {
+          ...prev[field],
+          latitude: office.latitude,
+          longitude: office.longitude,
+          address: prev[field].address || '',
+        },
+      }));
+      toast.success('Location set to your agency office.');
+    } else {
+      toast.error('Office location not found. Complete your agency profile with a location first.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const data = new FormData();
+
+    const isOtherMake = formData.make === 'Other';
+    const isOtherModel = formData.model === 'Other';
+    const resolvedMake = isOtherMake ? formData.customMake.trim() : formData.make;
+    const resolvedModel = (isOtherMake || isOtherModel) ? formData.customModel.trim() : formData.model;
+
+    if (!resolvedMake) {
+      toast.error('Please enter the car make');
+      setLoading(false);
+      return;
+    }
+    if (!resolvedModel) {
+      toast.error('Please enter the car model');
+      setLoading(false);
+      return;
+    }
     
     // Append required fields
-    data.append('make', formData.make);
-    data.append('model', formData.model);
+    data.append('make', resolvedMake);
+    data.append('model', resolvedModel);
     data.append('year', formData.year);
     data.append('license_plate', formData.licensePlate.toUpperCase());
     
@@ -502,35 +660,84 @@ export const CreateCarPage = () => {
                     <select
                       required
                       value={formData.make}
-                      onChange={(e) => setFormData({ ...formData, make: e.target.value })}
+                      onChange={(e) => {
+                        const nextMake = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          make: nextMake,
+                          ...(nextMake !== 'Other' ? { customMake: '' } : {})
+                        }));
+                      }}
                       className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
                     >
                       <option value="">Select Make...</option>
                       {Object.keys(CAR_DATA).sort().map((make) => (
                         <option key={make} value={make}>{make}</option>
                       ))}
+                      <option value="Other">Other</option>
                     </select>
                   </div>
+                  {formData.make === 'Other' && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Custom Make <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        required
+                        placeholder="Type the make"
+                        value={formData.customMake}
+                        onChange={(e) => setFormData({ ...formData, customMake: e.target.value })}
+                        className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Model <span className="text-red-500">*</span>
                     </label>
                     <select
-                      required
+                      required={formData.make !== 'Other'}
                       value={formData.model}
-                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                      disabled={!formData.make}
+                      onChange={(e) => {
+                        const nextModel = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          model: nextModel,
+                          ...(nextModel !== 'Other' ? { customModel: '' } : {})
+                        }));
+                      }}
+                      disabled={!formData.make || formData.make === 'Other'}
                       className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Select Model...</option>
                       {availableModels.map((model) => (
                         <option key={model} value={model}>{model}</option>
                       ))}
+                      {formData.make && formData.make !== 'Other' && (
+                        <option value="Other">Other</option>
+                      )}
                     </select>
                     {!formData.make && (
                       <p className="text-xs text-gray-500 mt-1">Please select a make first</p>
                     )}
+                    {formData.make === 'Other' && (
+                      <p className="text-xs text-gray-500 mt-1">Select a custom make above to enter a model.</p>
+                    )}
                   </div>
+                  {(formData.make === 'Other' || formData.model === 'Other') && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Custom Model <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        required
+                        placeholder="Type the model"
+                        value={formData.customModel}
+                        onChange={(e) => setFormData({ ...formData, customModel: e.target.value })}
+                        className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Year <span className="text-red-500">*</span>
@@ -987,20 +1194,52 @@ export const CreateCarPage = () => {
                       
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address</label>
-                          <Input
-                            placeholder="e.g., Beirut, Lebanon"
-                            value={loc.address}
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address (region)</label>
+                          <select
+                            value={loc.address || ''}
                             onChange={(e) => handleLocationAddressChange(field, e.target.value)}
-                            className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl"
-                          />
+                            className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
+                          >
+                            <option value="">Select region...</option>
+                            {ADDRESS_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Paste Google Maps link (to set coordinates)</label>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="e.g. https://www.google.com/maps/@33.8938,35.5018,17z"
+                              value={googleLinkInputs[field] || ''}
+                              onChange={(e) => setGoogleLinkInputs((prev) => ({ ...prev, [field]: e.target.value }))}
+                              onBlur={(e) => {
+                                const v = e.target.value?.trim();
+                                if (v) applyGoogleLink(field, v);
+                              }}
+                              className="h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                const v = googleLinkInputs[field];
+                                if (v?.trim()) applyGoogleLink(field, v);
+                              }}
+                              className="h-12 shrink-0"
+                            >
+                              Apply
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">Paste a link with coordinates to fill the pin location if missing.</p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             type="button"
                             variant="outline"
-                            className="flex-1"
+                            className="flex-1 min-w-[140px]"
                             onClick={() => getCurrentLocation(field)}
                           >
                             <Navigation className="w-4 h-4 mr-2" />
@@ -1009,11 +1248,20 @@ export const CreateCarPage = () => {
                           <Button
                             type="button"
                             variant="outline"
-                            className="flex-1"
+                            className="flex-1 min-w-[140px]"
                             onClick={() => openMapPicker(field)}
                           >
                             <MapPin className="w-4 h-4 mr-2" />
                             Select on Map
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 min-w-[140px]"
+                            onClick={() => applyOfficeLocationToField(field)}
+                          >
+                            <Building2 className="w-4 h-4 mr-2" />
+                            Office location
                           </Button>
                         </div>
 
@@ -1100,16 +1348,34 @@ export const CreateCarPage = () => {
       </div>
 
       {/* Map Modal */}
-      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
+      <Dialog open={showMapModal} onOpenChange={(open) => { setShowMapModal(open); if (!open) setMapSearchQuery(''); }}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Select Location</DialogTitle>
             <DialogDescription>
-              Click on the map or drag the marker to select the location
+              Search or click on the map, or use your office location. Drag the marker to adjust.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <div className="flex flex-1 min-w-[200px] rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                <Input
+                  placeholder="Search address or place..."
+                  value={mapSearchQuery}
+                  onChange={(e) => setMapSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleMapSearch(); } }}
+                  className="rounded-r-none border-0 h-11 focus-visible:ring-0"
+                />
+                <Button type="button" variant="secondary" onClick={handleMapSearch} disabled={mapSearchLoading} className="rounded-l-none h-11 px-4">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </div>
+              <Button type="button" variant="outline" onClick={useOfficeLocation} className="h-11 shrink-0">
+                <Building2 className="w-4 h-4 mr-2" />
+                Office location
+              </Button>
+            </div>
             <div className="w-full h-[500px] bg-muted rounded-lg overflow-hidden">
               {tempMapLocation && (
                 <MapComponent

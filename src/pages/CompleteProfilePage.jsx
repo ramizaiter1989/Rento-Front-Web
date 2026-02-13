@@ -25,8 +25,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Car, AlertCircle, MapPin, Navigation } from "lucide-react";
+import { Car, AlertCircle, MapPin, Navigation, Search } from "lucide-react";
 import { toast } from "sonner";
+
+// Lebanese regions for agency address dropdown (label -> form value)
+const ADDRESS_OPTIONS = [
+  { label: "Beirut", value: "beirut" },
+  { label: "Mount Lebanon", value: "mount-liban" },
+  { label: "North", value: "north" },
+  { label: "South", value: "south" },
+  { label: "Bekaa", value: "bekaa" },
+  { label: "Baalbek", value: "baalbek" },
+  { label: "Keserwan", value: "keserwan" },
+  { label: "Nabatieh", value: "nabatieh" },
+  { label: "Akkar", value: "akkar" },
+];
+
+function parseGoogleMapsLink(url) {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  const atMatch = trimmed.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (atMatch) return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
+  const qMatch = trimmed.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (qMatch) return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+  const llMatch = trimmed.match(/(?:!3d|!4d|!1d)(-?\d+\.?\d*)/g);
+  if (llMatch && llMatch.length >= 2) {
+    const lat = parseFloat(String(llMatch[0]).replace(/\D/g, ""));
+    const lng = parseFloat(String(llMatch[1]).replace(/\D/g, ""));
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+  return null;
+}
 
 export default function CompleteProfilePage() {
   const navigate = useNavigate();
@@ -122,9 +151,14 @@ export default function CompleteProfilePage() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: 33.8547, lng: 35.8623 }); // Default: Beirut
+  const [googleLinkInput, setGoogleLinkInput] = useState("");
+  const [locationSearchQuery, setLocationSearchQuery] = useState("");
+  const [locationSearchLoading, setLocationSearchLoading] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
 
   const isClient = user?.role === "client";
-  const isAgency = user?.role === "agency" || user?.role === "agent";
+  const isAgency = user?.role === "agency" || user?.role === "agency";
 
   const normalizeDate = (d) => {
     if (!d) return "";
@@ -134,7 +168,7 @@ export default function CompleteProfilePage() {
   const prefillFromStatus = (status) => {
     const u = status?.user || {};
     const c = status?.client || u?.client || {};
-    const a = status?.agent || u?.agent || status?.agency || {};
+    const a = status?.agency || u?.agency || status?.agency || {};
 
     setForm((prev) => ({
       ...prev,
@@ -188,10 +222,16 @@ export default function CompleteProfilePage() {
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser");
+      openMapPicker();
       return;
     }
 
     toast.info("Getting your location...");
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 60000,
+    };
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const location = {
@@ -213,8 +253,10 @@ export default function CompleteProfilePage() {
       },
       (error) => {
         log("Geolocation error:", error);
-        toast.error("Could not get your location. Please select manually.");
-      }
+        toast.info("Location could not be detected. Select your location on the map.");
+        setShowMapModal(true);
+      },
+      options
     );
   };
 
@@ -247,6 +289,54 @@ export default function CompleteProfilePage() {
     }
   };
 
+  const applyGoogleLink = (url) => {
+    const coords = parseGoogleMapsLink(url);
+    if (coords) {
+      const location = { lat: parseFloat(coords.lat.toFixed(6)), lng: parseFloat(coords.lng.toFixed(6)) };
+      setSelectedLocation(location);
+      setMapCenter(location);
+      const locationJson = { latitude: location.lat, longitude: location.lng, country: "Lebanon" };
+      setForm((prev) => ({ ...prev, location: JSON.stringify(locationJson) }));
+      toast.success("Location set from Google Maps link.");
+    } else {
+      toast.error("Could not read coordinates. Use a link with lat,lng (e.g. @33.89,35.50 or ?q=33.89,35.50).");
+    }
+  };
+
+  const searchLocation = async (query, isMapModal) => {
+    const q = query.trim();
+    if (!q) return;
+    if (isMapModal) setMapSearchLoading(true);
+    else setLocationSearchLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`,
+        { headers: { Accept: "application/json" } }
+      );
+      const data = await res.json();
+      if (data && data[0]) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        const location = { lat, lng };
+        setSelectedLocation(location);
+        setMapCenter(location);
+        const locationJson = { latitude: lat, longitude: lng, country: "Lebanon" };
+        setForm((prev) => ({ ...prev, location: JSON.stringify(locationJson) }));
+        toast.success("Location found. Confirm in the modal if needed.");
+      } else {
+        toast.error("No results found. Try another search.");
+      }
+    } catch {
+      toast.error("Search failed. Try again.");
+    } finally {
+      if (isMapModal) setMapSearchLoading(false);
+      else setLocationSearchLoading(false);
+    }
+  };
+
+  const handleLocationSearch = () => searchLocation(locationSearchQuery, false);
+  const handleMapSearch = () => searchLocation(mapSearchQuery, true);
+
   // =========================
   // API CALLS
   // =========================
@@ -266,7 +356,7 @@ export default function CompleteProfilePage() {
         const userData = res.data.user;
         log("Profile already complete. Redirecting. role =", userData?.role);
 
-        if (userData?.role === "agency" || userData?.role === "agent") {
+        if (userData?.role === "agency" || userData?.role === "agency") {
           navigate("/Dashboard");
         } else {
           navigate("/");
@@ -359,27 +449,41 @@ export default function CompleteProfilePage() {
     }
 
     if (isAgency) {
+      console.log("[CompleteProfile Validate]", "Agency validation started", {
+        business_type: form.business_type,
+        profession: form.profession,
+        hasLocation: !!form.location,
+        locationLength: form.location?.length,
+      });
       // Agency-specific validation
       if (!form.business_type || !form.profession) {
+        console.log("[CompleteProfile Validate]", "Failed: missing business_type or profession");
         toast.error("Please fill all required agency fields");
         return false;
       }
 
       if (!form.location) {
-        toast.error("Please select your location using one of the location buttons");
+        console.log("[CompleteProfile Validate]", "Failed: no location");
+        toast.error("Please select your agency location. Opening map...");
+        setShowMapModal(true);
+        setTimeout(() => document.getElementById("agency-location-section")?.scrollIntoView({ behavior: "smooth" }), 100);
         return false;
       }
 
-      // Validate business_type enum
-      const allowedBusinessTypes = ['rental', 'dealer', 'private', 'company', 'business'];
+      // Validate business_type enum – must match backend:
+      // rental, private, company, marina
+      const allowedBusinessTypes = ['rental', 'private', 'company', 'marina'];
       if (!allowedBusinessTypes.includes(form.business_type)) {
+        console.log("[CompleteProfile Validate]", "Failed: invalid business_type", form.business_type);
         toast.error("Please select a valid business type");
         return false;
       }
 
-      // Validate profession enum for agency
-      const validAgencyProfessions = ['manager', 'agent', 'driver', 'other'];
+      // Validate profession enum for agency – must match backend:
+      // owner, manager
+      const validAgencyProfessions = ['owner', 'manager'];
       if (!validAgencyProfessions.includes(form.profession)) {
+        console.log("[CompleteProfile Validate]", "Failed: invalid profession", form.profession);
         toast.error("Please select a valid profession");
         return false;
       }
@@ -388,10 +492,13 @@ export default function CompleteProfilePage() {
       try {
         const locationData = JSON.parse(form.location);
         if (!locationData.latitude || !locationData.longitude) {
+          console.log("[CompleteProfile Validate]", "Failed: location missing lat/lng", locationData);
           toast.error('Invalid location data. Please select your location again');
           return false;
         }
-      } catch {
+        console.log("[CompleteProfile Validate]", "Location OK", locationData);
+      } catch (parseErr) {
+        console.log("[CompleteProfile Validate]", "Failed: location parse error", parseErr, "raw:", form.location);
         toast.error('Invalid location format. Please select your location again');
         return false;
       }
@@ -399,10 +506,15 @@ export default function CompleteProfilePage() {
       // Company-specific validation
       if (form.business_type === "company") {
         if (!form.company_number || !form.business_doc) {
+          console.log("[CompleteProfile Validate]", "Failed: company fields", {
+            company_number: form.company_number,
+            business_doc: !!form.business_doc,
+          });
           toast.error("Please fill company number and upload business document");
           return false;
         }
       }
+      console.log("[CompleteProfile Validate]", "Agency validation passed");
     }
 
     return true;
@@ -411,10 +523,38 @@ export default function CompleteProfilePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const debugPrefix = "[CompleteProfile Submit]";
+    console.log(debugPrefix, "Submit clicked", {
+      role: user?.role,
+      isClient,
+      isAgency,
+      formKeys: Object.keys(form),
+    });
+    if (user?.role === "agency" || user?.role === "agency") {
+      console.log(debugPrefix, "Agency form state", {
+        business_type: form.business_type,
+        profession: form.profession,
+        location: form.location,
+        locationParsed: (() => {
+          try {
+            return form.location ? JSON.parse(form.location) : null;
+          } catch (e) {
+            return { parseError: String(e.message) };
+          }
+        })(),
+        company_number: form.company_number,
+        business_doc: form.business_doc?.name ?? form.business_doc,
+        app_fees: form.app_fees,
+        contract_form: form.contract_form,
+        policies: form.policies,
+        website: form.website,
+      });
+    }
     log("Submit clicked. role =", user?.role, "isClient =", isClient, "isAgency =", isAgency);
     logAxiosBase();
 
     if (!validateForm()) {
+      console.log(debugPrefix, "Validation failed on client side.");
       log("Validation failed on client side.");
       return;
     }
@@ -452,17 +592,26 @@ export default function CompleteProfilePage() {
           formData.append("promo_code", form.promo_code.trim());
         }
       } else if (isAgency) {
+        console.log("[CompleteProfile Submit]", "Building agency FormData...");
         formData.append("business_type", form.business_type.toLowerCase()); // ✅ Lowercase
         formData.append("profession", form.profession.toLowerCase()); // ✅ Lowercase
 
         // ✅ Location as JSON string with correct structure
-        const locationData = JSON.parse(form.location);
-        const cleanedLocation = JSON.stringify({
-          latitude: parseFloat(locationData.latitude),
-          longitude: parseFloat(locationData.longitude),
-          country: locationData.country || "Lebanon"
-        });
-        formData.append("location", cleanedLocation);
+        let locationData;
+        try {
+          locationData = JSON.parse(form.location);
+          const cleanedLocation = JSON.stringify({
+            latitude: parseFloat(locationData.latitude),
+            longitude: parseFloat(locationData.longitude),
+            country: locationData.country || "Lebanon"
+          });
+          formData.append("location", cleanedLocation);
+          console.log("[CompleteProfile Submit]", "Location appended", { cleanedLocation, locationData });
+        } catch (locationErr) {
+          console.error("[CompleteProfile Submit]", "Location parse/append error", locationErr);
+          console.log("[CompleteProfile Submit]", "form.location raw:", form.location);
+          throw locationErr;
+        }
 
         // Optional fields - only send if not empty
         if (form.app_fees?.trim()) {
@@ -482,11 +631,22 @@ export default function CompleteProfilePage() {
         if (form.business_type === "company") {
           formData.append("company_number", form.company_number);
           if (form.business_doc) formData.append("business_doc", form.business_doc);
+          console.log("[CompleteProfile Submit]", "Company fields appended", {
+            company_number: form.company_number,
+            business_doc: form.business_doc?.name ?? (form.business_doc ? "present" : "missing"),
+          });
         }
+        const entries = [];
+        formData.forEach((value, key) => {
+          entries.push({ key, value: value instanceof File ? `File: ${value.name}` : value });
+        });
+        console.log("[CompleteProfile Submit]", "FormData entries (agency)", entries);
       }
 
       dumpFormData(formData);
 
+      const apiUrl = api.defaults?.baseURL ? `${api.defaults.baseURL}/profile/complete` : "/profile/complete";
+      console.log("[CompleteProfile Submit]", "POST /profile/complete", { apiUrl, contentType: "multipart/form-data" });
       log("POST /profile/complete starting...");
       const res = await api.post("/profile/complete", formData, {
         headers: {
@@ -495,6 +655,7 @@ export default function CompleteProfilePage() {
         },
       });
 
+      console.log("[CompleteProfile Submit]", "POST /profile/complete success", res.status, res.data);
       log("POST /profile/complete success:", res.status, res.data);
 
       const updatedUser = res.data.user;
@@ -515,7 +676,7 @@ export default function CompleteProfilePage() {
 
       setTimeout(() => {
         if (isComplete) {
-          if (updatedUser.role === "agency" || updatedUser.role === "agent") {
+          if (updatedUser.role === "agency" || updatedUser.role === "agency") {
             navigate("/Dashboard");
           } else {
             navigate("/");
@@ -525,9 +686,14 @@ export default function CompleteProfilePage() {
         }
       }, 500);
     } catch (err) {
+      console.error("[CompleteProfile Submit]", "Request failed", err);
+      console.log("[CompleteProfile Submit]", "Error name:", err?.name, "message:", err?.message);
       log("POST /profile/complete FAILED:", err);
 
       if (err?.response) {
+        console.log("[CompleteProfile Submit]", "Response status:", err.response.status);
+        console.log("[CompleteProfile Submit]", "Response data:", err.response.data);
+        console.log("[CompleteProfile Submit]", "Response headers:", JSON.stringify(err.response.headers, null, 2));
         log("Error response status:", err.response.status);
         log("Error response data:", err.response.data);
         log("Error response headers:", err.response.headers);
@@ -544,12 +710,15 @@ export default function CompleteProfilePage() {
         }
 
         if (err.response?.data?.errors) {
+          console.log("[CompleteProfile Submit]", "Validation errors (422)", err.response.data.errors);
           const errors = Object.values(err.response.data.errors).flat();
           errors.forEach((error) => toast.error(error));
         } else {
+          console.log("[CompleteProfile Submit]", "Error message:", err.response?.data?.message);
           toast.error(err.response?.data?.message || "Failed to complete profile");
         }
       } else if (err?.request) {
+        console.log("[CompleteProfile Submit]", "No response received (network/CORS)", err.request);
         log("No response received. Request:", err.request);
         toast.error("No response from server. Check network/CORS/auth.");
       } else {
@@ -601,7 +770,7 @@ export default function CompleteProfilePage() {
         <Card className="hover-glow shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">
-              Complete Your {user?.role === "client" ? "Client" : "Agent"} Profile
+              Complete Your {user?.role === "client" ? "Client" : "agency"} Profile
             </CardTitle>
             <CardDescription>Please fill all required fields to continue</CardDescription>
           </CardHeader>
@@ -837,7 +1006,7 @@ export default function CompleteProfilePage() {
               )}
 
               {/* AGENCY FIELDS */}
-              {(user?.role === "agency" || user?.role === "agent") && (
+              {(user?.role === "agency" || user?.role === "agency") && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Agency Information</h3>
 
@@ -856,10 +1025,9 @@ export default function CompleteProfilePage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="rental">Rental</SelectItem>
-                          <SelectItem value="dealer">Dealer</SelectItem>
                           <SelectItem value="private">Private</SelectItem>
                           <SelectItem value="company">Company</SelectItem>
-                          <SelectItem value="business">Business</SelectItem>
+                          <SelectItem value="marina">Marina</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -875,9 +1043,7 @@ export default function CompleteProfilePage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="agent">Agent</SelectItem>
-                          <SelectItem value="driver">Driver</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="owner">Owner</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -919,14 +1085,75 @@ export default function CompleteProfilePage() {
                     </div>
                   )}
 
-                  <div>
+                  <div id="agency-location-section">
+                    <Label>Address (region) *</Label>
+                    <Select
+                      value={form.city || ""}
+                      onValueChange={(value) => handleSelectChange("city", value)}
+                    >
+                      <SelectTrigger className="mb-3">
+                        <SelectValue placeholder="Select your region" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ADDRESS_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
                     <Label>Location *</Label>
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-muted-foreground text-xs">Paste Google Maps link</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Input
+                            placeholder="e.g. https://www.google.com/maps/@33.8938,35.5018,17z"
+                            value={googleLinkInput}
+                            onChange={(e) => setGoogleLinkInput(e.target.value)}
+                            onBlur={(e) => {
+                              const v = e.target.value?.trim();
+                              if (v) applyGoogleLink(v);
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => googleLinkInput.trim() && applyGoogleLink(googleLinkInput)}
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-muted-foreground text-xs">Search address</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Input
+                            placeholder="Search address or place..."
+                            value={locationSearchQuery}
+                            onChange={(e) => setLocationSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleLocationSearch())}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleLocationSearch}
+                            disabled={locationSearchLoading}
+                          >
+                            <Search className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           type="button"
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 min-w-[140px]"
                           onClick={getCurrentLocation}
                         >
                           <Navigation className="w-4 h-4 mr-2" />
@@ -935,7 +1162,7 @@ export default function CompleteProfilePage() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 min-w-[140px]"
                           onClick={openMapPicker}
                         >
                           <MapPin className="w-4 h-4 mr-2" />
@@ -1031,16 +1258,30 @@ export default function CompleteProfilePage() {
       </div>
 
       {/* Map Modal */}
-      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
+      <Dialog open={showMapModal} onOpenChange={(open) => { setShowMapModal(open); if (!open) setMapSearchQuery(""); }}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Select Your Location</DialogTitle>
             <DialogDescription>
-              Click on the map to select your business location
+              Search for a place or click on the map to select your business location
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              <div className="flex flex-1 min-w-[200px] rounded-md overflow-hidden border border-input">
+                <Input
+                  placeholder="Search address or place..."
+                  value={mapSearchQuery}
+                  onChange={(e) => setMapSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleMapSearch())}
+                  className="rounded-r-none border-0 h-10 focus-visible:ring-0"
+                />
+                <Button type="button" variant="secondary" onClick={handleMapSearch} disabled={mapSearchLoading} className="rounded-l-none h-10 px-4">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
             <div className="w-full h-[500px] bg-muted rounded-lg overflow-hidden">
               <MapComponent
                 center={mapCenter}

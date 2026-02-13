@@ -362,10 +362,86 @@ export const submitBookingFeedback = (id, data) => {
 };
 
 /**
+ * Get feedback templates (client_rates_car + agent_rates_client).
+ * Use agent_rates_client for agency "Rate client" form.
+ */
+export const getFeedbackTemplates = () => {
+  return api.get('/bookings/feedback-templates');
+};
+
+/**
+ * Submit client rating (agency rates the client).
+ * Allowed when: booking confirmed, rental end_datetime in the past.
+ * @param {number} bookingId - Booking ID
+ * @param {Object} payload - { rating (1-5), template_selections?, comment? }
+ */
+export const submitClientRating = (bookingId, payload) => {
+  return api.post(`/bookings/${bookingId}/client-rating`, {
+    rating: payload.rating,
+    template_selections: payload.template_selections || [],
+    comment: (payload.comment || '').slice(0, 1000),
+  });
+};
+
+/**
  * Get booking invoice
  */
 export const getBookingInvoice = (id) => {
   return api.get(`/bookings/${id}/invoice`);
+};
+
+// ============================
+// Owner Earnings (Balance)
+// ============================
+// Backend rules: total_booking_price and app_fees_amount are set at booking creation (daily rate at that time).
+// Only confirmed + completed bookings count; cancelled/rejected/conflicted/pending are excluded.
+
+/**
+ * Compute earnings summary from driver bookings (fallback when GET /owner/earnings is not available).
+ * Includes only confirmed and completed bookings; excludes cancelled, rejected, pending.
+ * Optionally gets app_fees_percentage from GET /api/profile (user.agent.app_fees).
+ */
+const computeEarningsFromDriverBookings = async () => {
+  const res = await api.get('/driver/bookings');
+  const bookings = res.data?.data || [];
+  const confirmedOrCompleted = bookings.filter(
+    (b) => b.booking_request_status === 'confirmed' || b.booking_request_status === 'completed'
+  );
+  const total_amount = confirmedOrCompleted.reduce((s, b) => s + parseFloat(b.total_booking_price || 0), 0);
+  const app_fees_amount = confirmedOrCompleted.reduce((s, b) => s + (Number(b.app_fees_amount) || 0), 0);
+  let app_fees_percentage = null;
+  try {
+    const profileRes = await api.get('/profile');
+    app_fees_percentage = profileRes.data?.user?.agent?.app_fees ?? profileRes.data?.agent?.app_fees ?? null;
+  } catch (_) {
+    // ignore
+  }
+  return {
+    total_amount,
+    app_fees_amount,
+    net_earnings: total_amount - app_fees_amount,
+    bookings_count: confirmedOrCompleted.length,
+    app_fees_percentage,
+  };
+};
+
+/**
+ * Get owner earnings summary (total amount, app fees, net earnings).
+ * Tries GET /api/owner/earnings first; on 404 falls back to computing from GET /driver/bookings
+ * (only confirmed + completed; app fee % from GET /api/profile when available).
+ * @returns {Promise<{ data: { total_amount, app_fees_amount, net_earnings, bookings_count, app_fees_percentage } }>}
+ */
+export const getOwnerEarnings = async () => {
+  try {
+    const res = await api.get('/owner/earnings');
+    return res;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      const data = await computeEarningsFromDriverBookings();
+      return { data };
+    }
+    throw err;
+  }
 };
 
 // ============================
@@ -569,10 +645,16 @@ export const storeSearch = (data) => {
 };
 
 /**
- * Get search statistics
+ * Get frequent-search statistics (auth required).
+ * @param {Object} [params] - Optional date filter
+ * @param {string} [params.period] - 'days' | 'weeks' | 'months' | 'years'
+ * @param {number} [params.period_value] - e.g. 7 for last 7 days
+ * @param {string} [params.date_from] - Y-m-d (custom range start)
+ * @param {string} [params.date_to] - Y-m-d (custom range end)
+ * @returns {Promise} { success, filter_applied, data }
  */
-export const getSearchStatistics = () => {
-  return api.get('/frequent-searches/statistics');
+export const getSearchStatistics = (params = {}) => {
+  return api.get('/frequent-searches/statistics', { params });
 };
 
 /**
@@ -785,9 +867,12 @@ export default {
   cancelBooking,
   getBookingEstimate,
   submitBookingFeedback,
+  getFeedbackTemplates,
+  submitClientRating,
   getBookingInvoice,
   
   // App Fees
+  getOwnerEarnings,
   getAgentAppFeesBalance,
   getAppFeesBalanceByCar,
   getAdminAgentAppFeesBalance,

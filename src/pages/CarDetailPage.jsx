@@ -29,10 +29,14 @@ import {
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { CarCard } from '@/components/CarCard';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export const CarDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +53,7 @@ export const CarDetailPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFavLoading, setIsFavLoading] = useState(false);
+  const [relatedCars, setRelatedCars] = useState([]);
 
   const minNowLocal = useMemo(() => new Date().toISOString().slice(0, 16), []);
 
@@ -138,19 +143,60 @@ export const CarDetailPage = () => {
         setCar(mappedCar);
         setSelectedImage(0);
 
-        // Get favorites list and check if this car is favorited
-        setIsFavLoading(true);
-        try {
-          const favRes = await api.get('/cars/favorites/list');
-          const favArr = extractFavorites(favRes.data);
-          if (!alive) return;
-          setFavorite(isCarInFavorites(favArr, mappedCar.id));
-        } catch (e) {
+        // Get favorites list and check if this car is favorited (only when authorized)
+        const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+        if (token) {
+          setIsFavLoading(true);
+          try {
+            const favRes = await api.get('/cars/favorites/list');
+            const favArr = extractFavorites(favRes.data);
+            if (!alive) return;
+            setFavorite(isCarInFavorites(favArr, mappedCar.id));
+          } catch (e) {
           // If favorites endpoint fails (auth, etc.), don’t block page
-          if (!alive) return;
-          setFavorite(false);
-        } finally {
-          if (alive) setIsFavLoading(false);
+            if (!alive) return;
+            setFavorite(false);
+          } finally {
+            if (alive) setIsFavLoading(false);
+          }
+        } else {
+          setIsFavLoading(false);
+        }
+
+        // Fetch related cars (others from the same type or general list)
+        try {
+          const carsRes = await api.get('/cars');
+          const raw = carsRes.data?.cars ?? carsRes.data?.data ?? [];
+          const mapped = (Array.isArray(raw) ? raw : [])
+            .filter((c) => String(c.id) !== String(carData.id))
+            .slice(0, 3)
+            .map((c) => {
+              const fbs = c.feedbacks ?? [];
+              const r =
+                fbs.length > 0
+                  ? (fbs.reduce((s, f) => s + (Number(f.rating) || 0), 0) / fbs.length).toFixed(1)
+                  : null;
+              return {
+                id: c.id,
+                brand: c.make,
+                make: c.make,
+                model: c.model,
+                year: c.year,
+                type: c.car_category,
+                category: c.car_category,
+                price: Number(c.daily_rate),
+                image: c.main_image_url,
+                rating: r,
+                reviews: fbs.length,
+                seats: c.seats,
+                doors: c.doors,
+                fuel_type: c.fuel_type,
+                fuelType: c.fuel_type,
+              };
+            });
+          if (alive) setRelatedCars(mapped);
+        } catch (e) {
+          if (alive) setRelatedCars([]);
         }
       } catch (err) {
         console.error('Car fetch error:', err);
@@ -191,16 +237,19 @@ export const CarDetailPage = () => {
   const days = calculateDays();
   const totalPrice = car ? days * car.price : 0;
 
-  // FAVORITE (API)
+  // FAVORITE (API) - only when authorized
   const toggleFavorite = async () => {
     if (!car || isFavLoading) return;
-
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please log in to save favorites.');
+      return;
+    }
     const next = !favorite;
     setFavorite(next); // optimistic
     window.dispatchEvent(new Event('favoritesUpdated'));
 
     try {
-      // POST /cars/{id}/favorite
       await api.post(`/cars/${car.id}/favorite`);
       toast.success(next ? 'Added to favorites' : 'Removed from favorites');
     } catch (err) {
@@ -559,6 +608,23 @@ export const CarDetailPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Related Cars */}
+      {relatedCars.length > 0 && (
+        <div className="container mx-auto px-4 py-6 border-t">
+          <h2 className="text-lg font-semibold mb-4">You might also like</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {relatedCars.map((r) => (
+              <CarCard key={r.id} car={r} />
+            ))}
+          </div>
+          <div className="mt-4 text-center">
+            <Button variant="outline" asChild>
+              <Link to="/cars">View all cars</Link>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Booking Dialog */}
       <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>

@@ -45,13 +45,17 @@ export const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setFavCount(0);
+      return;
+    }
     fetchFavCount();
 
     const onFavUpdated = () => fetchFavCount();
     window.addEventListener('favoritesUpdated', onFavUpdated);
 
     return () => window.removeEventListener('favoritesUpdated', onFavUpdated);
-  }, [fetchFavCount, location.pathname]);
+  }, [isAuthenticated, fetchFavCount, location.pathname]);
 
   // Scroll shadow
   useEffect(() => {

@@ -1,12 +1,11 @@
 // lib/axios.js
 import axios from "axios";
 
-// Get base URL from environment or use default
-// Backend uses /api/api in the path structure
+// Base URL for API (same as Postman: https://rento-lb.com/api/api)
 let baseURL = import.meta.env.VITE_API_URL || "https://rento-lb.com/api/api";
 
 // Clean up baseURL: remove trailing slashes
-baseURL = baseURL.trim().replace(/\/+$/, ''); // Remove trailing slashes
+baseURL = baseURL.trim().replace(/\/+$/, "");
 
 const api = axios.create({
   baseURL: baseURL,

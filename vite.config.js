@@ -4,6 +4,7 @@ import path from 'path';
 import sitemap from 'vite-plugin-sitemap';
 
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     sitemap({

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,22 @@ import {
   Users,
   Calendar,
   Star,
-  Car
+  Car,
+  MapPin,
+  DollarSign,
+  Tag,
+  UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '@/lib/axios';
+import { getSearchStatistics } from '@/lib/api';
 
 Chart.register(...registerables);
+
+// Human-readable labels for API values (per Frequent Search Statistics API docs)
+const CATEGORY_LABELS = { normal: 'Normal', sport: 'Sport', luxury: 'Luxury', commercial: 'Commercial', industrial: 'Industrial', event: 'Event', sea: 'Sea' };
+const DRIVE_TYPE_LABELS = { '4x4': '4x4 / AWD', '2_front': 'Front Wheel', '2_back': 'Rear Wheel', autoblock: 'Autoblock' };
+const TRANSMISSION_LABELS = { automatic: 'Automatic', manual: 'Manual' };
+const FUEL_TYPE_LABELS = { benz: 'Gasoline', diesel: 'Diesel', electric: 'Electric', hybrid: 'Hybrid' };
 
 // Logo Color Palette
 const LOGO_COLORS = {
@@ -32,12 +42,51 @@ const LOGO_COLORS = {
   black: '#000000'
 };
 
+// Date filter presets: { key, label, period, period_value } or { key, label, custom: true }
+const DATE_PRESETS = [
+  { key: '7d', label: 'Last 7 days', period: 'days', period_value: 7 },
+  { key: '30d', label: 'Last 30 days', period: 'days', period_value: 30 },
+  { key: '3m', label: 'Last 3 months', period: 'months', period_value: 3 },
+  { key: '12m', label: 'Last 12 months', period: 'months', period_value: 12 },
+  { key: 'all', label: 'All time', period: null, period_value: null }
+];
+
+function buildStatisticsParams(presetKey, customFrom, customTo) {
+  if (presetKey === 'custom' && customFrom && customTo) {
+    return { date_from: customFrom, date_to: customTo };
+  }
+  const preset = DATE_PRESETS.find(p => p.key === presetKey);
+  if (!preset || preset.key === 'all' || !preset.period) return {};
+  return { period: preset.period, period_value: preset.period_value };
+}
+
+/** Format search_trends date for display (Y-m-d = day, Y-m = month, YYYY-Www = week) */
+function formatTrendDate(dateStr) {
+  if (!dateStr) return '';
+  if (dateStr.length === 10) {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  if (dateStr.length === 7) {
+    const [y, m] = dateStr.split('-');
+    return new Date(parseInt(y, 10), parseInt(m, 10) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
+  if (dateStr.match(/^\d{4}-\d{1,2}$/)) {
+    const [y, w] = dateStr.split('-');
+    return `Week ${w}, ${y}`;
+  }
+  return dateStr;
+}
+
 export const StatisticPage = () => {
   const [isDark, setIsDark] = useState(false);
   const [user, setUser] = useState(null);
   const [data, setData] = useState(null);
+  const [filterApplied, setFilterApplied] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [datePreset, setDatePreset] = useState('30d');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const chartsRef = useRef({});
 
   // Theme Handler
@@ -62,29 +111,35 @@ export const StatisticPage = () => {
     if (storedUser) setUser(storedUser);
   }, []);
 
-  // Fetch statistics data
-  useEffect(() => {
-    const fetchStatistics = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get('/frequent-searches/statistics');
+  const fetchStatistics = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = buildStatisticsParams(datePreset, customFrom, customTo);
+      const response = await getSearchStatistics(params);
 
-        if (response.data.success) {
-          setData(response.data.data);
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } catch (err) {
-        console.error('Statistics fetch error:', err);
-        setError(err.message || 'Failed to load statistics');
-        toast.error('Failed to load statistics');
-      } finally {
-        setLoading(false);
+      if (response.data?.success) {
+        setData(response.data.data ?? null);
+        setFilterApplied(response.data.filter_applied ?? null);
+      } else {
+        throw new Error('Invalid response format');
       }
-    };
+    } catch (err) {
+      console.error('Statistics fetch error:', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to load statistics';
+      setError(msg);
+      toast.error(msg);
+      if (err.response?.status === 401) {
+        toast.error('Please log in to view statistics');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [datePreset, customFrom, customTo]);
 
+  useEffect(() => {
     fetchStatistics();
-  }, []);
+  }, [fetchStatistics]);
 
   // Chart colors using logo palette
   const chartColors = {
@@ -201,7 +256,7 @@ export const StatisticPage = () => {
       createChart(
         'catChart',
         'doughnut',
-        data.by_category.map(i => i.category),
+        data.by_category.map(i => CATEGORY_LABELS[i.category] || i.category),
         data.by_category.map(i => i.total),
         [chartColors.darkBlue, chartColors.teal, chartColors.limeGreen]
       );
@@ -224,7 +279,7 @@ export const StatisticPage = () => {
       createChart(
         'transChart',
         'pie',
-        data.by_transmission.map(i => i.transmission),
+        data.by_transmission.map(i => TRANSMISSION_LABELS[i.transmission] || i.transmission),
         data.by_transmission.map(i => i.total),
         [chartColors.darkBlue, chartColors.limeGreen]
       );
@@ -235,9 +290,32 @@ export const StatisticPage = () => {
       createChart(
         'fuelChart',
         'doughnut',
-        data.by_fuel_type.map(i => i.fuel_type),
+        data.by_fuel_type.map(i => FUEL_TYPE_LABELS[i.fuel_type] || i.fuel_type),
         data.by_fuel_type.map(i => i.total),
         [chartColors.teal, chartColors.limeGreen]
+      );
+    }
+
+    // Drive Type Chart - Doughnut
+    if (data.by_drive_type?.length > 0) {
+      createChart(
+        'driveChart',
+        'doughnut',
+        data.by_drive_type.map(i => DRIVE_TYPE_LABELS[i.drive_type] || i.drive_type),
+        data.by_drive_type.map(i => i.total),
+        [chartColors.darkBlue, chartColors.teal, chartColors.limeGreen]
+      );
+    }
+
+    // City Chart - Bar (top cities)
+    if (data.by_city?.length > 0) {
+      const topCities = data.by_city.slice(0, 10);
+      createChart(
+        'cityChart',
+        'bar',
+        topCities.map(i => i.city),
+        topCities.map(i => i.total),
+        chartColors.teal
       );
     }
 
@@ -252,7 +330,7 @@ export const StatisticPage = () => {
         const chart = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: data.search_trends.map(i => new Date(i.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+            labels: data.search_trends.map(i => formatTrendDate(i.date)),
             datasets: [{
               label: 'Daily Searches',
               data: data.search_trends.map(i => i.total),
@@ -427,19 +505,68 @@ export const StatisticPage = () => {
 
       <main className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl relative z-10">
         
+        {/* Date filter: presets + custom range + active label */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            {DATE_PRESETS.map((p) => (
+              <Button
+                key={p.key}
+                variant={datePreset === p.key ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDatePreset(p.key)}
+                style={datePreset === p.key ? { backgroundColor: LOGO_COLORS.teal } : {}}
+              >
+                {p.label}
+              </Button>
+            ))}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Custom:</span>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-2 py-1.5"
+              />
+              <span className="text-gray-500">–</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-2 py-1.5"
+              />
+              <Button
+                size="sm"
+                onClick={() => setDatePreset('custom')}
+                disabled={!customFrom || !customTo}
+                style={{ backgroundColor: LOGO_COLORS.darkBlue }}
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {filterApplied?.label ?? 'All time'}
+          </div>
+        </motion.div>
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <StatCard
             icon={Activity}
             title="Total Searches"
-            value={data.total_searches?.toLocaleString() || '0'}
+            value={data.total_searches?.toLocaleString() ?? '0'}
             gradient={`linear-gradient(135deg, ${LOGO_COLORS.darkBlue}, ${LOGO_COLORS.teal})`}
             delay={0}
           />
           <StatCard
             icon={Users}
             title="Active Users"
-            value={data.total_users?.toString() || '0'}
+            value={data.total_users?.toString() ?? '0'}
+            subtitle={Number(data.total_users) > 0 ? `~${Math.round(Number(data.total_searches) / Number(data.total_users))} avg searches` : undefined}
             gradient={`linear-gradient(135deg, ${LOGO_COLORS.teal}, ${LOGO_COLORS.limeGreen})`}
             delay={0.1}
           />
@@ -482,7 +609,7 @@ export const StatisticPage = () => {
                     </div>
                   </div>
                   <Badge className="text-xs px-2 py-1" style={{ backgroundColor: `${LOGO_COLORS.limeGreen}30`, color: LOGO_COLORS.limeGreen }}>
-                    Last {data.search_trends.length} days
+                    {filterApplied?.label ?? (data.search_trends.length ? `${data.search_trends.length} points` : '')}
                   </Badge>
                 </div>
                 <div className="h-48 md:h-56">
@@ -531,7 +658,147 @@ export const StatisticPage = () => {
               delay={0.8}
             />
           )}
+          {data.by_drive_type?.length > 0 && (
+            <ChartCard
+              title="Drive Type"
+              subtitle="Distribution"
+              icon={Gauge}
+              id="driveChart"
+              delay={0.85}
+            />
+          )}
+          {data.by_city?.length > 0 && (
+            <ChartCard
+              title="Top Cities"
+              subtitle="Most searched"
+              icon={MapPin}
+              id="cityChart"
+              delay={0.9}
+            />
+          )}
         </div>
+
+        {/* Price range & Top features */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+          {data.by_price_range?.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.95 }}
+            >
+              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-xl rounded-xl border" style={{ borderColor: `${LOGO_COLORS.teal}40` }}>
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LOGO_COLORS.darkBlue}, ${LOGO_COLORS.teal})` }}>
+                      <DollarSign className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold dark:text-white">By Price Range</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Daily rate ranges</p>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <th className="text-left py-2 font-semibold dark:text-white">Range</th>
+                          <th className="text-right py-2 font-semibold dark:text-white">Searches</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.by_price_range.map((row, i) => (
+                          <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                            <td className="py-2 text-gray-700 dark:text-gray-300">
+                              {row.daily_rate_min != null || row.daily_rate_max != null
+                                ? `${row.daily_rate_min ?? '—'} – ${row.daily_rate_max ?? '—'}`
+                                : 'Any'}
+                            </td>
+                            <td className="py-2 text-right font-medium dark:text-white">{row.total}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+          {data.top_features?.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1 }}
+            >
+              <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-xl rounded-xl border" style={{ borderColor: `${LOGO_COLORS.darkBlue}40` }}>
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LOGO_COLORS.teal}, ${LOGO_COLORS.limeGreen})` }}>
+                      <Tag className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold dark:text-white">Top Features</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Popular options</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {data.top_features.map((item, i) => (
+                      <Badge
+                        key={i}
+                        variant="secondary"
+                        className="text-xs px-3 py-1"
+                        style={{ backgroundColor: `${LOGO_COLORS.teal}20`, color: LOGO_COLORS.darkBlue }}
+                      >
+                        {item.feature} ({item.count})
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Most active users */}
+        {data.most_active_users?.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.05 }}
+            className="mb-6 md:mb-8"
+          >
+            <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-xl rounded-xl border" style={{ borderColor: `${LOGO_COLORS.limeGreen}40` }}>
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LOGO_COLORS.limeGreen}, ${LOGO_COLORS.teal})` }}>
+                    <UserCheck className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold dark:text-white">Most Active Users</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Top searchers</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="text-left py-2 font-semibold dark:text-white">User</th>
+                        <th className="text-right py-2 font-semibold dark:text-white">Searches</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.most_active_users.map((row) => (
+                        <tr key={row.user_id} className="border-b border-gray-100 dark:border-gray-800">
+                          <td className="py-2 text-gray-700 dark:text-gray-300">{row.user_name ?? `User #${row.user_id}`}</td>
+                          <td className="py-2 text-right font-medium dark:text-white">{row.total_searches}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Recent Searches */}
         <motion.div
@@ -566,13 +833,28 @@ export const StatisticPage = () => {
                           <p className="font-bold text-sm md:text-base dark:text-white truncate">
                             {search.make || 'Any Make'} {search.model || ''}
                           </p>
-                          {search.year_min && (
+                          {search.year_min != null && (
                             <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                              {search.year_min}–{search.year_max}
+                              {search.year_min}–{search.year_max ?? '—'}
                             </Badge>
+                          )}
+                          {search.user_name && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">by {search.user_name}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+                          {search.city && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" style={{ color: LOGO_COLORS.teal }} />
+                              {search.city}
+                            </span>
+                          )}
+                          {(search.daily_rate_min != null || search.daily_rate_max != null) && (
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3" />
+                              {search.daily_rate_min ?? '—'} – {search.daily_rate_max ?? '—'}
+                            </span>
+                          )}
                           {search.transmission && (
                             <span className="flex items-center gap-1">
                               <Gauge className="w-3 h-3" style={{ color: LOGO_COLORS.teal }} />
@@ -587,12 +869,12 @@ export const StatisticPage = () => {
                           )}
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(search.last_searched_at).toLocaleString('en-US', {
+                            {search.last_searched_at ? new Date(search.last_searched_at).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
-                            })}
+                            }) : '—'}
                           </span>
                         </div>
                       </div>

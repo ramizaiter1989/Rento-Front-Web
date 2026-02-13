@@ -280,7 +280,7 @@ export const ClientBookingPage = () => {
             )}
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-6">
             {filteredBookings.map((booking) => {
               const status = getStatusConfig(booking.booking_request_status);
               const duration = differenceInDays(new Date(booking.end_datetime), new Date(booking.start_datetime)) + 1;
