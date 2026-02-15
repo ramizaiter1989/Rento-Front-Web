@@ -2,7 +2,7 @@ import '../styles/auth-animations.css';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
-import { sendOtp, sendForgotPasswordOtp, verifyOtp } from "@/lib/otpApi";
+import { getOrCreateDeviceId, sendOtp, sendForgotPasswordOtp, verifyOtp } from "@/lib/otpApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +16,8 @@ import countriesData from "@/lib/countries.json";
 // ===================
 // Feature flags
 // ===================
-// Toggle this to false later to re‑enable web OTP flows
-const OTP_PAUSED = true;
+// Web registration: OTP enabled; only client role can register from /auth
+const OTP_PAUSED = false;
 
 // ===================
 // PhoneRow Component
@@ -165,8 +165,6 @@ export function AuthPage() {
   const licenseNumberRef = useRef(null);
   const passwordRef = useRef(null);
   const passwordConfirmRef = useRef(null);
-  const roleRef = useRef(null);
-  const businessTypeRef = useRef(null);
   const termsRef = useRef(null);
 
   // Timer for resend OTP
@@ -241,30 +239,33 @@ export function AuthPage() {
 
     try {
       setLoading(true);
-      const response = await sendOtp(fullPhone);
-      
-      // Handle success message
-      if (response.message) {
-        toast.success(response.message);
-      }
-      
-      // Handle warning (e.g., SMS delivery may be delayed)
-      if (response.warning) {
-        toast.warning(response.warning);
-      }
-      
+      const deviceId = getOrCreateDeviceId();
+      const response = await sendOtp(fullPhone, deviceId);
+
+      if (response.message) toast.success(response.message);
+      if (response.warning) toast.warning(response.warning);
+
       setOtpSent(true);
       setCanResend(false);
       setResendTimer(60);
     } catch (err) {
-      // Handle validation errors
-      if (err.response?.data?.errors) {
+      if (err.response?.status === 429) {
+        const retryAfter = err.response?.headers?.["retry-after"];
+        const sec = retryAfter ? parseInt(retryAfter, 10) : 60;
+        if (!Number.isNaN(sec) && sec > 0) {
+          toast.error(`Too many attempts. Try again in ${sec} second${sec !== 1 ? "s" : ""}.`);
+        } else {
+          toast.error("Too many attempts. Try again in a minute.");
+        }
+      } else if (err.response?.status === 422 && err.response?.data?.errors) {
         const errors = err.response.data.errors;
         Object.keys(errors).forEach((key) => {
-          errors[key].forEach((error) => toast.error(error));
+          (errors[key] || []).forEach((msg) => toast.error(msg));
         });
+      } else if (err.response?.data?.error) {
+        toast.error(err.response.data.error);
       } else {
-        toast.error(err.response?.data?.message || "Failed to send OTP.");
+        toast.error(err.response?.data?.message || "Failed to send OTP. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -352,15 +353,7 @@ export function AuthPage() {
       nextErrors.password_confirmation = true;
       hasError = true;
     }
-    if (!registerData.role) {
-      nextErrors.role = true;
-      hasError = true;
-    }
-    // Business type is required when registering as agency
-    if (registerData.role === "agency" && !registerData.business_type?.trim()) {
-      nextErrors.business_type = true;
-      hasError = true;
-    }
+    // Home /auth registration is client-only; no role selector
     if (!termsAccepted) {
       nextErrors.terms = true;
       hasError = true;
@@ -377,8 +370,6 @@ export function AuthPage() {
         "license_number",
         "password",
         "password_confirmation",
-        "role",
-        "business_type",
         "terms",
       ];
       const fieldRefs = {
@@ -388,8 +379,6 @@ export function AuthPage() {
         license_number: licenseNumberRef,
         password: passwordRef,
         password_confirmation: passwordConfirmRef,
-        role: roleRef,
-        business_type: businessTypeRef,
         terms: termsRef,
       };
 
@@ -420,7 +409,7 @@ export function AuthPage() {
         phone_number: cleanPhone,
         otp_code: otpCode,
         ...registerData,
-        ...((registerData.role === "agency" || registerData.role === "agnecy") && { business_type: registerData.business_type }),
+        role: "client",
       };
 
       const res = await api.post("/auth/register", payload);
@@ -1129,66 +1118,6 @@ export function AuthPage() {
                         placeholder="Re-enter password"
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Role</Label>
-                      <Select
-                        value={registerData.role}
-                        onValueChange={(value) => {
-                          setRegisterData({ ...registerData, role: value });
-                          setRegisterErrors((prev) => ({
-                            ...prev,
-                            role: false,
-                            license_number: false,
-                            business_type: false,
-                          }));
-                        }}
-                      >
-                        <SelectTrigger
-                          ref={roleRef}
-                          className={`border-2 ${
-                            registerErrors.role ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
-                        >
-                          <SelectValue placeholder="Select Role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="client">Client</SelectItem>
-                          <SelectItem value="agency">Agency</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {registerData.role === "agency" && (
-                      <div className="space-y-2 animate-fade-in-up">
-                        <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Business Type <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={registerData.business_type}
-                          onValueChange={(value) => {
-                            setRegisterData({ ...registerData, business_type: value });
-                            setRegisterErrors((prev) => ({ ...prev, business_type: false }));
-                          }}
-                        >
-                          <SelectTrigger
-                            ref={businessTypeRef}
-                            className={`border-2 ${
-                              registerErrors.business_type ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                            } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
-                          >
-                            <SelectValue placeholder="Select Business Type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {/* Must match backend: rental, private, company, marina */}
-                            <SelectItem value="rental">Rental</SelectItem>
-                            <SelectItem value="private">Private</SelectItem>
-                            <SelectItem value="company">Company</SelectItem>
-                            <SelectItem value="marina">Marina</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
 
                     <div className="flex items-start gap-2">
                       <input

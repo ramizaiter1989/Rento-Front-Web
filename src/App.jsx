@@ -52,6 +52,7 @@ import AdminNotificationsPage from "@/pages/admin/AdminNotificationsPage";
 import AdminOtpsPage from "@/pages/admin/AdminOtpsPage";
 import AdminPromoCodesPage from "@/pages/admin/AdminPromoCodesPage";
 import AdminBrokersPage from "@/pages/admin/AdminBrokersPage";
+import AdminAgenciesPage from "@/pages/admin/AdminAgenciesPage";
 import AdminServicesPage from "@/pages/admin/AdminServicesPage";
 import AdminRealUserDataPage from "@/pages/admin/AdminRealUserDataPage";
 import AdsAnalyticsPage from "@/pages/AdsAnalyticsPage";
@@ -286,6 +287,7 @@ function AppContent() {
 
             {/* Management */}
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="agencies" element={<AdminAgenciesPage />} />
             <Route path="cars" element={<AdminCarsPage />} />
             <Route path="bookings" element={<AdminBookingsPage />} />
             <Route path="real-user-data" element={<AdminRealUserDataPage />} />

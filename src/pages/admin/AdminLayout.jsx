@@ -21,6 +21,7 @@ import {
   Tag,
   Briefcase,
   FileCheck,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -53,6 +54,7 @@ const NAV_SECTIONS = [
     title: "MANAGEMENT",
     items: [
       { to: "/admin/users", label: "Users", icon: Users },
+      { to: "/admin/agencies", label: "Agencies", icon: Store },
       { to: "/admin/real-user-data", label: "Real User Data", icon: FileCheck },
       { to: "/admin/cars", label: "Cars", icon: Car },
       { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },

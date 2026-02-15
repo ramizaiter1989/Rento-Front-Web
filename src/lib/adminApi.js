@@ -100,69 +100,72 @@ export const linkRealUserData = (userId, data) => {
 // ============================
 
 /**
- * Get all cars with optional filters
+ * Get all cars with optional filters (Super Admin Car Management)
+ * GET /api/admin/cars
  * @param {Object} params - Query parameters
  * @param {string} params.status - Filter: available, not_available, rented, maintenance
  * @param {string} params.car_accepted - Filter: true or false
  * @param {number} params.agent_id - Filter by owner (agency user ID)
  * @param {string} params.is_private - Filter: true or false
  * @param {string} params.search - Search in make, model, license_plate, color
- * @param {boolean} params.with_images - Include car images (default: true)
  * @param {number} params.per_page - Items per page (default: 50)
  * @param {number} params.page - Page number
- * @returns {Promise} Response with paginated cars
+ * @returns {Promise} Response with { cars, meta }
  */
 export const getCars = (params = {}) => {
-  const finalParams = { with_images: true, ...params };
-  return api.get('/admin/cars', { params: finalParams });
+  return api.get('/admin/cars', { params });
 };
 
 /**
- * Get car details by ID
+ * Get single car with full details (Super Admin)
+ * GET /api/admin/cars/{id}
  * @param {number} id - Car ID
- * @returns {Promise} Response with car details
+ * @returns {Promise} Response with { car } including agent, featured_listing, bookings, check_photos, holidays, feedbacks, deposits, balances, favorites
  */
 export const getCar = (id) => {
   return api.get(`/admin/cars/${id}`);
 };
 
 /**
- * Update car
+ * Update car (Super Admin). Data-only uses JSON; data + images use multipart/form-data.
+ * PUT /api/admin/cars/{id}
  * @param {number} id - Car ID
- * @param {Object} data - Car data to update
- * @param {string} data.status - Car status
- * @param {boolean} data.car_accepted - Approval status
- * @param {string} data.notes - Admin notes
- * @param {File|string} data.main_image - Main car image (File or URL)
- * @param {File|string} data.front_image - Front car image (File or URL)
- * @param {File|string} data.back_image - Back car image (File or URL)
- * @param {File|string} data.left_image - Left car image (File or URL)
- * @param {File|string} data.right_image - Right car image (File or URL)
- * @returns {Promise} Response with updated car
+ * @param {Object} data - Car data to update. Only fields you send are updated.
+ *   For images use File: main_image, front_image, back_image, left_image, right_image (jpg/jpeg/png, max 5MB).
+ *   Objects/arrays (live_location, features, car_add_on, reason_of_rent, qualification_code) can be sent as objects; they are JSON-stringified in FormData.
+ * @returns {Promise} Response with { message, car }
  */
 export const updateCar = (id, data) => {
-  const formData = new FormData();
+  const imageKeys = ['main_image', 'front_image', 'back_image', 'left_image', 'right_image'];
+  const hasFile = Object.keys(data).some(key => imageKeys.includes(key) && data[key] instanceof File);
 
-  Object.keys(data).forEach(key => {
-    const value = data[key];
-    if (value === undefined || value === null) return;
-    if (key.endsWith('_image') && value instanceof File) {
-      formData.append(key, value);
-    } else if (key.endsWith('_image') && typeof value === 'string') {
-      formData.append(key, value);
-    } else if (!key.endsWith('_image')) {
-      if (Array.isArray(value) || (typeof value === 'object' && value !== null && !(value instanceof File))) {
+  if (hasFile) {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+      if (value === undefined || value === null) return;
+      if (value instanceof File) {
+        formData.append(key, value);
+      } else if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
         formData.append(key, JSON.stringify(value));
       } else {
         formData.append(key, value);
       }
-    }
-  });
+    });
+    // Do not set Content-Type; browser sets multipart/form-data with boundary for FormData
+    const putConfig = { headers: { ...api.defaults.headers.common, ...(api.defaults.headers.put || {}) } };
+    delete putConfig.headers['Content-Type'];
+    return api.put(`/admin/cars/${id}`, formData, putConfig);
+  }
 
-  return api.put(`/admin/cars/${id}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+  const cleanData = {};
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    if (value === undefined || value === null) return;
+    cleanData[key] = value;
+  });
+  return api.put(`/admin/cars/${id}`, cleanData, {
+    headers: { 'Content-Type': 'application/json' },
   });
 };
 
@@ -189,21 +192,27 @@ export const deleteCar = (id) => {
 };
 
 /**
- * Update car photo (replace single image by type)
+ * Replace a single car image by type (Super Admin). Does not change other car data.
  * POST /api/admin/cars/{id}/photo
  * @param {number} id - Car ID
  * @param {File} image - Image file (jpg, jpeg, png, max 5MB)
- * @param {string} imageType - Image type: main, front, back, left, right
- * @returns {Promise} Response with updated car
+ * @param {string} imageType - One of: main, front, back, left, right
+ * @returns {Promise} Response with { message, car }
  */
 export const updateCarPhoto = (id, image, imageType) => {
   const formData = new FormData();
   formData.append('image', image);
-  formData.append('type', imageType); // API expects "type"
+  const type = String(imageType ?? '').trim().toLowerCase();
+  formData.append('type', type);
+
+  // Let browser set Content-Type with boundary (no Content-Type header so multipart works)
   return api.post(`/admin/cars/${id}/photo`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    transformRequest: [(data, headers) => {
+      if (typeof FormData !== 'undefined' && data instanceof FormData) {
+        delete headers['Content-Type'];
+      }
+      return data;
+    }],
   });
 };
 
@@ -219,6 +228,38 @@ export const downloadCarImage = async (id, type) => {
     responseType: 'blob',
   });
   return res.data;
+};
+
+// ============================
+// Agencies (Super Admin Only)
+// ============================
+
+/**
+ * List agencies (Super Admin only). Paginated with filters and sort.
+ * GET /api/admin/agencies
+ * @param {Object} params - Query parameters
+ * @param {number} params.per_page - Items per page (default: 20)
+ * @param {number} params.page - Page number
+ * @param {string} params.sort_by - created_at | username | first_name | last_name
+ * @param {string} params.sort_order - asc | desc
+ * @param {boolean} params.verified_only - If true, only verified agencies
+ * @param {string} params.business_type - rental | private | company | marina
+ * @param {string} params.address - Governorate filter (Beirut, Mount Lebanon, North, etc.)
+ * @param {string} params.search - Search username, first_name, last_name
+ * @returns {Promise} Response with { success, agencies: { data, current_page, last_page, per_page, total, ... } }
+ */
+export const getAgencies = (params = {}) => {
+  return api.get('/admin/agencies', { params });
+};
+
+/**
+ * Get single agency by ID (Super Admin only).
+ * GET /api/admin/agencies/{id}
+ * @param {number} id - Agency user ID
+ * @returns {Promise} Response with { success, agency }
+ */
+export const getAgency = (id) => {
+  return api.get(`/admin/agencies/${id}`);
 };
 
 // ============================
@@ -1344,6 +1385,8 @@ export default {
   // Cars
   getCars,
   getCar,
+  getAgencies,
+  getAgency,
   updateCar,
   updateCarAcceptReject,
   deleteCar,

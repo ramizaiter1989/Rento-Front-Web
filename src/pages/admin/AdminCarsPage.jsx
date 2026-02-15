@@ -738,6 +738,7 @@ const AdminCarsPage = () => {
               onClose={() => setModalOpen(false)}
               onAccept={() => acceptCar(selectedItem)}
               onReject={() => rejectCar(selectedItem)}
+              onCarUpdated={(updated) => setSelectedItem(updated)}
             />
           ) : (
             editingCar && (
@@ -856,14 +857,42 @@ function RelatedSection({ title, items, renderItem }) {
   );
 }
 
-function CarDetailsView({ car, imgUrl, getStorageUrl, onEdit, onClose, onAccept, onReject }) {
+function CarDetailsView({ car, imgUrl, getStorageUrl, onEdit, onClose, onAccept, onReject, onCarUpdated }) {
   const agent = car?.agent || null;
   const [downloading, setDownloading] = useState(null);
+  const [replacing, setReplacing] = useState(null);
+  const [dragOverImageType, setDragOverImageType] = useState(null);
+  const { toast } = useToast();
+  const fileInputRefs = React.useRef({});
 
   // Display: /api/storage/{database-url}
   const displayUrl = (fullUrlKey, pathKey) => {
     const path = car?.[pathKey];
     return getStorageUrl?.(path) || imgUrl(path);
+  };
+
+  const isImageFile = (file) => file && file.type && ["image/jpeg", "image/jpg", "image/png"].includes(file.type);
+
+  const handleReplaceImage = async (imageType, file) => {
+    if (!file || !car?.id) return;
+    if (!isImageFile(file)) {
+      toast({ title: "Invalid file", description: "Please use a JPG or PNG image.", variant: "destructive" });
+      return;
+    }
+    setReplacing(imageType);
+    try {
+      const res = await updateCarPhoto(car.id, file, imageType);
+      const data = res.data || res;
+      const updated = data?.car ?? data ?? car;
+      onCarUpdated?.(updated);
+      toast({ title: "Saved", description: `${imageType} image updated`, variant: "default" });
+    } catch (e) {
+      const msg = e.response?.data?.errors?.image?.[0] || e.response?.data?.message || "Failed to replace image";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    } finally {
+      setReplacing(null);
+      if (fileInputRefs.current[imageType]) fileInputRefs.current[imageType].value = "";
+    }
   };
 
   // Download image: use API endpoint GET .../images/{type}/download (saves to local computer)
@@ -1033,26 +1062,39 @@ function CarDetailsView({ car, imgUrl, getStorageUrl, onEdit, onClose, onAccept,
       <div className="border-t pt-3" />
 
       <div className="space-y-3">
-        <div className="text-sm font-semibold">Car Images</div>
+        <div className="text-sm font-semibold">Car Images — drag & drop or click Replace</div>
 
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted-foreground">Main</span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={downloading === "main"}
-              onClick={() => handleDownloadImage("main")}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
+            <div className="flex gap-1">
+              <input
+                ref={(el) => (fileInputRefs.current.main = el)}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReplaceImage("main", f); }}
+              />
+              <Button variant="outline" size="sm" className="h-7" disabled={replacing === "main"} onClick={() => fileInputRefs.current.main?.click()}>
+                {replacing === "main" ? "Uploading…" : "Replace"}
+              </Button>
+              <Button variant="outline" size="sm" disabled={downloading === "main"} onClick={() => handleDownloadImage("main")}>
+                <Download className="h-4 w-4 mr-1" />
+                Download
+              </Button>
+            </div>
           </div>
-          <img
-            src={displayUrl("main_image_full_url", "main_image_url")}
-            alt="Main Car"
-            className="w-full max-h-[260px] object-cover rounded-md border"
-          />
+          <div
+            className={`relative rounded-md border transition-colors ${dragOverImageType === "main" ? "ring-2 ring-[#00A19C] bg-[#00A19C]/10" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverImageType("main"); }}
+            onDragLeave={(e) => { e.preventDefault(); setDragOverImageType((t) => (t === "main" ? null : t)); }}
+            onDrop={(e) => { e.preventDefault(); setDragOverImageType(null); const file = e.dataTransfer?.files?.[0]; if (file) handleReplaceImage("main", file); }}
+          >
+            <img src={displayUrl("main_image_full_url", "main_image_url")} alt="Main Car" className="w-full max-h-[260px] object-cover rounded-md border-0" />
+            {dragOverImageType === "main" && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30 text-white text-sm font-medium">Drop image here</div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1065,22 +1107,33 @@ function CarDetailsView({ car, imgUrl, getStorageUrl, onEdit, onClose, onAccept,
             <div key={type} className="space-y-1">
               <div className="flex items-center justify-between gap-1">
                 <span className="text-muted-foreground">{label}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-1"
-                  disabled={downloading === type}
-                  onClick={() => handleDownloadImage(type)}
-                  title="Download"
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
+                <div className="flex gap-0.5">
+                  <input
+                    ref={(el) => (fileInputRefs.current[type] = el)}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReplaceImage(type, f); }}
+                  />
+                  <Button variant="ghost" size="sm" className="h-6 px-1 text-xs" disabled={replacing === type} onClick={() => fileInputRefs.current[type]?.click()} title="Replace">
+                    {replacing === type ? "…" : "Replace"}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-6 px-1" disabled={downloading === type} onClick={() => handleDownloadImage(type)} title="Download">
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-              <img
-                src={displayUrl(fullKey, pathKey)}
-                alt={label}
-                className="h-[120px] w-full object-cover rounded-md border"
-              />
+              <div
+                className={`relative rounded-md border transition-colors ${dragOverImageType === type ? "ring-2 ring-[#00A19C] bg-[#00A19C]/10" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverImageType(type); }}
+                onDragLeave={(e) => { e.preventDefault(); setDragOverImageType((t) => (t === type ? null : t)); }}
+                onDrop={(e) => { e.preventDefault(); setDragOverImageType(null); const file = e.dataTransfer?.files?.[0]; if (file) handleReplaceImage(type, file); }}
+              >
+                <img src={displayUrl(fullKey, pathKey)} alt={label} className="h-[120px] w-full object-cover rounded-md border-0" />
+                {dragOverImageType === type && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30 text-white text-xs font-medium">Drop</div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1118,9 +1171,56 @@ const IMAGE_TYPES = [
   { type: "right", label: "Right", fullKey: "right_image_full_url", pathKey: "right_image_url" },
 ];
 
+// Stable components outside EditCarView so inputs keep focus on re-render
+function AdminCarInputRow({ label, value, onChange, type = "text", disabled = false }) {
+  const displayValue = value === null || value === undefined ? "" : String(value);
+  const handleChange = (e) => {
+    if (type === "number") {
+      const v = e.target.value === "" ? "" : Number(e.target.value);
+      onChange(Number.isNaN(v) ? e.target.value : v);
+    } else {
+      onChange(e.target.value);
+    }
+  };
+  return (
+    <div className="space-y-0.5">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <Input type={type} value={displayValue} onChange={handleChange} disabled={disabled} className="h-8" />
+    </div>
+  );
+}
+
+function AdminCarSelectRow({ label, value, onChange, options, emptySentinel }) {
+  const displayValue = emptySentinel ? (value ?? "") || emptySentinel : String(value ?? "");
+  const onSelect = (v) => onChange(emptySentinel && v === emptySentinel ? "" : v);
+  return (
+    <div className="space-y-0.5">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <Select value={displayValue} onValueChange={onSelect}>
+        <SelectTrigger className="h-8">
+          <SelectValue placeholder="Select..." />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((op) => {
+            const val = op.value === "" || op.value == null ? (emptySentinel || "__none__") : String(op.value);
+            return (
+              <SelectItem key={val} value={val}>
+                {op.label}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+const ACCEPT_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
+
 function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
   const { toast } = useToast();
   const [replacing, setReplacing] = useState(null);
+  const [dragOverImageType, setDragOverImageType] = useState(null);
   const fileInputRefs = React.useRef({});
 
   const setVal = (key, value) => setCar((p) => ({ ...p, [key]: value }));
@@ -1131,15 +1231,21 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
     return imgUrl(car?.[pathKey]);
   };
 
+  const isImageFile = (file) => file && file.type && ACCEPT_IMAGE_TYPES.includes(file.type);
+
   const handleReplaceImage = async (imageType, file) => {
     if (!file || !car?.id) return;
+    if (!isImageFile(file)) {
+      toast({ title: "Invalid file", description: "Please use a JPG or PNG image.", variant: "destructive" });
+      return;
+    }
     setReplacing(imageType);
     try {
       const res = await updateCarPhoto(car.id, file, imageType);
       const data = res.data || res;
       const updated = data?.car ?? data ?? car;
       setCar(updated);
-      toast({ title: "Image updated", description: `${imageType} image replaced successfully` });
+      toast({ title: "Saved", description: `${imageType} image updated`, variant: "default" });
     } catch (e) {
       const msg = e.response?.data?.errors?.image?.[0] || e.response?.data?.message || "Failed to replace image";
       toast({ title: "Error", description: msg, variant: "destructive" });
@@ -1161,7 +1267,7 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
       return <div className="text-sm text-muted-foreground">N/A</div>;
 
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {arr.map((x, idx) => (
           <Badge key={idx} variant="outline">
             {typeof x === "string" ? x : (x?.name ?? JSON.stringify(x))}
@@ -1172,71 +1278,28 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
   };
 
   const ToggleRow = ({ label, value, onChange }) => (
-    <div className="flex items-center justify-between gap-3 py-2">
+    <div className="flex items-center justify-between gap-2 py-1">
       <div className="text-sm">{label}</div>
-
       <button
         type="button"
         role="switch"
         aria-checked={!!value}
         onClick={() => onChange(!value)}
         className={[
-          "relative inline-flex h-5 w-10 items-center rounded-full transition-colors",
+          "relative inline-flex h-5 w-10 shrink-0 items-center rounded-full transition-colors",
           value ? "bg-teal-600" : "bg-muted",
           "focus:outline-none focus:ring-2 focus:ring-teal-500/40",
         ].join(" ")}
       >
         <span
           className={[
-            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow",
             value ? "translate-x-5" : "translate-x-1",
-            "shadow",
           ].join(" ")}
         />
       </button>
     </div>
   );
-
-  function InputRow({ label, field, type = "text", disabled = false }) {
-    return (
-      <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <Input
-          type={type}
-          value={car?.[field] ?? ""}
-          onChange={(e) => setVal(field, type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
-          disabled={disabled}
-        />
-      </div>
-    );
-  }
-
-  // emptySentinel: use when options include an "empty" choice; Radix Select forbids value=""
-  function SelectRow({ label, field, options, emptySentinel }) {
-    const raw = car?.[field];
-    const value = emptySentinel ? (raw ?? "") || emptySentinel : String(raw ?? "");
-    const onSelect = (v) => setVal(field, emptySentinel && v === emptySentinel ? "" : v);
-    return (
-      <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <Select value={value} onValueChange={onSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select..." />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((op) => {
-              const val = op.value === "" || op.value == null ? (emptySentinel || "__none__") : String(op.value);
-              return (
-                <SelectItem key={val} value={val}>
-                  {op.label}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  }
 
   const save = async () => {
     try {
@@ -1290,90 +1353,116 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
     }
   };
 
+  const cylinderOptions = [{ label: "—", value: "" }, { label: "4", value: "4" }, { label: "6", value: "6" }, { label: "8", value: "8" }, { label: "10", value: "10" }, { label: "12", value: "12" }];
+  const statusOptions = [
+    { label: "Available", value: "available" },
+    { label: "Not Available", value: "not_available" },
+    { label: "Rented", value: "rented" },
+    { label: "Maintenance", value: "maintenance" },
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
-        <InputRow label="ID" field="id" disabled />
-        <InputRow label="Make" field="make" />
-        <InputRow label="Model" field="model" />
-        <InputRow label="Year" field="year" type="number" />
-        <SelectRow label="Cylinder" field="cylinder_number" emptySentinel="__none__" options={[{ label: "—", value: "" }, { label: "4", value: "4" }, { label: "6", value: "6" }, { label: "8", value: "8" }, { label: "10", value: "10" }, { label: "12", value: "12" }]} />
-
-        <InputRow label="License Plate" field="license_plate" />
-        <InputRow label="Color" field="color" />
-
-        <InputRow label="Mileage" field="mileage" type="number" />
-        <InputRow label="Fuel Type" field="fuel_type" />
-
-        <InputRow label="Transmission" field="transmission" />
-        <InputRow label="Wheels Drive" field="wheels_drive" />
-
-        <InputRow label="Category" field="car_category" />
-
-        <InputRow label="Seats" field="seats" type="number" />
-        <InputRow label="Doors" field="doors" type="number" />
-
-        <InputRow label="Daily Rate" field="daily_rate" type="number" />
-        <InputRow label="Holiday Rate" field="holiday_rate" type="number" />
-        <InputRow label="Deposit" field="deposit" type="number" />
-        <InputRow label="Delivery Fees" field="delivery_fees" type="number" />
-        <InputRow label="Driver Fees" field="driver_fees" type="number" />
-
-        <InputRow label="Min Rental Days" field="min_rental_days" type="number" />
-        <InputRow label="Max Driving Mileage" field="max_driving_mileage" type="number" />
-
-        <InputRow label="Agent ID (reassign owner)" field="agent_id" type="number" />
-        <InputRow label="Insurance Expiry" field="insurance_expiry" type="date" />
-        <InputRow label="Registration Expiry" field="registration_expiry" type="date" />
-
-        <InputRow label="Views Count" field="views_count" type="number" />
-        <InputRow label="Clicks Count" field="clicks_count" type="number" />
-        <InputRow label="Search Count" field="search_count" type="number" />
+    <div className="space-y-3">
+      {/* Basic info */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-2">
+        <AdminCarInputRow label="ID" value={car?.id} onChange={() => {}} disabled />
+        <AdminCarInputRow label="Make" value={car?.make ?? ""} onChange={(v) => setVal("make", v)} />
+        <AdminCarInputRow label="Model" value={car?.model ?? ""} onChange={(v) => setVal("model", v)} />
+        <AdminCarInputRow label="Year" value={car?.year ?? ""} onChange={(v) => setVal("year", v)} type="number" />
+        <AdminCarSelectRow label="Cylinder" value={car?.cylinder_number} onChange={(v) => setVal("cylinder_number", v)} options={cylinderOptions} emptySentinel="__none__" />
+        <AdminCarInputRow label="License Plate" value={car?.license_plate ?? ""} onChange={(v) => setVal("license_plate", v)} />
+        <AdminCarInputRow label="Color" value={car?.color ?? ""} onChange={(v) => setVal("color", v)} />
+        <AdminCarInputRow label="Mileage" value={car?.mileage ?? ""} onChange={(v) => setVal("mileage", v)} type="number" />
+        <AdminCarInputRow label="Fuel Type" value={car?.fuel_type ?? ""} onChange={(v) => setVal("fuel_type", v)} />
+        <AdminCarInputRow label="Transmission" value={car?.transmission ?? ""} onChange={(v) => setVal("transmission", v)} />
+        <AdminCarInputRow label="Wheels Drive" value={car?.wheels_drive ?? ""} onChange={(v) => setVal("wheels_drive", v)} />
+        <AdminCarInputRow label="Category" value={car?.car_category ?? ""} onChange={(v) => setVal("car_category", v)} />
+        <AdminCarInputRow label="Seats" value={car?.seats ?? ""} onChange={(v) => setVal("seats", v)} type="number" />
+        <AdminCarInputRow label="Doors" value={car?.doors ?? ""} onChange={(v) => setVal("doors", v)} type="number" />
       </div>
 
-      <div className="border-t pt-3" />
-
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Features</div>
-        {listToBadges(car?.features)}
+      {/* Pricing */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2">
+        <AdminCarInputRow label="Daily Rate" value={car?.daily_rate ?? ""} onChange={(v) => setVal("daily_rate", v)} type="number" />
+        <AdminCarInputRow label="Holiday Rate" value={car?.holiday_rate ?? ""} onChange={(v) => setVal("holiday_rate", v)} type="number" />
+        <AdminCarInputRow label="Deposit" value={car?.deposit ?? ""} onChange={(v) => setVal("deposit", v)} type="number" />
+        <AdminCarInputRow label="Delivery Fees" value={car?.delivery_fees ?? ""} onChange={(v) => setVal("delivery_fees", v)} type="number" />
+        <AdminCarInputRow label="Driver Fees" value={car?.driver_fees ?? ""} onChange={(v) => setVal("driver_fees", v)} type="number" />
       </div>
 
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Add-ons</div>
-        {listToBadges(car?.add_ons)}
+      {/* Limits & owner */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2">
+        <AdminCarInputRow label="Min Rental Days" value={car?.min_rental_days ?? ""} onChange={(v) => setVal("min_rental_days", v)} type="number" />
+        <AdminCarInputRow label="Max Driving Mileage" value={car?.max_driving_mileage ?? ""} onChange={(v) => setVal("max_driving_mileage", v)} type="number" />
+        <AdminCarInputRow label="Agent ID" value={car?.agent_id ?? ""} onChange={(v) => setVal("agent_id", v)} type="number" />
+        <AdminCarInputRow label="Insurance Expiry" value={car?.insurance_expiry ?? ""} onChange={(v) => setVal("insurance_expiry", v)} type="date" />
+        <AdminCarInputRow label="Registration Expiry" value={car?.registration_expiry ?? ""} onChange={(v) => setVal("registration_expiry", v)} type="date" />
       </div>
 
-      <div className="border-t pt-3" />
+      {/* Analytics */}
+      <div className="grid grid-cols-3 gap-x-3 gap-y-2">
+        <AdminCarInputRow label="Views" value={car?.views_count ?? ""} onChange={(v) => setVal("views_count", v)} type="number" />
+        <AdminCarInputRow label="Clicks" value={car?.clicks_count ?? ""} onChange={(v) => setVal("clicks_count", v)} type="number" />
+        <AdminCarInputRow label="Search" value={car?.search_count ?? ""} onChange={(v) => setVal("search_count", v)} type="number" />
+      </div>
 
-      <div className="space-y-3">
-        <div className="text-sm font-semibold">Car Images</div>
+      <div className="border-t border-border pt-2 mt-2" />
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">Main</span>
-            <div className="flex items-center gap-1">
-              <input
-                ref={(el) => (fileInputRefs.current.main = el)}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReplaceImage("main", f); }}
-              />
-              <Button type="button" variant="outline" size="sm" disabled={replacing === "main"} onClick={() => fileInputRefs.current.main?.click()}>
-                {replacing === "main" ? "Uploading…" : "Replace"}
-              </Button>
-            </div>
-          </div>
-          <a href={displayUrl("main_image_full_url", "main_image_url")} target="_blank" rel="noreferrer">
-            <img src={displayUrl("main_image_full_url", "main_image_url")} alt="Main" className="w-full max-h-[260px] object-cover rounded-md border" />
-          </a>
+      <div className="flex flex-wrap gap-2 text-sm">
+        <div className="w-full sm:w-auto min-w-[120px]">
+          <div className="text-xs text-muted-foreground mb-0.5">Features</div>
+          {listToBadges(car?.features)}
         </div>
+        <div className="w-full sm:w-auto min-w-[120px]">
+          <div className="text-xs text-muted-foreground mb-0.5">Add-ons</div>
+          {listToBadges(car?.add_ons)}
+        </div>
+      </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="border-t border-border pt-2 mt-2" />
+
+      <div className="space-y-2">
+        <div className="text-xs font-medium text-muted-foreground">Car Images — drag & drop or click Replace</div>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground text-sm">Main</span>
+            <input
+              ref={(el) => (fileInputRefs.current.main = el)}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReplaceImage("main", f); }}
+            />
+            <Button type="button" variant="outline" size="sm" className="h-7" disabled={replacing === "main"} onClick={() => fileInputRefs.current.main?.click()}>
+              {replacing === "main" ? "Uploading…" : "Replace"}
+            </Button>
+          </div>
+          <div
+            className={`relative rounded border transition-colors ${dragOverImageType === "main" ? "ring-2 ring-[#00A19C] bg-[#00A19C]/10" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverImageType("main"); }}
+            onDragLeave={(e) => { e.preventDefault(); setDragOverImageType((t) => (t === "main" ? null : t)); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverImageType(null);
+              const file = e.dataTransfer?.files?.[0];
+              if (file) handleReplaceImage("main", file);
+            }}
+          >
+            <a href={displayUrl("main_image_full_url", "main_image_url")} target="_blank" rel="noreferrer" className="block">
+              <img src={displayUrl("main_image_full_url", "main_image_url")} alt="Main" className="w-full max-h-[200px] object-cover rounded border-0" />
+            </a>
+            {dragOverImageType === "main" && (
+              <div className="absolute inset-0 flex items-center justify-center rounded bg-black/30 text-white text-sm font-medium">
+                Drop image here
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {IMAGE_TYPES.filter((t) => t.type !== "main").map(({ type, label, fullKey, pathKey }) => (
-            <div key={type} className="space-y-1">
+            <div key={type} className="space-y-0.5">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-muted-foreground">{label}</span>
+                <span className="text-muted-foreground text-xs">{label}</span>
                 <input
                   ref={(el) => (fileInputRefs.current[type] = el)}
                   type="file"
@@ -1381,49 +1470,62 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
                   className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReplaceImage(type, f); }}
                 />
-                <Button type="button" variant="outline" size="sm" className="h-7 px-1" disabled={replacing === type} onClick={() => fileInputRefs.current[type]?.click()}>
+                <Button type="button" variant="outline" size="sm" className="h-6 px-1 text-xs" disabled={replacing === type} onClick={() => fileInputRefs.current[type]?.click()}>
                   {replacing === type ? "…" : "Replace"}
                 </Button>
               </div>
-              <a href={displayUrl(fullKey, pathKey)} target="_blank" rel="noreferrer">
-                <img src={displayUrl(fullKey, pathKey)} alt={label} className="h-[120px] w-full object-cover rounded-md border" />
-              </a>
+              <div
+                className={`relative rounded border transition-colors ${dragOverImageType === type ? "ring-2 ring-[#00A19C] bg-[#00A19C]/10" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverImageType(type); }}
+                onDragLeave={(e) => { e.preventDefault(); setDragOverImageType((t) => (t === type ? null : t)); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverImageType(null);
+                  const file = e.dataTransfer?.files?.[0];
+                  if (file) handleReplaceImage(type, file);
+                }}
+              >
+                <a href={displayUrl(fullKey, pathKey)} target="_blank" rel="noreferrer" className="block">
+                  <img src={displayUrl(fullKey, pathKey)} alt={label} className="h-[80px] w-full object-cover rounded border-0" />
+                </a>
+                {dragOverImageType === type && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded bg-black/30 text-white text-xs font-medium">
+                    Drop
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="space-y-2">
-        <SelectRow
-          label="Status"
-          field="status"
-          options={[
-            { label: "Available", value: "available" },
-            { label: "Not Available", value: "not_available" },
-            { label: "Rented", value: "rented" },
-            { label: "Maintenance", value: "maintenance" },
-          ]}
-        />
+      <div className="border-t border-border pt-2 mt-2" />
 
-        <div className="text-sm font-semibold">Notes</div>
-        <textarea
-          className="w-full border rounded-md p-2 min-h-[90px]"
-          value={car?.notes ?? ""}
-          onChange={(e) => setVal("notes", e.target.value)}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+        <AdminCarSelectRow label="Status" value={car?.status} onChange={(v) => setVal("status", v)} options={statusOptions} />
+        <div className="space-y-0.5">
+          <div className="text-xs text-muted-foreground">Notes</div>
+          <textarea
+            className="w-full border rounded-md p-2 min-h-[72px] text-sm resize-y"
+            value={car?.notes ?? ""}
+            onChange={(e) => setVal("notes", e.target.value)}
+          />
+        </div>
       </div>
 
-      <ToggleRow label="Car Accepted" value={car?.car_accepted} onChange={(v) => setVal("car_accepted", v ? 1 : 0)} />
-      <ToggleRow label="Is Private" value={car?.is_private} onChange={(v) => setVal("is_private", v ? 1 : 0)} />
-      <ToggleRow label="Is Deposit" value={car?.is_deposit} onChange={(v) => setVal("is_deposit", v ? 1 : 0)} />
-      <ToggleRow label="With Driver" value={car?.with_driver} onChange={(v) => setVal("with_driver", v ? 1 : 0)} />
-      <ToggleRow label="Is Delivered" value={car?.is_delivered} onChange={(v) => setVal("is_delivered", v ? 1 : 0)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-1">
+        <ToggleRow label="Car Accepted" value={car?.car_accepted} onChange={(v) => setVal("car_accepted", v ? 1 : 0)} />
+        <ToggleRow label="Is Private" value={car?.is_private} onChange={(v) => setVal("is_private", v ? 1 : 0)} />
+        <ToggleRow label="Is Deposit" value={car?.is_deposit} onChange={(v) => setVal("is_deposit", v ? 1 : 0)} />
+        <ToggleRow label="With Driver" value={car?.with_driver} onChange={(v) => setVal("with_driver", v ? 1 : 0)} />
+        <ToggleRow label="Is Delivered" value={car?.is_delivered} onChange={(v) => setVal("is_delivered", v ? 1 : 0)} />
+      </div>
 
-      <div className="pt-3 flex gap-2">
-        <Button className="flex-1" onClick={save}>
+      <div className="pt-2 flex gap-2">
+        <Button className="flex-1 h-8" onClick={save}>
           Update Car
         </Button>
-        <Button variant="outline" className="w-28" onClick={onClose}>
+        <Button variant="outline" className="w-24 h-8" onClick={onClose}>
           Cancel
         </Button>
       </div>
