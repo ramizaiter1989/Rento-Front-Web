@@ -1,7 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/lib/axios";
 import { getCars, getCar, updateCar, updateCarPhoto, updateCarAcceptReject, downloadCarImage, deleteCar as deleteCarApi } from "@/lib/adminApi";
-import { Search, Car, Download, Check, X } from "lucide-react";
+import {
+  Search,
+  Car,
+  Download,
+  Check,
+  X,
+  Eye,
+  Trash2,
+  Edit,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
+
 
 import {
   Table,
@@ -11,10 +23,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, Edit } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectTrigger,
@@ -57,6 +70,7 @@ const AdminCarsPage = () => {
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, per_page: PER_PAGE, total: 0 });
   const [loading, setLoading] = useState(true);
 
+
   // server-side filters (API params)
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -93,6 +107,26 @@ const AdminCarsPage = () => {
   const [rateFrom, setRateFrom] = useState("");
   const [rateTo, setRateTo] = useState("");
 
+
+
+//agent logo helper
+  const DEFAULT_AGENT_LOGO = "/avatar.png";
+
+const getAgentLogo = (agent) => {
+  if (!agent?.profile_picture) return DEFAULT_AGENT_LOGO;
+
+  if (agent.profile_picture.startsWith("http")) {
+    return agent.profile_picture;
+  }
+
+  const cleaned = agent.profile_picture.startsWith("/")
+    ? agent.profile_picture.slice(1)
+    : agent.profile_picture;
+
+  return `${storageBase}${cleaned}`;
+};
+
+
   // End Tony Update
   /* ============================
      Fetch cars (server-side filters + pagination)
@@ -107,7 +141,7 @@ const AdminCarsPage = () => {
         ...(carAcceptedFilter && carAcceptedFilter !== "all" && { car_accepted: carAcceptedFilter }),
         ...(isPrivateFilter && isPrivateFilter !== "all" && { is_private: isPrivateFilter }),
         ...(agentIdFilter && { agent_id: Number(agentIdFilter) }),
-        ...(searchQuery && searchQuery.trim() && { search: searchQuery.trim() }),
+        // ...(searchQuery && searchQuery.trim() && { search: searchQuery.trim() }),
       };
       const res = await getCars(params);
       const data = res.data || res;
@@ -263,101 +297,116 @@ const AdminCarsPage = () => {
      Filter + sort
   ============================ */
   const filteredCars = useMemo(() => {
-    let data = [...cars];
+  let data = [...cars];
 
-    // categories (multi)
-    if (categories.length > 0) {
-      data = data.filter((c) => categories.includes(c.car_category));
-    }
+  // 🔎 GLOBAL SEARCH (car + agent)
+  if (searchQuery && searchQuery.trim()) {
+    const q = searchQuery.toLowerCase().trim();
 
-    // status (reserved / available)
-    if (status.length > 0) {
-      data = data.filter((c) => status.includes(c.status));
-    }
+    data = data.filter((car) =>
+      JSON.stringify(car)
+        .toLowerCase()
+        .includes(q)
+    );
+  }
 
-    // year range
-    const from = yearFrom ? Number(yearFrom) : null;
-    const to = yearTo ? Number(yearTo) : null;
+  // categories (multi)
+  if (categories.length > 0) {
+    data = data.filter((c) => categories.includes(c.car_category));
+  }
 
-    if (from !== null || to !== null) {
-      data = data.filter((c) => {
-        const y = Number(c.year);
-        if (Number.isNaN(y)) return false;
+  // status (reserved / available)
+  if (status.length > 0) {
+    data = data.filter((c) => status.includes(c.status));
+  }
 
-        if (from !== null && y < from) return false;
-        if (to !== null && y > to) return false;
+  // year range
+  const from = yearFrom ? Number(yearFrom) : null;
+  const to = yearTo ? Number(yearTo) : null;
 
-        return true;
-      });
-    }
+  if (from !== null || to !== null) {
+    data = data.filter((c) => {
+      const y = Number(c.year);
+      if (Number.isNaN(y)) return false;
 
-    // daily rate range
-    const rFrom = rateFrom !== "" ? toNumber(rateFrom) : null;
-    const rTo = rateTo !== "" ? toNumber(rateTo) : null;
+      if (from !== null && y < from) return false;
+      if (to !== null && y > to) return false;
 
-    if (rFrom !== null || rTo !== null) {
-      data = data.filter((c) => {
-        const rate = toNumber(c.daily_rate);
+      return true;
+    });
+  }
 
-        // if car has invalid rate, ignore it (or return false if you prefer)
-        if (Number.isNaN(rate)) return false;
+  // daily rate range
+  const rFrom = rateFrom !== "" ? toNumber(rateFrom) : null;
+  const rTo = rateTo !== "" ? toNumber(rateTo) : null;
 
-        if (rFrom !== null && !Number.isNaN(rFrom) && rate < rFrom)
-          return false;
-        if (rTo !== null && !Number.isNaN(rTo) && rate > rTo) return false;
+  if (rFrom !== null || rTo !== null) {
+    data = data.filter((c) => {
+      const rate = toNumber(c.daily_rate);
+      if (Number.isNaN(rate)) return false;
 
-        return true;
-      });
-    }
+      if (rFrom !== null && !Number.isNaN(rFrom) && rate < rFrom)
+        return false;
+      if (rTo !== null && !Number.isNaN(rTo) && rate > rTo)
+        return false;
 
-    // sort
-    if (sort === "newest") {
-      data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    }
+      return true;
+    });
+  }
 
-    if (sort === "price") {
-      data.sort((a, b) => {
-        const ar = toNumber(a.daily_rate);
-        const br = toNumber(b.daily_rate);
-        if (Number.isNaN(ar) && Number.isNaN(br)) return 0;
-        if (Number.isNaN(ar)) return 1;
-        if (Number.isNaN(br)) return -1;
-        return ar - br;
-      });
-    }
+  // sort
+  if (sort === "newest") {
+    data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
 
-    if (sort === "year_asc" || sort === "year_desc") {
-      data.sort((a, b) => {
-        const ay = Number(a.year);
-        const by = Number(b.year);
-        if (Number.isNaN(ay) && Number.isNaN(by)) return 0;
-        if (Number.isNaN(ay)) return 1;
-        if (Number.isNaN(by)) return -1;
-        return sort === "year_asc" ? ay - by : by - ay;
-      });
-    }
+  if (sort === "price") {
+    data.sort((a, b) => {
+      const ar = toNumber(a.daily_rate);
+      const br = toNumber(b.daily_rate);
+      if (Number.isNaN(ar) && Number.isNaN(br)) return 0;
+      if (Number.isNaN(ar)) return 1;
+      if (Number.isNaN(br)) return -1;
+      return ar - br;
+    });
+  }
 
-    if (sort === "views_asc" || sort === "views_desc") {
-      data.sort((a, b) => {
-        const av = Number(a.views_count);
-        const bv = Number(b.views_count);
-        if (Number.isNaN(av) && Number.isNaN(bv)) return 0;
-        if (Number.isNaN(av)) return 1;
-        if (Number.isNaN(bv)) return -1;
-        return sort === "views_asc" ? av - bv : bv - av;
-      });
-    }
-    return data;
-  }, [
-    cars,
-    categories,
-    status,
-    sort,
-    yearFrom,
-    yearTo,
-    rateFrom,
-    rateTo,
-  ]);
+  if (sort === "year_asc" || sort === "year_desc") {
+    data.sort((a, b) => {
+      const ay = Number(a.year);
+      const by = Number(b.year);
+      if (Number.isNaN(ay) && Number.isNaN(by)) return 0;
+      if (Number.isNaN(ay)) return 1;
+      if (Number.isNaN(by)) return -1;
+      return sort === "year_asc" ? ay - by : by - ay;
+    });
+  }
+
+  if (sort === "views_asc" || sort === "views_desc") {
+    data.sort((a, b) => {
+      const av = Number(a.views_count);
+      const bv = Number(b.views_count);
+      if (Number.isNaN(av) && Number.isNaN(bv)) return 0;
+      if (Number.isNaN(av)) return 1;
+      if (Number.isNaN(bv)) return -1;
+      return sort === "views_asc" ? av - bv : bv - av;
+    });
+  }
+
+  return data;
+}, [
+  cars,
+  searchQuery,   // ✅ IMPORTANT
+  categories,
+  status,
+  sort,
+  yearFrom,
+  yearTo,
+  rateFrom,
+  rateTo,
+]);
+
+
+
 
   /* ============================
      Render
@@ -551,170 +600,215 @@ const AdminCarsPage = () => {
 
       {/* Table */}
       {loading ? (
-        <p className="text-muted-foreground">Loading cars...</p>
-      ) : (
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {/*  Start tony Update */}
-                  <TableHead>Car</TableHead>
-                  <TableHead>Year</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Daily Rate</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Accepted</TableHead>
-                  <TableHead>Views</TableHead>
-                  <TableHead>Actions</TableHead>
-                  {/*  End tony Update */}
-                </TableRow>
-              </TableHeader>
+  <p className="text-muted-foreground">Loading cars...</p>
+) : (
+  <>
+    {/* GRID */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {filteredCars.map((car) => (
+        <div
+          key={car.id}
+          className={`
+  border rounded-lg p-3 transition-all duration-300
+  ${
+    car.car_accepted
+      ? "bg-green-500/10 border-green-500/40 hover:bg-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+      : "bg-red-500/10 border-red-500/40 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+  }
+`}
 
-              <TableBody>
-                {filteredCars.map((car) => (
-                  <TableRow key={car.id}>
-                    <TableCell className="font-medium">
-                      <span
-                        className="item-name-hover inline-flex items-center gap-2 cursor-pointer"
-                        title={carTooltip(car)}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openViewCar(car)}
-                      >
-                        {car.make} {car.model}
-                      </span>
-                    </TableCell>
-                    <TableCell>{car.year}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{car.car_category}</Badge>
-                    </TableCell>
+  
+        >
+          {/* IMAGE */}
+<div className="relative h-36 mb-2 overflow-hidden rounded-md">
+  <img
+    src={imgUrl(car.main_image_url)}
+    alt={car.make}
+    className="w-full h-full object-cover"
+  />
 
-                    <TableCell>${car.daily_rate}</TableCell>
+ {/* Agent Logo */}
+{car.agent?.profile_picture && (
+  <img
+    src={
+      car.agent.profile_picture.startsWith("http")
+        ? car.agent.profile_picture
+        : `https://rento-lb.com/api/storage/${car.agent.profile_picture.replace(/^\/?storage\//, "")}`
+    }
+    alt={car.agent?.username}
+    className="absolute bottom-2 right-2 w-8 h-8 rounded-full border-2 border-white shadow-md bg-white object-cover z-20"
+    onError={(e) => {
+      e.currentTarget.onerror = null;
+      e.currentTarget.src = "/avatar.png";
+    }}
+  />
+)}
 
-                    <TableCell>
-                      <span
-                        className="car-make-model-hover inline-flex items-center gap-2 cursor-pointer"
-                        title={agentTooltip(car)}
-                      >
-                        {car.agent?.username || "—"}
-                      </span>
-                    </TableCell>
 
-                    <TableCell>
-                      {car.status === "available" && <Badge className="bg-green-500">Available</Badge>}
-                      {car.status === "not_available" && <Badge variant="secondary">Not Available</Badge>}
-                      {car.status === "rented" && <Badge variant="default">Rented</Badge>}
-                      {car.status === "maintenance" && <Badge variant="outline">Maintenance</Badge>}
-                      {!["available", "not_available", "rented", "maintenance"].includes(car.status) && <Badge variant="outline">{car.status || "—"}</Badge>}
-                    </TableCell>
+</div>
 
-                    <TableCell>
-                      {car.car_accepted ? (
-                        <Badge className="bg-green-600">Yes</Badge>
-                      ) : (
-                        <Badge variant="secondary">No</Badge>
-                      )}
-                      <div className="flex gap-1 mt-1">
-                        {!car.car_accepted ? (
-                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => acceptCar(car)} title="Accept car">
-                            <Check className="h-3 w-3 mr-1" />
-                            Accept
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => rejectCar(car)} title="Reject car">
-                            <X className="h-3 w-3 mr-1" />
-                            Reject
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+          {/* TITLE */}
+          <h3 className="font-semibold text-sm">
+            {car.make} {car.model}
+          </h3>
 
-                    <TableCell>{car.views_count}</TableCell>
-                    {/* Start tony Update */}
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="View Details"
-                          onClick={() => openViewCar(car)}
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Edit Details"
-                          onClick={() => openEditCar(car)}
-                          title="Edit Details"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+          {/* BASIC INFO */}
+          <div className="text-xs text-muted-foreground mt-1 space-y-1">
+            <div>Year: {car.year}</div>
+            <div>Rate: ${car.daily_rate}</div>
+            <div>Agent: {car.agent?.username || "—"}</div>
+            <div>Views: {car.views_count}</div>
+          </div>
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Delete Car"
-                          onClick={() =>
-                            showConfirmDialog(
-                              "Delete Car",
-                              "Are you sure you want to delete this car?",
-                              () => deleteCar(car.id),
-                            )
-                          }
-                          title="Remove Car"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    {/* End tony Update */}
-                  </TableRow>
-                ))}
+          {/* STATUS */}
+          <div className="mt-2 flex flex-wrap gap-1">
+            <Badge variant="outline">{car.car_category}</Badge>
 
-                {filteredCars.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-center text-muted-foreground py-6"
-                    >
-                      No cars found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-          {meta.last_page > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-2">
-              <p className="text-sm text-muted-foreground">
-                Page {meta.current_page} of {meta.last_page} ({meta.total} total)
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={meta.current_page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={meta.current_page >= meta.last_page}
-                  onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
-                >
-                  Next
-                </Button>
-              </div>
+            {car.status === "available" && (
+              <Badge className="bg-green-600">Available</Badge>
+            )}
+
+            {car.car_accepted ? (
+  <Badge className="bg-green-500/20 text-green-700 border-green-500/40">
+    Accepted
+  </Badge>
+) : (
+  <Badge className="bg-red-500/20 text-red-700 border-red-500/40">
+    Rejected
+  </Badge>
+)}
+
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => openViewCar(car)}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => openEditCar(car)}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() =>
+                  showConfirmDialog(
+                    "Delete Car",
+                    "Are you sure you want to delete this car?",
+                    () => deleteCar(car.id)
+                  )
+                }
+              >
+                <Trash2 className="w-4 h-4 text-red-500" />
+              </Button>
             </div>
-          )}
-        </Card>
-      )}
+
+            {!car.car_accepted ? (
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => acceptCar(car)}
+              >
+                Accept
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => rejectCar(car)}
+              >
+                Reject
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* EMPTY */}
+    {filteredCars.length === 0 && (
+      <div className="text-center text-muted-foreground mt-10">
+        No cars found
+      </div>
+    )}
+
+    {/* PAGINATION */}
+    {/* SERVER PAGINATION */}
+{meta.last_page > 1 && (
+  <div className="flex flex-col items-center gap-3 mt-10">
+
+    <div className="text-sm text-muted-foreground">
+      Showing page <span className="font-semibold text-foreground">
+        {meta.current_page}
+      </span>{" "}
+      of <span className="font-semibold text-foreground">
+        {meta.last_page}
+      </span>{" "}
+      ({meta.total} cars)
+    </div>
+
+    <div className="flex items-center gap-2 flex-wrap justify-center">
+
+      {/* PREVIOUS */}
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={meta.current_page <= 1}
+        onClick={() => setPage((p) => p - 1)}
+      >
+        <ChevronLeft size={16} />
+      </Button>
+
+      {/* PAGE NUMBERS */}
+      {Array.from(
+        { length: meta.last_page },
+        (_, i) => i + 1
+      )
+        .filter(
+          (p) =>
+            p === 1 ||
+            p === meta.last_page ||
+            Math.abs(p - meta.current_page) <= 2
+        )
+        .map((p, index, arr) => (
+          <Button
+            key={p}
+            size="sm"
+            variant={p === meta.current_page ? "default" : "outline"}
+            onClick={() => setPage(p)}
+          >
+            {p}
+          </Button>
+        ))}
+
+      {/* NEXT */}
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={meta.current_page >= meta.last_page}
+        onClick={() => setPage((p) => p + 1)}
+      >
+        <ChevronRight size={16} />
+      </Button>
+
+    </div>
+  </div>
+)}
+
+  </>
+)}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -856,253 +950,168 @@ function RelatedSection({ title, items, renderItem }) {
   );
 }
 
-function CarDetailsView({ car, imgUrl, getStorageUrl, onEdit, onClose, onAccept, onReject }) {
+function CarDetailsView({
+  car,
+  imgUrl,
+  getStorageUrl,
+  onEdit,
+  onClose,
+  onAccept,
+  onReject,
+}) {
   const agent = car?.agent || null;
-  const [downloading, setDownloading] = useState(null);
-
-  // Display: /api/storage/{database-url}
-  const displayUrl = (fullUrlKey, pathKey) => {
-    const path = car?.[pathKey];
-    return getStorageUrl?.(path) || imgUrl(path);
-  };
-
-  // Download image: use API endpoint GET .../images/{type}/download (saves to local computer)
-  const handleDownloadImage = async (type) => {
-    if (!car?.id) return;
-    setDownloading(type);
-    try {
-      const blob = await downloadCarImage(car.id, type);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `car_${car.id}_${type}.jpg`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDownloading(null);
-    }
-  };
-
-  function FieldRow({ label, value }) {
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">{label} :</span>
-        <span className="text-foreground">{value ?? "N/A"}</span>
-      </div>
-    );
-  }
-
-  const YesNoChip = ({ label, ok }) => (
-    <div className="flex items-center gap-2 whitespace-nowrap">
-      <span className="text-muted-foreground">{label}</span>
-      <Badge
-        className={ok ? "bg-green-600" : ""}
-        variant={ok ? "default" : "destructive"}
-      >
-        {ok ? "Yes" : "No"}
-      </Badge>
-    </div>
-  );
-
-  const StatusChip = ({ status }) => {
-    const isAvailable = String(status).toLowerCase() === "available";
-    return (
-      <div className="flex items-center gap-2 whitespace-nowrap">
-        <span className="text-muted-foreground">Status</span>
-        <Badge
-          className={isAvailable ? "bg-green-600" : ""}
-          variant={isAvailable ? "default" : "destructive"}
-        >
-          {status ?? "N/A"}
-        </Badge>
-      </div>
-    );
-  };
 
   const money = (v) => {
-    if (v === null || v === undefined || v === "") return "N/A";
+    if (!v) return "N/A";
     const n = Number(v);
-    if (Number.isNaN(n)) return String(v);
+    if (Number.isNaN(n)) return v;
     return `$${n.toFixed(2)}`;
   };
 
-  const listToBadges = (arr) => {
-    if (!Array.isArray(arr) || arr.length === 0)
-      return <div className="text-sm text-muted-foreground">N/A</div>;
+  const InfoItem = ({ label, value }) => (
+    <div className="flex flex-col">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">
+        {label}
+      </span>
+      <span className="text-sm font-medium text-foreground">
+        {value ?? "N/A"}
+      </span>
+    </div>
+  );
 
-    return (
-      <div className="flex flex-wrap gap-2">
-        {arr.map((x, idx) => (
-          <Badge key={idx} variant="outline">
-            {typeof x === "string" ? x : (x?.name ?? JSON.stringify(x))}
-          </Badge>
-        ))}
-      </div>
+  const YesNoBadge = ({ value }) =>
+    value ? (
+      <Badge className="bg-green-500/20 text-green-700 border-green-500/40">
+        Yes
+      </Badge>
+    ) : (
+      <Badge className="bg-red-500/20 text-red-700 border-red-500/40">
+        No
+      </Badge>
     );
-  };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
-        <FieldRow label="ID" value={car?.id} />
-        <FieldRow label="Make" value={car?.make} />
-        <FieldRow label="Model" value={car?.model} />
-        <FieldRow label="Year" value={car?.year} />
+    <div className="space-y-6">
 
-        <FieldRow label="License Plate" value={car?.license_plate} />
-        <FieldRow label="Color" value={car?.color} />
+      {/* HERO SECTION */}
+      <div className="relative rounded-xl overflow-hidden border">
+        <img
+          src={imgUrl(car.main_image_url)}
+          alt={car.make}
+          className="w-full h-[260px] object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
-        <FieldRow label="Mileage" value={car?.mileage} />
-        <FieldRow label="Fuel Type" value={car?.fuel_type} />
-
-        <FieldRow label="Transmission" value={car?.transmission} />
-        <FieldRow label="Wheels Drive" value={car?.wheels_drive} />
-
-        <FieldRow label="Category" value={car?.car_category} />
-        <FieldRow label="Seats" value={car?.seats} />
-
-        <FieldRow label="Doors" value={car?.doors} />
-        <FieldRow label="Daily Rate" value={money(car?.daily_rate)} />
-
-        <FieldRow label="Holiday Rate" value={money(car?.holiday_rate)} />
-
-        <div className="pt-1">
-          <StatusChip status={car?.status} />
-        </div>
-
-        <div className="flex flex-wrap gap-6 pt-1">
-          <YesNoChip label="Car Accepted" ok={!!car?.car_accepted} />
-          <YesNoChip label="With Driver" ok={!!car?.with_driver} />
-          <YesNoChip label="Is Delivered" ok={!!car?.is_delivered} />
-        </div>
-
-        <FieldRow label="Min Rental Days" value={car?.min_rental_days} />
-        <FieldRow label="Views Count" value={car?.views_count} />
-        <FieldRow label="Clicks Count" value={car?.clicks_count} />
-        <FieldRow label="Search Count" value={car?.search_count} />
-        <FieldRow label="Cylinder" value={car?.cylinder_number} />
-        <div className="pt-1">
-          <YesNoChip label="Is Private" ok={!!car?.is_private} />
-        </div>
-      </div>
-
-      <div className="border-t pt-3" />
-
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Features</div>
-        {listToBadges(car?.features)}
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Add-ons</div>
-        {listToBadges(car?.add_ons)}
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Notes</div>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-          {car?.notes ?? "N/A"}
-        </div>
-      </div>
-
-      <div className="border-t pt-3" />
-
-      <div className="space-y-3">
-        <div className="text-sm font-semibold">Agent</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
-          <FieldRow label="ID" value={agent?.id ?? car?.agent_id} />
-          <FieldRow label="Username" value={agent?.username ?? "N/A"} />
-          <FieldRow label="Phone Number" value={agent?.phone_number ?? "N/A"} />
-          <FieldRow label="Email" value={agent?.email ?? "N/A"} />
-          <FieldRow label="Gender" value={agent?.gender ?? "N/A"} />
-          <FieldRow label="City" value={agent?.city ?? "N/A"} />
-        </div>
-      </div>
-
-      {/* Related data: bookings, check_photos, holidays, feedbacks, deposits, balances, favorites */}
-      <RelatedSection title="Bookings" items={car?.bookings} renderItem={(b) => `#${b?.id} ${b?.status ?? ""} ${b?.start_date ?? ""}`} />
-      <RelatedSection title="Check photos" items={car?.check_photos} renderItem={(p) => `#${p?.id}`} />
-      <RelatedSection title="Holidays" items={car?.holidays} renderItem={(h) => `${h?.date ?? h?.id}`} />
-      <RelatedSection title="Feedbacks" items={car?.feedbacks} renderItem={(f) => `#${f?.id} ${f?.rating ?? ""}`} />
-      <RelatedSection title="Deposits" items={car?.deposits} renderItem={(d) => `#${d?.id} ${d?.amount ?? ""}`} />
-      <RelatedSection title="Balances" items={car?.balances} renderItem={(b) => `#${b?.id}`} />
-      <RelatedSection title="Favorites" items={car?.favorites} renderItem={(f) => `User ${f?.user_id ?? f?.id}`} />
-
-      <div className="border-t pt-3" />
-
-      <div className="space-y-3">
-        <div className="text-sm font-semibold">Car Images</div>
-
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">Main</span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={downloading === "main"}
-              onClick={() => handleDownloadImage("main")}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
+        <div className="absolute bottom-4 left-6 text-white">
+          <h2 className="text-2xl font-bold">
+            {car.make} {car.model}
+          </h2>
+          <div className="flex gap-2 mt-2">
+            <Badge className="bg-white/20 backdrop-blur text-white">
+              {car.car_category}
+            </Badge>
+            {car.car_accepted ? (
+              <Badge className="bg-green-600">Accepted</Badge>
+            ) : (
+              <Badge className="bg-red-600">Rejected</Badge>
+            )}
           </div>
-          <img
-            src={displayUrl("main_image_full_url", "main_image_url")}
-            alt="Main Car"
-            className="w-full max-h-[260px] object-cover rounded-md border"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "Front", type: "front", fullKey: "front_image_full_url", pathKey: "front_image_url" },
-            { label: "Back", type: "back", fullKey: "back_image_full_url", pathKey: "back_image_url" },
-            { label: "Left", type: "left", fullKey: "left_image_full_url", pathKey: "left_image_url" },
-            { label: "Right", type: "right", fullKey: "right_image_full_url", pathKey: "right_image_url" },
-          ].map(({ label, type, fullKey, pathKey }) => (
-            <div key={type} className="space-y-1">
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-muted-foreground">{label}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-1"
-                  disabled={downloading === type}
-                  onClick={() => handleDownloadImage(type)}
-                  title="Download"
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
-              </div>
-              <img
-                src={displayUrl(fullKey, pathKey)}
-                alt={label}
-                className="h-[120px] w-full object-cover rounded-md border"
-              />
-            </div>
-          ))}
         </div>
       </div>
 
-      <div className="pt-3 flex flex-wrap gap-2">
-        {!car?.car_accepted && onAccept && (
-          <Button className="bg-green-600 hover:bg-green-700" onClick={onAccept}>
-            <Check className="h-4 w-4 mr-2" />
+      {/* MAIN DETAILS GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4 rounded-xl border bg-background shadow-sm">
+        <InfoItem label="Year" value={car.year} />
+        <InfoItem label="Color" value={car.color} />
+        <InfoItem label="Transmission" value={car.transmission} />
+        <InfoItem label="Fuel Type" value={car.fuel_type} />
+        <InfoItem label="Seats" value={car.seats} />
+        <InfoItem label="Doors" value={car.doors} />
+        <InfoItem label="Daily Rate" value={money(car.daily_rate)} />
+        <InfoItem label="Status" value={car.status} />
+      </div>
+
+      {/* EXTRA INFO */}
+      <div className="grid md:grid-cols-2 gap-6">
+
+        {/* Car Info Card */}
+        <div className="rounded-xl border p-4 space-y-3 bg-background shadow-sm">
+          <h3 className="font-semibold text-lg">Car Information</h3>
+          <InfoItem label="License Plate" value={car.license_plate} />
+          <InfoItem label="Mileage" value={car.mileage} />
+          <InfoItem label="Cylinder" value={car.cylinder_number} />
+          <InfoItem label="Min Rental Days" value={car.min_rental_days} />
+          <div className="flex gap-4 pt-2">
+            <div>
+              <span className="text-xs text-muted-foreground">Accepted</span>
+              <YesNoBadge value={car.car_accepted} />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground">Private</span>
+              <YesNoBadge value={car.is_private} />
+            </div>
+          </div>
+        </div>
+
+        {/* Agent Card */}
+        <div className="rounded-xl border p-4 space-y-3 bg-background shadow-sm">
+          <h3 className="font-semibold text-lg">Agent</h3>
+          <InfoItem label="Username" value={agent?.username} />
+          <InfoItem label="Phone" value={agent?.phone_number} />
+          <InfoItem label="Email" value={agent?.email} />
+          <InfoItem label="City" value={agent?.city} />
+        </div>
+      </div>
+
+      {/* FEATURES */}
+      {car.features?.length > 0 && (
+        <div className="rounded-xl border p-4 bg-background shadow-sm">
+          <h3 className="font-semibold mb-3">Features</h3>
+          <div className="flex flex-wrap gap-2">
+            {car.features.map((f, i) => (
+              <Badge key={i} variant="outline">
+                {typeof f === "string" ? f : f.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* NOTES */}
+      {car.notes && (
+        <div className="rounded-xl border p-4 bg-background shadow-sm">
+          <h3 className="font-semibold mb-2">Notes</h3>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {car.notes}
+          </p>
+        </div>
+      )}
+
+      {/* ACTIONS */}
+      <div className="flex gap-3 pt-4">
+        {!car.car_accepted && (
+          <Button
+            className="bg-green-600 hover:bg-green-700"
+            onClick={onAccept}
+          >
             Accept Car
           </Button>
         )}
-        {car?.car_accepted && onReject && (
-          <Button variant="destructive" onClick={onReject}>
-            <X className="h-4 w-4 mr-2" />
+
+        {car.car_accepted && (
+          <Button
+            variant="destructive"
+            onClick={onReject}
+          >
             Reject Car
           </Button>
         )}
+
         <Button className="flex-1" onClick={onEdit}>
           Edit Car
         </Button>
-        <Button variant="outline" className="w-28" onClick={onClose}>
+
+        <Button variant="outline" onClick={onClose}>
           Close
         </Button>
       </div>

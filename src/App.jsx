@@ -57,6 +57,8 @@ import AdminRealUserDataPage from "@/pages/admin/AdminRealUserDataPage";
 import AdsAnalyticsPage from "@/pages/AdsAnalyticsPage";
 import AdsPopup from "@/components/AdsPopup";
 import { WatchPage } from "@/pages/WatchPage";
+import AgencyDetailsPage from "@/pages/AgencyDetailsPage";
+import AdminAgenciesPage from "@/pages/admin/AdminAgenciesPage";
 
 // ============================
 // Helper functions
@@ -239,6 +241,14 @@ function AppContent() {
               </PageLayout>
             }
           />
+          <Route
+  path="/agency/:id"
+  element={
+    <PageLayout>
+      <AgencyDetailsPage />
+    </PageLayout>
+  }
+/>
           <Route path="/Privacy-Policy" element={<PrivacyPolicy />} />
           <Route path="/Terms-and-Conditions" element={<TermsAndConditions />} />
 
@@ -281,6 +291,7 @@ function AppContent() {
               </AdminRoute>
             }
           >
+            
             {/* Default admin dashboard */}
             <Route index element={<AdminDashboard />} />
 
@@ -295,6 +306,8 @@ function AppContent() {
             <Route path="ads" element={<AdminAdsPage />} />
             <Route path="featured" element={<AdminFeaturedCarsPage />} />
             <Route path="holidays" element={<AdminHolidaysPage />} />
+            <Route path="agencies" element={<AdminAgenciesPage />} />
+            
 
             {/* System */}
             <Route path="announcements" element={<AdminAnnouncementsPage />} />

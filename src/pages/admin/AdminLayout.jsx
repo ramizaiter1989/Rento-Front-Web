@@ -62,6 +62,7 @@ const NAV_SECTIONS = [
       { to: "/admin/ads", label: "Ads", icon: Megaphone },
       { to: "/admin/featured", label: "Featured", icon: Star },
       { to: "/admin/holidays", label: "Holidays", icon: Calendar },
+      { to: "/admin/agencies", label: "Agencies", icon: Users },
     ],
   },
   {
