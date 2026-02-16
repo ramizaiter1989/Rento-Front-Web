@@ -7,6 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getAgencies,
   getAgency,
@@ -103,6 +104,7 @@ function getCardAccent(businessType) {
 }
 
 export default function AdminAgenciesPage() {
+  const navigate = useNavigate();
   const [agencies, setAgencies] = useState([]);
   const [meta, setMeta] = useState({
     current_page: 1,
@@ -374,7 +376,11 @@ export default function AdminAgenciesPage() {
             {agencies.map((agency) => (
               <Card
                 key={agency.id}
-                className={`overflow-hidden transition-all duration-200 ${getCardAccent(agency.business_type)}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/admin/cars?agent_id=${agency.id}`)}
+                onKeyDown={(e) => e.key === "Enter" && navigate(`/admin/cars?agent_id=${agency.id}`)}
+                className={`overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg ${getCardAccent(agency.business_type)}`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
@@ -435,14 +441,24 @@ export default function AdminAgenciesPage() {
                       <span className="font-medium">{agency.sea_vehicles_count}</span>
                     </div>
                   )}
-                  <Button
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => openDetail(agency)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View details
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={(e) => { e.stopPropagation(); openDetail(agency); }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View details
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/cars?agent_id=${agency.id}`); }}
+                    >
+                      <Car className="w-4 h-4 mr-2" />
+                      View cars
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

@@ -3,14 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
 import { Eye, Pencil, Trash2, Search, Edit, Users } from "lucide-react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -313,139 +305,107 @@ const AdminUsersPage = () => {
 )}
 
 
-      {/* TABLE */}
+      {/* USER CARDS */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-4">
           {loading ? (
-            <p className="p-6 text-muted-foreground">Loading users...</p>
+            <p className="p-6 text-muted-foreground text-center">Loading users...</p>
+          ) : filteredUsers.length === 0 ? (
+            <p className="p-6 text-muted-foreground text-center">No users found</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {/* Start Tony Update  */}
-                      <span
-                        className="item-name-hover inline-flex items-center gap-2 cursor-pointer"
-                        title={userTooltip(user)}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() =>
-                          openUserView(
-                            user.id,
-                            fetchUserDetails,
-                            setSelectedItem,
-                            setModalType,
-                            setModalOpen,
-                          )
-                        }
-                      >
-                        <img
-                          src={getProfileImg(user)}
-                          alt={user.username || "User"}
-                          className="h-7 w-7 rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = "/avatar.png";
-                          }}
-                        />
-
-                        {truncate(
-                          user.first_name && user.last_name
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredUsers.map((user) => (
+                <Card key={user.id} className="overflow-hidden border-2 hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div
+                      className="flex items-center gap-3 mb-3 cursor-pointer"
+                      title={userTooltip(user)}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        openUserView(
+                          user.id,
+                          fetchUserDetails,
+                          setSelectedItem,
+                          setModalType,
+                          setModalOpen,
+                        )
+                      }
+                      onKeyDown={(e) => e.key === "Enter" && openUserView(user.id, fetchUserDetails, setSelectedItem, setModalType, setModalOpen)}
+                    >
+                      <img
+                        src={getProfileImg(user)}
+                        alt={user.username || "User"}
+                        className="h-12 w-12 rounded-full object-cover ring-2 ring-muted"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/avatar.png";
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold truncate">
+                          {user.first_name && user.last_name
                             ? `${user.first_name} ${user.last_name}`
-                            : user.username,
-                          14,
-                        )}
-                      </span>
-                      {/* End Tony Update */}
-                    </TableCell>
-
-                    <TableCell>{user.phone_number}</TableCell>
-
-                    <TableCell>
-                      <Badge variant="outline">{user.role}</Badge>
-                    </TableCell>
-
-                    <TableCell>
+                            : user.username || `User #${user.id}`}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">{user.phone_number || "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      <Badge variant="outline" className="capitalize">{user.role}</Badge>
                       {user.update_access ? (
                         <Badge className="bg-green-500">Active</Badge>
                       ) : (
                         <Badge variant="destructive">Blocked</Badge>
                       )}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={async () => {
-                            const fullDetails = await fetchUserDetails(user.id);
-                            if (fullDetails) {
-                              setSelectedItem(fullDetails);
-                              setModalType("view-user");
-                              setModalOpen(true);
-                            }
-                          }}
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={async () => {
-                            const fullDetails = await fetchUserDetails(user.id);
-                            if (fullDetails) {
-                              setSelectedItem(fullDetails);
-                              setEditingUser({ ...fullDetails });
-                              setModalType("edit-user");
-                              setModalOpen(true);
-                            }
-                          }}
-                          title="Edit User"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Delete user"
-                          className="text-red-500"
-                          onClick={() => handleDeleteUser(user.id)}
-                          title="Remove User"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-
-                {filteredUsers.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-muted-foreground py-6"
-                    >
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={async () => {
+                          const fullDetails = await fetchUserDetails(user.id);
+                          if (fullDetails) {
+                            setSelectedItem(fullDetails);
+                            setModalType("view-user");
+                            setModalOpen(true);
+                          }
+                        }}
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={async () => {
+                          const fullDetails = await fetchUserDetails(user.id);
+                          if (fullDetails) {
+                            setSelectedItem(fullDetails);
+                            setEditingUser({ ...fullDetails });
+                            setModalType("edit-user");
+                            setModalOpen(true);
+                          }
+                        }}
+                        title="Edit User"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Delete user"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => handleDeleteUser(user.id)}
+                        title="Remove User"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

@@ -21,14 +21,6 @@ import {
   RefreshCcw,
   Check,
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -261,8 +253,11 @@ export default function AdminRealUserDataPage() {
             place_of_birth: real.place_of_birth || "",
           });
         }
-      } catch {
-        // No real user data yet
+      } catch (err) {
+        // 404 = no real user data for this user (expected when filling for the first time)
+        if (err.response?.status !== 404) {
+          console.warn("Real user data fetch:", err.response?.data?.message || err.message);
+        }
       }
     } catch (err) {
       toast.error("Failed to load user details");
@@ -387,57 +382,59 @@ export default function AdminRealUserDataPage() {
             Users — select one to fill real user data
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : filteredUsers.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">No users found</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{user.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={getProfileImg(user)}
-                          alt=""
-                          className="h-8 w-8 rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = DEFAULT_AVATAR;
-                          }}
-                        />
-                        <span>{displayName(user)}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredUsers.map((user) => (
+                <Card key={user.id} className="overflow-hidden border-2 hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <img
+                        src={getProfileImg(user)}
+                        alt=""
+                        className="h-12 w-12 rounded-full object-cover ring-2 ring-muted"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold truncate">{displayName(user)}</p>
+                        <p className="text-xs text-muted-foreground">ID: {user.id}</p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {user.first_name && user.last_name
-                        ? `${user.first_name} ${user.last_name}`
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{user.phone_number || "—"}</TableCell>
-                    <TableCell>{user.username || "—"}</TableCell>
-                    <TableCell>
-                      {user.verified_by_admin ? (
-                        <UserCheck className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </div>
+                    <div className="space-y-1 text-sm mb-3">
+                      <p className="truncate">
+                        <span className="text-muted-foreground">Name: </span>
+                        {user.first_name && user.last_name
+                          ? `${user.first_name} ${user.last_name}`
+                          : "—"}
+                      </p>
+                      <p className="truncate">
+                        <span className="text-muted-foreground">Phone: </span>
+                        {user.phone_number || "—"}
+                      </p>
+                      <p className="truncate">
+                        <span className="text-muted-foreground">Username: </span>
+                        {user.username || "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <span>
+                        {user.verified_by_admin ? (
+                          <span className="inline-flex items-center gap-1 text-green-600 text-sm">
+                            <UserCheck className="h-4 w-4" /> Verified
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Not verified</span>
+                        )}
+                      </span>
                       <Button
                         size="sm"
                         onClick={() => openModal(user)}
@@ -449,18 +446,11 @@ export default function AdminRealUserDataPage() {
                         <Edit className="w-4 h-4 mr-2" />
                         Fill Real Data
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredUsers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

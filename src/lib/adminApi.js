@@ -721,12 +721,10 @@ export const deleteHoliday = (id) => {
 // ============================
 
 /**
- * Get all real user data with optional filters
- * @param {Object} params - Query parameters
- * @param {string} params.status - Filter by status (pending, approved, not_approved)
- * @param {number} params.user_id - Filter by user ID
- * @param {number} params.per_page - Number of items per page (default: 50)
- * @returns {Promise} Response with paginated real user data
+ * List all real user data
+ * GET /api/admin/real-user-data
+ * @param {Object} params - Query: status (pending|approved|not_approved), user_id, per_page (default 20)
+ * @returns {Promise} Response with { real_user_data: { data, current_page, last_page, per_page, total } }
  */
 export const getRealUserData = (params = {}) => {
   return api.get('/admin/real-user-data', { params });
@@ -736,7 +734,7 @@ export const getRealUserData = (params = {}) => {
  * Get real user data for specific user
  * GET /api/admin/real-user-data/{userId}
  * @param {number} userId - User ID
- * @returns {Promise} Response with { success, data }
+ * @returns {Promise} Response with { success, data }. 404 when no real data for this user.
  */
 export const getRealUserDataByUser = (userId) => {
   return api.get(`/admin/real-user-data/${userId}`);
