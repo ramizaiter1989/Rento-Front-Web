@@ -1,6 +1,5 @@
 import React from 'react';
 import { AgentNavbar } from './AgentNavbar';
-import { Footer } from './Footer';
 
 export const AgentLayout = ({ children, noIndex = false }) => {
   return (
@@ -9,7 +8,6 @@ export const AgentLayout = ({ children, noIndex = false }) => {
       <main className="pt-16 md:pt-12 min-h-screen">
         {children}
       </main>
-      <Footer />
     </>
   );
 };

@@ -11,14 +11,6 @@ import {
   getAgencies,
   getAgency,
 } from "@/lib/adminApi";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,6 +38,9 @@ import {
   XCircle,
   ExternalLink,
   FileText,
+  Car,
+  MapPin,
+  Anchor,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -92,6 +87,19 @@ function displayName(agency) {
     return `${agency.first_name} ${agency.last_name}`;
   }
   return agency?.username || `Agency #${agency?.id}`;
+}
+
+// Card accent styles by business type for coloring and shadow
+const CARD_ACCENTS = {
+  rental: "border-l-4 border-l-teal-500 bg-gradient-to-br from-teal-50/80 to-white dark:from-teal-950/30 dark:to-card shadow-md hover:shadow-lg",
+  private: "border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50/80 to-white dark:from-blue-950/30 dark:to-card shadow-md hover:shadow-lg",
+  company: "border-l-4 border-l-violet-500 bg-gradient-to-br from-violet-50/80 to-white dark:from-violet-950/30 dark:to-card shadow-md hover:shadow-lg",
+  marina: "border-l-4 border-l-cyan-500 bg-gradient-to-br from-cyan-50/80 to-white dark:from-cyan-950/30 dark:to-card shadow-md hover:shadow-lg",
+  default: "border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-card shadow-md hover:shadow-lg",
+};
+
+function getCardAccent(businessType) {
+  return CARD_ACCENTS[businessType] || CARD_ACCENTS.default;
 }
 
 export default function AdminAgenciesPage() {
@@ -347,97 +355,100 @@ export default function AdminAgenciesPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5" />
-            Agencies list
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Agency</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead className="text-right">Cars</TableHead>
-                  <TableHead className="text-right">Sea</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agencies.map((agency) => (
-                  <TableRow key={agency.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{agency.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={profileImgUrl(agency)}
-                          alt=""
-                          className="h-8 w-8 rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = DEFAULT_AVATAR;
-                          }}
-                        />
-                        <span>{displayName(agency)}</span>
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+          <Building2 className="w-5 h-5" />
+          Agencies ({meta.total})
+        </h2>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+          </div>
+        ) : agencies.length === 0 ? (
+          <Card className="py-12 text-center text-muted-foreground">
+            <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            No agencies found
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {agencies.map((agency) => (
+              <Card
+                key={agency.id}
+                className={`overflow-hidden transition-all duration-200 ${getCardAccent(agency.business_type)}`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={profileImgUrl(agency)}
+                        alt=""
+                        className="h-12 w-12 rounded-full object-cover shrink-0 ring-2 ring-white dark:ring-card shadow"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <CardTitle className="text-base truncate">
+                          {displayName(agency)}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">
+                          @{agency.username || "—"}
+                        </p>
                       </div>
-                    </TableCell>
-                    <TableCell>{agency.username || "—"}</TableCell>
-                    <TableCell>
-                      {agency.verified_by_admin ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{agency.business_type || "—"}</Badge>
-                    </TableCell>
-                    <TableCell>{agency.address || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      {agency.cars_count ?? "—"} ({agency.cars_accepted_count ?? 0} accepted,{" "}
-                      {agency.cars_not_accepted_count ?? 0} pending)
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {agency.sea_vehicles_count ?? 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openDetail(agency)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {agencies.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No agencies found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                    {agency.verified_by_admin && (
+                      <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" title="Verified" />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {agency.business_type || "—"}
+                    </Badge>
+                    {agency.address && (
+                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {agency.address}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Car className="w-4 h-4" />
+                      Cars
+                    </span>
+                    <span className="font-medium">
+                      {agency.cars_count ?? 0}{" "}
+                      <span className="text-muted-foreground font-normal text-xs">
+                        ({agency.cars_accepted_count ?? 0} accepted, {agency.cars_not_accepted_count ?? 0} pending)
+                      </span>
+                    </span>
+                  </div>
+                  {(agency.sea_vehicles_count ?? 0) > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Anchor className="w-4 h-4" />
+                        Sea vehicles
+                      </span>
+                      <span className="font-medium">{agency.sea_vehicles_count}</span>
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => openDetail(agency)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View details
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       {meta.last_page > 1 && (
         <div className="flex items-center justify-between text-sm">

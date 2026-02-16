@@ -4,10 +4,6 @@ import {
   Car,
   Search,
   Plus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Edit2,
   Trash2,
   Eye,
@@ -26,9 +22,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
-import { confirmAlert } from 'react-confirm-alert';
-import 'react-confirm-alert/src/react-confirm-alert.css';
 import { motion } from 'framer-motion';
+
+const currentYear = new Date().getFullYear();
+const VALID_STATUSES = ['available', 'not_available', 'rented', 'maintenance'];
+const VALID_TRANSMISSIONS = ['automatic', 'manual'];
 
 // Logo colors
 const COLORS = {
@@ -39,6 +37,83 @@ const COLORS = {
   tealDim: 'rgba(0, 140, 149, 0.1)',
   limeGreenDim: 'rgba(138, 198, 64, 0.1)',
 };
+
+// Car makes and models (same as Create Car page)
+const CAR_MAKES_AND_MODELS = {
+  'BMW': ['1 Series','3 Series','5 Series','7 Series','X1','X3','X5','X7','M3','M5','Z4','i4','i7','iX'],
+  'Mercedes-Benz': ['A-Class','C-Class','E-Class','S-Class','GLA','GLC','GLE','GLS','G-Class','AMG GT','Maybach','EQE','EQS'],
+  'Audi': ['A3','A4','A6','A8','Q3','Q5','Q7','Q8','TT','R8','e-tron'],
+  'Porsche': ['911','Cayenne','Macan','Panamera','Taycan','Boxster','Cayman'],
+  'Volkswagen': ['Polo','Golf','Jetta','Passat','Tiguan','Touareg','Arteon','ID.4','ID.7'],
+  'Opel': ['Corsa','Astra','Insignia','Mokka','Grandland'],
+  'Smart': ['Fortwo','Forfour'],
+  'Ferrari': ['Roma','Portofino','F8','812','SF90','Purosangue'],
+  'Lamborghini': ['Huracan','Aventador','Urus','Revuelto'],
+  'Maserati': ['Ghibli','Quattroporte','Levante','Grecale','MC20'],
+  'Alfa Romeo': ['Giulia','Stelvio','Tonale','Giulietta'],
+  'Fiat': ['500','Panda','Tipo','Doblo'],
+  'Pagani': ['Huayra','Zonda'],
+  'Rolls-Royce': ['Phantom','Ghost','Wraith','Cullinan','Spectre'],
+  'Bentley': ['Continental GT','Flying Spur','Bentayga'],
+  'Aston Martin': ['Vantage','DB11','DB12','DBX','Valhalla'],
+  'Jaguar': ['XE','XF','XJ','F-Type','E-Pace','F-Pace'],
+  'Land Rover': ['Range Rover','Range Rover Sport','Velar','Evoque','Defender','Discovery'],
+  'McLaren': ['720S','750S','Artura','GT'],
+  'Mini': ['Cooper','Countryman','Clubman'],
+  'Lotus': ['Emira','Evija','Eletre'],
+  'Tesla': ['Model 3','Model S','Model X','Model Y','Cybertruck','Roadster'],
+  'Ford': ['Fiesta','Focus','Mustang','Explorer','Escape','Edge','F-150','Bronco'],
+  'Chevrolet': ['Spark','Malibu','Camaro','Corvette','Tahoe','Suburban','Silverado'],
+  'Dodge': ['Charger','Challenger','Durango'],
+  'Jeep': ['Wrangler','Grand Cherokee','Compass','Renegade','Gladiator'],
+  'Cadillac': ['CT4','CT5','Escalade','Lyriq'],
+  'Chrysler': ['300','Pacifica'],
+  'GMC': ['Sierra','Yukon','Acadia'],
+  'Rivian': ['R1T','R1S'],
+  'Lucid': ['Air','Gravity'],
+  'Toyota': ['Corolla','Camry','Yaris','Prius','RAV4','Highlander','Land Cruiser','Supra','Hilux'],
+  'Lexus': ['IS','ES','GS','LS','NX','RX','GX','LX','LC'],
+  'Honda': ['Civic','Accord','City','CR-V','HR-V','Pilot','Odyssey'],
+  'Nissan': ['Micra','Sentra','Altima','Maxima','Qashqai','X-Trail','GT-R','370Z'],
+  'Infiniti': ['Q50','Q60','QX50','QX60','QX80'],
+  'Mazda': ['Mazda2','Mazda3','Mazda6','CX-5','CX-9','MX-5'],
+  'Subaru': ['Impreza','Legacy','Outback','Forester','WRX','BRZ'],
+  'Mitsubishi': ['Mirage','Lancer','ASX','Outlander','Pajero'],
+  'Suzuki': ['Swift','Vitara','Jimny','Baleno'],
+  'Isuzu': ['D-Max','MU-X'],
+  'Hyundai': ['Accent','Elantra','Sonata','Kona','Tucson','Santa Fe','Palisade','Ioniq 5'],
+  'Kia': ['Rio','Cerato','K5','Soul','Sportage','Sorento','Telluride','EV6'],
+  'Genesis': ['G70','G80','G90','GV70','GV80'],
+  'Peugeot': ['208','308','508','2008','3008','5008'],
+  'Renault': ['Clio','Megane','Talisman','Captur','Kadjar','Koleos'],
+  'Citroën': ['C3','C4','C5','C5 Aircross'],
+  'Bugatti': ['Chiron','Mistral','Tourbillon'],
+  'DS Automobiles': ['DS3','DS4','DS7'],
+  'BYD': ['Atto 3','Han','Tang','Seal'],
+  'Geely': ['Coolray','Emgrand','Tugella'],
+  'Chery': ['Tiggo 7','Tiggo 8'],
+  'Great Wall': ['Haval H6','Tank 300'],
+  'NIO': ['ES6','ES8','ET5','ET7'],
+  'XPeng': ['P7','G6','G9'],
+  'MG': ['ZS','HS','MG4','MG5'],
+  'Zeekr': ['001','X'],
+  'Volvo': ['S60','S90','V60','XC40','XC60','XC90'],
+  'Polestar': ['Polestar 2','Polestar 3','Polestar 4'],
+  'Koenigsegg': ['Jesko','Regera','Gemera'],
+  'Rimac': ['Nevera'],
+  'Hennessey': ['Venom F5'],
+  'SSC': ['Tuatara'],
+  'Mahindra': ['Scorpio','XUV700'],
+  'Tata': ['Nexon','Harrier','Safari'],
+};
+
+const CAR_MAKES_LIST = ['Other', ...Object.keys(CAR_MAKES_AND_MODELS).sort()];
+
+const CAR_COLORS = [
+  'White', 'Black', 'Silver', 'Gray', 'Red', 'Blue', 'Green', 'Yellow',
+  'Orange', 'Brown', 'Beige', 'Gold', 'Purple', 'Pink', 'Pearl White',
+  'Metallic Gray', 'Metallic Blue', 'Dark Blue', 'Light Blue', 'Burgundy',
+];
 
 const CAR_CATEGORIES = [
   { value: 'all', label: 'All Categories' },
@@ -248,7 +323,6 @@ export const MyCarsPage = () => {
   const [allCars, setAllCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ search: '', category: 'all', status: 'all' });
-  const [pagination, setPagination] = useState({ currentPage: 1, perPage: 10 });
   const [selectedCar, setSelectedCar] = useState(null);
 
   // Edit modal state
@@ -258,8 +332,11 @@ export const MyCarsPage = () => {
   const fetchCars = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/cars/agent/Mycars');
-      setAllCars(data.cars.data || []);
+      const { data } = await api.get('/cars/agent/Mycars', {
+        params: { per_page: 1000 },
+      });
+      const list = data.cars?.data ?? data.cars ?? data?.data ?? [];
+      setAllCars(Array.isArray(list) ? list : []);
     } catch {
       toast.error('Failed to fetch cars.');
     } finally {
@@ -271,61 +348,206 @@ export const MyCarsPage = () => {
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setPagination((prev) => ({ ...prev, currentPage: 1 }));
   };
 
   const clearFilters = () => setFilters({ search: '', category: 'all', status: 'all' });
 
-  const handleDelete = (id) => {
-    confirmAlert({
-      title: 'Confirm Deletion',
-      message: 'Are you sure you want to delete this car?',
-      buttons: [
-        { 
-          label: 'Yes, Delete', 
-          onClick: async () => {
-            try {
-              await api.delete(`/cars/${id}`);
-              toast.success('Car deleted successfully.');
-              setAllCars((prev) => prev.filter((car) => car.id !== id));
-            } catch (err) {
-              toast.error(err.response?.data?.error || 'Failed to delete car.');
-            }
-          } 
-        },
-        { label: 'Cancel' }
-      ],
-    });
+  const [deleteModalCar, setDeleteModalCar] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  const openDeleteModal = (car) => {
+    setDeleteModalCar(car);
+    setDeleteConfirmText('');
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalCar(null);
+    setDeleteConfirmText('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModalCar || deleteConfirmText.toLowerCase() !== 'delete') return;
+    try {
+      await api.delete(`/cars/${deleteModalCar.id}`);
+      toast.success('Car deleted successfully.');
+      setAllCars((prev) => prev.filter((c) => c.id !== deleteModalCar.id));
+      closeDeleteModal();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete car.');
+    }
   };
 
   const openEditModal = (car) => {
     setSelectedCar(car);
+    const rawTransmission = (car.transmission || '').toLowerCase();
+    const makeInList = car.make && CAR_MAKES_AND_MODELS[car.make];
+    const modelsForMake = makeInList ? CAR_MAKES_AND_MODELS[car.make] : [];
+    const modelInList = car.model && modelsForMake.includes(car.model);
     setEditForm({
-      delivery_location: car.delivery_location?.address || '',
-      return_location: car.return_location?.address || '',
-      mileage: car.mileage || 0,
-      daily_rate: car.daily_rate || 0,
-      holiday_rate: car.holiday_rate || 0,
+      make: makeInList ? car.make : 'Other',
+      customMake: makeInList ? '' : (car.make || ''),
+      model: modelInList ? car.model : 'Other',
+      customModel: modelInList ? '' : (car.model || ''),
+      year: car.year || new Date().getFullYear(),
+      color: car.color || '',
+      transmission: rawTransmission === 'automatic' || rawTransmission === 'manual' ? rawTransmission : 'automatic',
+      daily_rate: car.daily_rate ?? '',
+      holiday_rate: car.holiday_rate ?? '',
+      status: VALID_STATUSES.includes(car.status) ? car.status : 'available',
+      mileage: car.mileage ?? '',
+      notes: car.notes || '',
+      is_deposit: !!car.is_deposit,
+      deposit: car.deposit ?? '',
+      is_delivered: !!car.is_delivered,
+      delivery_fees: car.delivery_fees ?? '',
+      with_driver: !!car.with_driver,
+      driver_fees: car.driver_fees ?? '',
+      min_rental_days: car.min_rental_days ?? 1,
     });
     setIsEditModalOpen(true);
   };
 
+  const getResolvedMake = () => {
+    const make = editForm.make ?? '';
+    return make === 'Other' ? String(editForm.customMake ?? '').trim() : make;
+  };
+  const getResolvedModel = () => {
+    const make = editForm.make ?? '';
+    const model = editForm.model ?? '';
+    if (make === 'Other') return String(editForm.customModel ?? '').trim();
+    return model === 'Other' ? String(editForm.customModel ?? '').trim() : model;
+  };
+
+  const validateEditForm = () => {
+    const make = getResolvedMake();
+    const model = getResolvedModel();
+    if (!make) {
+      toast.error('Make is required.');
+      return false;
+    }
+    if (make.length > 100) {
+      toast.error('Make must be at most 100 characters.');
+      return false;
+    }
+    if (!model) {
+      toast.error('Model is required.');
+      return false;
+    }
+    if (model.length > 100) {
+      toast.error('Model must be at most 100 characters.');
+      return false;
+    }
+    const year = editForm.year !== undefined && editForm.year !== '' ? Number(editForm.year) : null;
+    if (year !== null && (isNaN(year) || year < 1900 || year > currentYear + 1)) {
+      toast.error(`Year must be between 1900 and ${currentYear + 1}.`);
+      return false;
+    }
+    const transmission = (editForm.transmission || '').toLowerCase();
+    if (transmission && !VALID_TRANSMISSIONS.includes(transmission)) {
+      toast.error('Transmission must be Automatic or Manual.');
+      return false;
+    }
+    const status = editForm.status || 'available';
+    if (!VALID_STATUSES.includes(status)) {
+      toast.error('Invalid status.');
+      return false;
+    }
+    const dailyRateRaw = editForm.daily_rate;
+    if (dailyRateRaw === undefined || dailyRateRaw === null || dailyRateRaw === '') {
+      toast.error('Daily rate is required.');
+      return false;
+    }
+    const dailyRate = Number(dailyRateRaw);
+    if (isNaN(dailyRate) || dailyRate < 0) {
+      toast.error('Daily rate must be 0 or greater.');
+      return false;
+    }
+    const holidayRate = editForm.holiday_rate !== undefined && editForm.holiday_rate !== '' ? Number(editForm.holiday_rate) : null;
+    if (holidayRate !== null && (isNaN(holidayRate) || holidayRate < 0)) {
+      toast.error('Holiday rate must be 0 or greater.');
+      return false;
+    }
+    if (editForm.is_deposit) {
+      const deposit = Number(editForm.deposit);
+      if (isNaN(deposit) || deposit < 0) {
+        toast.error('Deposit amount must be 0 or greater.');
+        return false;
+      }
+    }
+    if (editForm.is_delivered) {
+      const deliveryFees = Number(editForm.delivery_fees);
+      if (isNaN(deliveryFees) || deliveryFees < 0) {
+        toast.error('Delivery fees must be 0 or greater.');
+        return false;
+      }
+    }
+    if (editForm.with_driver) {
+      const driverFees = Number(editForm.driver_fees);
+      if (isNaN(driverFees) || driverFees < 0) {
+        toast.error('Driver fees must be 0 or greater.');
+        return false;
+      }
+    }
+    const minDays = editForm.min_rental_days !== undefined && editForm.min_rental_days !== '' ? Number(editForm.min_rental_days) : 1;
+    if (isNaN(minDays) || minDays < 1) {
+      toast.error('Minimum rental days must be at least 1.');
+      return false;
+    }
+    const mileage = editForm.mileage !== undefined && editForm.mileage !== '' ? Number(editForm.mileage) : null;
+    if (mileage !== null && (isNaN(mileage) || mileage < 0)) {
+      toast.error('Mileage must be 0 or greater.');
+      return false;
+    }
+    return true;
+  };
+
   const handleEditChange = (key, value) => {
-    setEditForm(prev => ({ ...prev, [key]: value }));
+    setEditForm(prev => {
+      const next = { ...prev, [key]: value };
+      if (key === 'make') {
+        next.model = '';
+        next.customModel = '';
+      }
+      return next;
+    });
   };
 
   const submitEdit = async () => {
+    if (!selectedCar) return;
+    if (!validateEditForm()) return;
+    const payload = {};
+    const make = getResolvedMake();
+    const model = getResolvedModel();
+    if (make) payload.make = make;
+    if (model) payload.model = model;
+    if (editForm.year !== undefined && editForm.year !== '') payload.year = Number(editForm.year);
+    if (editForm.color !== undefined) payload.color = editForm.color;
+    if (editForm.daily_rate !== undefined && editForm.daily_rate !== '') payload.daily_rate = Number(editForm.daily_rate);
+    if (editForm.holiday_rate !== undefined && editForm.holiday_rate !== '') payload.holiday_rate = Number(editForm.holiday_rate);
+    if (editForm.status !== undefined) payload.status = editForm.status;
+    const transmission = (editForm.transmission || '').toLowerCase();
+    if (transmission && VALID_TRANSMISSIONS.includes(transmission)) payload.transmission = transmission;
+    if (editForm.mileage !== undefined && editForm.mileage !== '') payload.mileage = Number(editForm.mileage);
+    if (editForm.notes !== undefined) payload.notes = editForm.notes;
+    payload.is_deposit = !!editForm.is_deposit;
+    if (editForm.is_deposit && editForm.deposit !== undefined && editForm.deposit !== '') payload.deposit = Number(editForm.deposit);
+    payload.is_delivered = !!editForm.is_delivered;
+    if (editForm.is_delivered && editForm.delivery_fees !== undefined && editForm.delivery_fees !== '') payload.delivery_fees = Number(editForm.delivery_fees);
+    payload.with_driver = !!editForm.with_driver;
+    if (editForm.with_driver && editForm.driver_fees !== undefined && editForm.driver_fees !== '') payload.driver_fees = Number(editForm.driver_fees);
+    if (editForm.min_rental_days !== undefined && editForm.min_rental_days !== '') payload.min_rental_days = Math.max(1, Number(editForm.min_rental_days));
     try {
-      const { data } = await api.put(`/cars/${selectedCar.id}`, {
-        mileage: editForm.mileage,
-        daily_rate: editForm.daily_rate,
-        holiday_rate: editForm.holiday_rate,
+      const { data } = await api.put(`/cars/${selectedCar.id}`, payload, {
+        headers: { 'Content-Type': 'application/json' },
       });
       toast.success('Car updated successfully');
       setAllCars(prev => prev.map(c => c.id === selectedCar.id ? { ...c, ...data.car } : c));
       setIsEditModalOpen(false);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to update car');
+      const msg = err.response?.data?.errors
+        ? Object.values(err.response.data.errors).flat().join(', ')
+        : err.response?.data?.error || err.response?.data?.message || 'Failed to update car';
+      toast.error(msg);
     }
   };
 
@@ -339,14 +561,6 @@ export const MyCarsPage = () => {
       return categoryMatch && statusMatch && searchMatch;
     });
   }, [allCars, filters]);
-
-  const totalPages = Math.ceil(filteredCars.length / pagination.perPage);
-  const paginatedCars = useMemo(() => {
-    const start = (pagination.currentPage - 1) * pagination.perPage;
-    return filteredCars.slice(start, start + pagination.perPage);
-  }, [filteredCars, pagination]);
-
-  const goToPage = (page) => setPagination(prev => ({ ...prev, currentPage: Math.max(1, Math.min(page, totalPages)) }));
 
   // Calculate total stats (views = impressions in list; clicks = detail page opens)
   const totalViews = allCars.reduce((sum, car) => sum + (car.views_count || 0), 0);
@@ -504,7 +718,7 @@ export const MyCarsPage = () => {
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-transparent" style={{ borderColor: COLORS.teal, borderTopColor: 'transparent' }}></div>
               </div>
-            ) : paginatedCars.length === 0 ? (
+            ) : filteredCars.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <div 
                   className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -525,177 +739,167 @@ export const MyCarsPage = () => {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Vehicle</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">License</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Category</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Rate</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Performance</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                    {paginatedCars.map((car, index) => (
-                      <motion.tr
-                        key={car.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex gap-3 items-center">
-                            <div className="w-14 h-10 rounded-lg overflow-hidden shadow-sm">
-                              {car.main_image_url ? (
-                                <img src={`/api/storage/${car.main_image_url}`} alt={car.make} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center" style={{ background: COLORS.tealDim }}>
-                                  <Car className="w-5 h-5" style={{ color: COLORS.teal, opacity: 0.5 }} />
-                                </div>
-                              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {filteredCars.map((car, index) => {
+                  const isPending = car.car_accepted === false || car.status === 'pending';
+                  return (
+                    <motion.div
+                      key={car.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.03 }}
+                      className={`rounded-xl border-2 overflow-hidden bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow duration-200 ${isPending ? 'border-red-200 dark:border-red-900/50' : 'border-transparent'}`}
+                    >
+                      <div className="relative">
+                        <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          {car.main_image_url ? (
+                            <img
+                              src={car.main_image_url.startsWith('http') ? car.main_image_url : `/api/storage/${car.main_image_url}`}
+                              alt={`${car.make} ${car.model}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center" style={{ background: COLORS.tealDim }}>
+                              <Car className="w-12 h-12" style={{ color: COLORS.teal, opacity: 0.5 }} />
                             </div>
-                            <div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{car.make}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{car.model} ({car.year})</div>
-                            </div>
+                          )}
+                        </div>
+                        {isPending && (
+                          <div className="absolute top-2 right-2">
+                            <span className="px-2 py-1 rounded-md text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40 shadow">
+                              Pending
+                            </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-mono">{car.license_plate}</td>
-                        <td className="px-4 py-3">
-                          <Badge 
-                            className="px-2 py-1 text-xs text-white font-semibold"
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <div className="font-semibold text-gray-900 dark:text-white truncate">{car.make} {car.model}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{car.year} · <span className="font-mono">{car.license_plate}</span></div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <Badge
+                            className="px-2 py-0.5 text-xs text-white font-semibold shrink-0"
                             style={{ background: getCategoryColor(car.car_category) }}
                           >
                             {car.car_category}
                           </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm font-bold" style={{ color: COLORS.teal }}>${car.daily_rate}</div>
-                          <div className="text-xs text-gray-500">per day</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge className={`px-2 py-1 text-xs ${getStatusBadgeClass(car.status)}`}>
-                            {car.status}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-3">
-                            <div className="flex items-center gap-1" title="Impressions in list/search">
-                              <Eye className="w-4 h-4" style={{ color: COLORS.darkBlue }} />
-                              <span className="text-sm font-semibold" style={{ color: COLORS.darkBlue }}>
-                                {car.views_count ?? 0}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1" title="Detail page opens">
-                              <MousePointerClick className="w-4 h-4" style={{ color: COLORS.teal }} />
-                              <span className="text-sm font-semibold" style={{ color: COLORS.teal }}>
-                                {car.clicks_count ?? 0}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 hover:scale-110 transition-transform"
-                              style={{ color: COLORS.teal }}
-                              onClick={() => setSelectedCar(car)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 hover:scale-110 transition-transform"
-                              style={{ color: COLORS.darkBlue }}
-                              onClick={() => openEditModal(car)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:scale-110 transition-transform"
-                              onClick={() => handleDelete(car.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
+                          <span className="text-sm font-bold" style={{ color: COLORS.teal }}>${car.daily_rate}<span className="text-xs font-normal text-gray-500">/day</span></span>
+                        </div>
+                        <div className="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1" title="Views">
+                            <Eye className="w-3.5 h-3.5" style={{ color: COLORS.darkBlue }} />
+                            {car.views_count ?? 0}
+                          </span>
+                          <span className="flex items-center gap-1" title="Clicks">
+                            <MousePointerClick className="w-3.5 h-3.5" style={{ color: COLORS.teal }} />
+                            {car.clicks_count ?? 0}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 flex-1 p-0 hover:scale-105 transition-transform"
+                            style={{ color: COLORS.teal }}
+                            onClick={() => setSelectedCar(car)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 flex-1 p-0 hover:scale-105 transition-transform"
+                            style={{ color: COLORS.darkBlue }}
+                            onClick={() => openEditModal(car)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 flex-1 p-0 text-red-600 hover:text-red-700 hover:scale-105 transition-transform"
+                            onClick={() => openDeleteModal(car)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* PAGINATION */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6">
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={() => goToPage(1)} 
-                disabled={pagination.currentPage === 1}
-                variant="outline"
-                size="sm"
-                className="h-9 w-9 p-0 rounded-lg"
-              >
-                <ChevronsLeft className="w-4 h-4"/>
-              </Button>
-              <Button 
-                onClick={() => goToPage(pagination.currentPage - 1)} 
-                disabled={pagination.currentPage === 1}
-                variant="outline"
-                size="sm"
-                className="h-9 w-9 p-0 rounded-lg"
-              >
-                <ChevronLeft className="w-4 h-4"/>
-              </Button>
-              <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-semibold">
-                Page {pagination.currentPage} of {totalPages}
-              </div>
-              <Button 
-                onClick={() => goToPage(pagination.currentPage + 1)} 
-                disabled={pagination.currentPage === totalPages}
-                variant="outline"
-                size="sm"
-                className="h-9 w-9 p-0 rounded-lg"
-              >
-                <ChevronRight className="w-4 h-4"/>
-              </Button>
-              <Button 
-                onClick={() => goToPage(totalPages)} 
-                disabled={pagination.currentPage === totalPages}
-                variant="outline"
-                size="sm"
-                className="h-9 w-9 p-0 rounded-lg"
-              >
-                <ChevronsRight className="w-4 h-4"/>
-              </Button>
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {((pagination.currentPage - 1) * pagination.perPage) + 1} - {Math.min(pagination.currentPage * pagination.perPage, filteredCars.length)} of {filteredCars.length}
-            </div>
-          </div>
+        {!loading && filteredCars.length > 0 && (
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            Showing all {filteredCars.length} car{filteredCars.length !== 1 ? 's' : ''}
+          </p>
         )}
 
         {/* MODALS */}
         {selectedCar && <CarDetailModal car={selectedCar} onClose={() => setSelectedCar(null)} />}
+
+        {/* Delete car – type "delete" to confirm */}
+        {deleteModalCar && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 relative"
+            >
+              <button
+                type="button"
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                style={{ background: COLORS.tealDim }}
+                onClick={closeDeleteModal}
+              >
+                <X className="w-5 h-5" style={{ color: COLORS.teal }} />
+              </button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-100 dark:bg-red-900/30">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Delete car</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {deleteModalCar.make} {deleteModalCar.model} ({deleteModalCar.license_plate})
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                This action cannot be undone. Type <strong className="text-gray-900 dark:text-white">delete</strong> below to confirm.
+              </p>
+              <Input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type delete to confirm"
+                className="h-10 border-2 rounded-xl mb-6"
+                autoComplete="off"
+              />
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={closeDeleteModal} className="h-10 rounded-xl">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDelete}
+                  disabled={deleteConfirmText.toLowerCase() !== 'delete'}
+                  className="h-10 rounded-xl text-white font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Delete car
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {isEditModalOpen && selectedCar && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg p-6 relative"
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative"
             >
               <button
                 className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
@@ -717,84 +921,292 @@ export const MyCarsPage = () => {
                     Edit Car
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedCar.make} {selectedCar.model}
+                    {selectedCar.license_plate}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Basic info */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    <MapPin className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
-                    Delivery Location
-                  </label>
-                  <Input
-                    value={editForm.delivery_location}
-                    onChange={e => handleEditChange('delivery_location', e.target.value)}
-                    placeholder="Enter delivery location"
-                    className="h-10 border-2 rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    <MapPin className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
-                    Return Location
-                  </label>
-                  <Input
-                    value={editForm.return_location}
-                    onChange={e => handleEditChange('return_location', e.target.value)}
-                    placeholder="Enter return location"
-                    className="h-10 border-2 rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    <Gauge className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
-                    Mileage (km)
-                  </label>
-                  <Input
-                    type="number"
-                    value={editForm.mileage}
-                    onChange={e => handleEditChange('mileage', Number(e.target.value))}
-                    placeholder="Enter mileage"
-                    className="h-10 border-2 rounded-xl"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      <DollarSign className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
-                      Daily Rate
-                    </label>
-                    <Input
-                      type="number"
-                      value={editForm.daily_rate}
-                      onChange={e => handleEditChange('daily_rate', Number(e.target.value))}
-                      placeholder="Daily rate"
-                      className="h-10 border-2 rounded-xl"
-                    />
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Basic info</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Make <span className="text-red-500">*</span></label>
+                      <Select value={editForm.make ?? ''} onValueChange={v => handleEditChange('make', v)}>
+                        <SelectTrigger className="h-10 border-2 rounded-xl">
+                          <SelectValue placeholder="Select make" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CAR_MAKES_LIST.map((m) => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {editForm.make === 'Other' && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Custom Make <span className="text-red-500">*</span></label>
+                        <Input
+                          value={editForm.customMake ?? ''}
+                          onChange={e => handleEditChange('customMake', e.target.value)}
+                          placeholder="Type make"
+                          className="h-10 border-2 rounded-xl"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Model <span className="text-red-500">*</span></label>
+                      {editForm.make && editForm.make !== 'Other' ? (
+                        <Select
+                          value={
+                            editForm.model && CAR_MAKES_AND_MODELS[editForm.make]?.includes(editForm.model)
+                              ? editForm.model
+                              : editForm.model === 'Other'
+                                ? 'Other'
+                                : '_'
+                          }
+                          onValueChange={v => handleEditChange('model', v === '_' ? '' : v)}
+                        >
+                          <SelectTrigger className="h-10 border-2 rounded-xl">
+                            <SelectValue placeholder="Select model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_">Select model...</SelectItem>
+                            {(CAR_MAKES_AND_MODELS[editForm.make] || []).map((m) => (
+                              <SelectItem key={m} value={m}>{m}</SelectItem>
+                            ))}
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={editForm.customModel ?? ''}
+                          onChange={e => handleEditChange('customModel', e.target.value)}
+                          placeholder="Type model"
+                          className="h-10 border-2 rounded-xl"
+                        />
+                      )}
+                    </div>
+                    {(editForm.make && editForm.make !== 'Other' && editForm.model === 'Other') && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Custom Model <span className="text-red-500">*</span></label>
+                        <Input
+                          value={editForm.customModel ?? ''}
+                          onChange={e => handleEditChange('customModel', e.target.value)}
+                          placeholder="Type model"
+                          className="h-10 border-2 rounded-xl"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Year</label>
+                      <Input
+                        type="number"
+                        value={editForm.year ?? ''}
+                        onChange={e => handleEditChange('year', e.target.value)}
+                        placeholder="e.g. 2023"
+                        className="h-10 border-2 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Color</label>
+                      <Select
+                        value={editForm.color || '_'}
+                        onValueChange={v => handleEditChange('color', v === '_' ? '' : v)}
+                      >
+                        <SelectTrigger className="h-10 border-2 rounded-xl">
+                          <SelectValue placeholder="Select color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_">—</SelectItem>
+                          {(() => {
+                            const color = editForm.color ?? '';
+                            const hasCustom = color && !CAR_COLORS.includes(color);
+                            const options = hasCustom ? [color, ...CAR_COLORS] : CAR_COLORS;
+                            return options.map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ));
+                          })()}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+                </div>
 
+                {/* Transmission & Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      <DollarSign className="w-4 h-4 inline mr-1" style={{ color: COLORS.darkBlue }} />
-                      Holiday Rate
+                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Transmission</h3>
+                    <Select value={(editForm.transmission || 'automatic').toLowerCase()} onValueChange={v => handleEditChange('transmission', v)}>
+                      <SelectTrigger className="h-10 border-2 rounded-xl">
+                        <SelectValue placeholder="Transmission" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="automatic">Automatic</SelectItem>
+                        <SelectItem value="manual">Manual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Status</h3>
+                    <Select value={editForm.status ?? 'available'} onValueChange={v => handleEditChange('status', v)}>
+                      <SelectTrigger className="h-10 border-2 rounded-xl">
+                        <SelectValue placeholder="Car status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="not_available">Not available</SelectItem>
+                        <SelectItem value="rented">Rented</SelectItem>
+                        <SelectItem value="maintenance">Maintenance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Pricing */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Pricing & costs</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Daily rate ($) <span className="text-red-500">*</span></label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editForm.daily_rate ?? ''}
+                        onChange={e => handleEditChange('daily_rate', e.target.value)}
+                        placeholder="0"
+                        className="h-10 border-2 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Holiday rate ($)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editForm.holiday_rate ?? ''}
+                        onChange={e => handleEditChange('holiday_rate', e.target.value)}
+                        placeholder="0"
+                        className="h-10 border-2 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Min rental days</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={editForm.min_rental_days ?? 1}
+                        onChange={e => handleEditChange('min_rental_days', e.target.value)}
+                        className="h-10 border-2 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!editForm.is_deposit}
+                        onChange={e => handleEditChange('is_deposit', e.target.checked)}
+                        className="w-4 h-4 rounded border-2"
+                        style={{ accentColor: COLORS.teal }}
+                      />
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Require deposit</span>
                     </label>
-                    <Input
-                      type="number"
-                      value={editForm.holiday_rate}
-                      onChange={e => handleEditChange('holiday_rate', Number(e.target.value))}
-                      placeholder="Holiday rate"
-                      className="h-10 border-2 rounded-xl"
+                    {editForm.is_deposit && (
+                      <div className="pl-6">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Deposit amount ($)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={editForm.deposit ?? ''}
+                          onChange={e => handleEditChange('deposit', e.target.value)}
+                          placeholder="0"
+                          className="h-10 border-2 rounded-xl max-w-xs"
+                        />
+                      </div>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!editForm.is_delivered}
+                        onChange={e => handleEditChange('is_delivered', e.target.checked)}
+                        className="w-4 h-4 rounded border-2"
+                        style={{ accentColor: COLORS.teal }}
+                      />
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Delivery available</span>
+                    </label>
+                    {editForm.is_delivered && (
+                      <div className="pl-6">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Delivery fees ($)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={editForm.delivery_fees ?? ''}
+                          onChange={e => handleEditChange('delivery_fees', e.target.value)}
+                          placeholder="0"
+                          className="h-10 border-2 rounded-xl max-w-xs"
+                        />
+                      </div>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!editForm.with_driver}
+                        onChange={e => handleEditChange('with_driver', e.target.checked)}
+                        className="w-4 h-4 rounded border-2"
+                        style={{ accentColor: COLORS.teal }}
+                      />
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Driver available</span>
+                    </label>
+                    {editForm.with_driver && (
+                      <div className="pl-6">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Driver fees per day ($)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={editForm.driver_fees ?? ''}
+                          onChange={e => handleEditChange('driver_fees', e.target.value)}
+                          placeholder="0"
+                          className="h-10 border-2 rounded-xl max-w-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mileage & notes */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Other</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <Gauge className="w-4 h-4 inline mr-1" style={{ color: COLORS.teal }} />
+                        Mileage (km)
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editForm.mileage ?? ''}
+                        onChange={e => handleEditChange('mileage', e.target.value)}
+                        placeholder="0"
+                        className="h-10 border-2 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notes</label>
+                    <textarea
+                      value={editForm.notes ?? ''}
+                      onChange={e => handleEditChange('notes', e.target.value)}
+                      placeholder="Optional notes about the vehicle"
+                      rows={3}
+                      className="w-full border-2 rounded-xl p-3 bg-white dark:bg-gray-900 resize-none"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-6 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-900 pt-4 -mb-6">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsEditModalOpen(false)}
