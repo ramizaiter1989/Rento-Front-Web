@@ -13,6 +13,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { getOwnerEarnings } from "@/lib/api";
+import api from "@/lib/axios";
 import { toast } from "sonner";
 
 const COLORS = {
@@ -35,13 +36,115 @@ export default function BalancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [earnings, setEarnings] = useState(null);
+  const [allBookings, setAllBookings] = useState([]);
+  const [filterRange, setFilterRange] = useState("all"); // all, day, week, month, custom
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [stats, setStats] = useState(null);
+
+  const parseDate = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  const isWithinRange = (dateStr, range) => {
+    const d = parseDate(dateStr);
+    if (!d) return false;
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (range.type) {
+      case "day": {
+        return d >= startOfToday;
+      }
+      case "week": {
+        const startOfWeek = new Date(startOfToday);
+        startOfWeek.setDate(startOfWeek.getDate() - 7);
+        return d >= startOfWeek;
+      }
+      case "month": {
+        const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+        return d >= startOfMonth;
+      }
+      case "custom": {
+        const from = parseDate(range.from);
+        const to = parseDate(range.to);
+        if (!from && !to) return true;
+        if (from && d < from) return false;
+        if (to) {
+          const end = new Date(to);
+          end.setHours(23, 59, 59, 999);
+          if (d > end) return false;
+        }
+        return true;
+      }
+      default:
+        return true;
+    }
+  };
+
+  const computeStatsFromBookings = (bookings, range) => {
+    if (!Array.isArray(bookings) || bookings.length === 0) {
+      return {
+        total_amount: 0,
+        app_fees_amount: 0,
+        net_earnings: 0,
+        bookings_count: 0,
+        cancelled_count: 0,
+        rejected_count: 0,
+      };
+    }
+
+    const filtered = bookings.filter((b) =>
+      range.type === "all"
+        ? true
+        : isWithinRange(b.start_datetime || b.created_at || b.updated_at, range)
+    );
+
+    const earningsBookings = filtered.filter((b) =>
+      ["confirmed", "accepted", "completed"].includes(b.booking_request_status)
+    );
+
+    const total_amount = earningsBookings.reduce(
+      (sum, b) => sum + parseFloat(b.total_booking_price || 0),
+      0
+    );
+    const app_fees_amount = earningsBookings.reduce(
+      (sum, b) => sum + (Number(b.app_fees_amount) || 0),
+      0
+    );
+
+    const cancelled_count = filtered.filter(
+      (b) => b.booking_request_status === "cancelled"
+    ).length;
+    const rejected_count = filtered.filter(
+      (b) => b.booking_request_status === "rejected"
+    ).length;
+
+    return {
+      total_amount,
+      app_fees_amount,
+      net_earnings: total_amount - app_fees_amount,
+      bookings_count: earningsBookings.length,
+      cancelled_count,
+      rejected_count,
+    };
+  };
 
   const fetchEarnings = async () => {
     setLoading(true);
     setError(false);
     try {
-      const { data } = await getOwnerEarnings();
+      const [{ data }, bookingsRes] = await Promise.all([
+        getOwnerEarnings().catch(() => ({ data: {} })),
+        api.get("/driver/bookings"),
+      ]);
       setEarnings(data);
+      const bookings = bookingsRes.data?.data || [];
+      setAllBookings(bookings);
+      const baseStats = computeStatsFromBookings(bookings, { type: "all" });
+      setStats(baseStats);
     } catch (err) {
       console.error("Failed to load earnings:", err);
       setError(true);
@@ -54,6 +157,16 @@ export default function BalancePage() {
   useEffect(() => {
     fetchEarnings();
   }, []);
+
+  useEffect(() => {
+    if (!allBookings.length) return;
+    const range = {
+      type: filterRange,
+      from: customFrom,
+      to: customTo,
+    };
+    setStats(computeStatsFromBookings(allBookings, range));
+  }, [allBookings, filterRange, customFrom, customTo]);
 
   if (loading && !earnings) {
     return (
@@ -123,6 +236,51 @@ export default function BalancePage() {
           </Card>
         ) : earnings ? (
           <>
+            {/* Date filter */}
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Balance range:
+              </span>
+              {[
+                { id: "all", label: "All time" },
+                { id: "day", label: "Today" },
+                { id: "week", label: "Last 7 days" },
+                { id: "month", label: "This month" },
+                { id: "custom", label: "Custom" },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setFilterRange(opt.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs sm:text-sm border transition-colors ${
+                    filterRange === opt.id
+                      ? "bg-teal-600 text-white border-teal-600"
+                      : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              {filterRange === "custom" && (
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <input
+                    type="date"
+                    className="border rounded-lg px-2 py-1 text-xs sm:text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                  />
+                  <span className="text-gray-500 dark:text-gray-400">to</span>
+                  <input
+                    type="date"
+                    className="border rounded-lg px-2 py-1 text-xs sm:text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <motion.div
@@ -138,7 +296,9 @@ export default function BalancePage() {
                       </div>
                       <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Total booking amount</span>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">${formatMoney(earnings.total_amount)}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      ${formatMoney(stats?.total_amount ?? earnings.total_amount)}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">What clients paid (confirmed + completed)</p>
                   </CardContent>
                 </Card>
@@ -157,7 +317,9 @@ export default function BalancePage() {
                       </div>
                       <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">App fees (platform)</span>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">${formatMoney(earnings.app_fees_amount)}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      ${formatMoney(stats?.app_fees_amount ?? earnings.app_fees_amount)}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Deducted from you • Fee: {earnings.app_fees_percentage != null ? `${earnings.app_fees_percentage}%` : "—"}
                     </p>
@@ -178,7 +340,9 @@ export default function BalancePage() {
                       </div>
                       <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Your net earnings</span>
                     </div>
-                    <p className="text-3xl font-bold" style={{ color: COLORS.limeGreen }}>${formatMoney(earnings.net_earnings)}</p>
+                    <p className="text-3xl font-bold" style={{ color: COLORS.limeGreen }}>
+                      ${formatMoney(stats?.net_earnings ?? earnings.net_earnings)}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total amount − app fees</p>
                   </CardContent>
                 </Card>
@@ -196,7 +360,7 @@ export default function BalancePage() {
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5" style={{ color: COLORS.teal }} />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  From <strong>{earnings.bookings_count ?? 0}</strong> bookings
+                  From <strong>{stats?.bookings_count ?? earnings.bookings_count ?? 0}</strong> bookings
                 </span>
               </div>
               {earnings.app_fees_percentage != null && (
@@ -206,6 +370,22 @@ export default function BalancePage() {
                     Your app fee: <strong>{earnings.app_fees_percentage}%</strong>
                   </span>
                 </div>
+              )}
+              {stats && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Cancelled bookings: <strong>{stats.cancelled_count}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Rejected bookings: <strong>{stats.rejected_count}</strong>
+                    </span>
+                  </div>
+                </>
               )}
             </motion.div>
 

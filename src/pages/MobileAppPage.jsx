@@ -1,13 +1,11 @@
 import React from "react";
-
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.rentolb.app&pcampaignid=web_share";
-const APP_STORE_URL = "https://apps.apple.com/us/app/rento-lb/id6756906813?l=en-GB";
+import { handleMobileAppStoreClick, STORE_URLS } from "@/lib/mobileAppClick";
 
 export function MobileAppPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-5xl mx-auto space-y-10">
-        <div className="text-center space-y-3">
+      <div className="w-full max-w-5xl mx-auto space-y-2">
+        <div className="text-center space-y-5">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
             Rento LB Mobile App
           </h1>
@@ -18,13 +16,14 @@ export function MobileAppPage() {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {/* Google Play block */}
           <a
-            href={PLAY_STORE_URL}
+            href={STORE_URLS["playstore"]}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex flex-col items-center gap-6 p-4"
+            onClick={(e) => handleMobileAppStoreClick(e, "playstore")}
           >
             <div className="w-full flex justify-center mobile-phone-3d">
               <img
@@ -46,10 +45,11 @@ export function MobileAppPage() {
 
           {/* App Store block */}
           <a
-            href={APP_STORE_URL}
+            href={STORE_URLS["appstore"]}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex flex-col items-center gap-6 p-4"
+            onClick={(e) => handleMobileAppStoreClick(e, "appstore")}
           >
             <div className="w-full flex justify-center mobile-phone-3d">
               <img
@@ -69,11 +69,6 @@ export function MobileAppPage() {
             </div>
           </a>
         </div>
-
-        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-          Note: Make sure the image file is available at <code>/mobile-app.png</code> in your{" "}
-          <code>public</code> folder so that the preview renders correctly.
-        </p>
       </div>
     </div>
   );

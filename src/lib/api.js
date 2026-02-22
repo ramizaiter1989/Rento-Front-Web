@@ -83,6 +83,22 @@ export const getProfile = () => {
 };
 
 /**
+ * Get current user + online status (last_active_at, is_online).
+ * GET /api/me - for mobile and web to show "logged in as X" and online indicator.
+ */
+export const getMe = () => {
+  return api.get('/me');
+};
+
+/**
+ * Post active status (heartbeat). Call periodically so Super Admin can see user as online / last seen.
+ * POST /api/me/active - no body required.
+ */
+export const postMeActive = () => {
+  return api.post('/me/active');
+};
+
+/**
  * Check profile status
  */
 export const getProfileStatus = () => {
@@ -157,6 +173,15 @@ export const trackAdView = (id) => {
  */
 export const trackAdClick = (id) => {
   return api.post(`/ads/${id}/click`);
+};
+
+/**
+ * Track mobile app store click (public - no auth required).
+ * Posts IP geolocation from ipapi.co + store type to backend.
+ * @param {Object} data - { ...ipapiResponse, store: 'playstore' | 'appstore' }
+ */
+export const trackMobileAppClick = (data) => {
+  return api.post('/mobile-app/click', data);
 };
 
 /**
@@ -605,8 +630,9 @@ export const getUnreadNotificationsCount = () => {
 
 /**
  * Mark notifications as read
- * @param {Object} data - Optional notification IDs array
- * @param {number[]} data.notification_ids - Specific notification IDs (optional, marks all if omitted)
+ * @param {Object} data
+ * @param {boolean} [data.mark_all] - If true, mark all as read
+ * @param {number[]} [data.notification_ids] - Mark specific IDs as read
  */
 export const markNotificationsAsRead = (data = {}) => {
   return api.post('/notifications/mark-read', data);
@@ -826,6 +852,7 @@ export default {
   // Profile
   getProfile,
   getProfileStatus,
+  getMe,
   completeProfile,
   updateProfile,
   changePassword,
@@ -837,6 +864,7 @@ export default {
   getAd,
   trackAdView,
   trackAdClick,
+  trackMobileAppClick,
   getGuestCars,
   getPublicVehicles,
   getPublicVehicle,

@@ -28,6 +28,8 @@ import { SEO } from "@/components/SEO";
 import CompleteProfilePage from "@/pages/CompleteProfilePage";
 import { ClientBookingChat } from "@/pages/ClientBookingChat";
 import api from "@/lib/axios";
+import { useAuth } from "@/hooks/useAuth";
+import { useActiveHeartbeat } from "@/hooks/useActiveHeartbeat";
 import { StatisticPage } from "@/pages/StatisticPage";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsAndConditions from "@/pages/TermsAndConditions";
@@ -49,6 +51,7 @@ import AdminAnnouncementsPage from "@/pages/admin/AdminAnnouncementsPage";
 import AdminAppealsPage from "@/pages/admin/AdminAppealsPage";
 import AdminSuggestionsPage from "@/pages/admin/AdminSuggestionsPage";
 import AdminNotificationsPage from "@/pages/admin/AdminNotificationsPage";
+import AdminAlertsPage from "@/pages/admin/AdminAlertsPage";
 import AdminOtpsPage from "@/pages/admin/AdminOtpsPage";
 import AdminPromoCodesPage from "@/pages/admin/AdminPromoCodesPage";
 import AdminBrokersPage from "@/pages/admin/AdminBrokersPage";
@@ -175,6 +178,9 @@ const PageLayout = ({ children, noIndex = false }) => {
 function AppContent() {
   const { i18n } = useTranslation();
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
+
+  useActiveHeartbeat(isAuthenticated);
 
   useEffect(() => {
     const currentLang = localStorage.getItem("language") || "en";
@@ -304,6 +310,7 @@ function AppContent() {
             <Route path="suggestions" element={<AdminSuggestionsPage />} />
             <Route path="services" element={<AdminServicesPage />} />
             <Route path="notifications" element={<AdminNotificationsPage />} />
+            <Route path="alerts" element={<AdminAlertsPage />} />
             <Route path="otps" element={<AdminOtpsPage />} />
           </Route>
 

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Smartphone } from 'lucide-react';
+import { handleMobileAppStoreClick } from '@/lib/mobileAppClick';
 
 // Logo colors
 const COLORS = {
@@ -60,7 +61,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4 py-8 sm:py-10">
         
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 lg:gap-8">
           
           {/* Brand Section */}
           <div className="lg:col-span-2 mb-4 sm:mb-0">
@@ -180,6 +181,46 @@ export const Footer = () => {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Get the App */}
+          <div>
+            <h3 className="font-bold mb-3 text-base text-gray-900 dark:text-white flex items-center gap-2" style={{ color: COLORS.teal }}>
+              <Smartphone className="w-4 h-4" />
+              Get the App
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Book on the go with our mobile app
+            </p>
+            <Link to="/mobile-app" className="text-xs hover:underline mb-2 block" style={{ color: COLORS.teal }}>
+              Learn more
+            </Link>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a
+                href="#"
+                onClick={(e) => handleMobileAppStoreClick(e, "playstore")}
+                className="inline-flex items-center justify-center rounded-lg overflow-hidden transition-all hover:scale-105 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                aria-label="Get it on Google Play"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+                  alt="Get it on Google Play"
+                  className="h-10 w-auto"
+                />
+              </a>
+              <a
+                href="#"
+                onClick={(e) => handleMobileAppStoreClick(e, "appstore")}
+                className="inline-flex items-center justify-center rounded-lg overflow-hidden transition-all hover:scale-105 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                aria-label="Download on the App Store"
+              >
+                <img
+                  src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+                  alt="Download on the App Store"
+                  className="h-10 w-auto"
+                />
+              </a>
+            </div>
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import {
@@ -34,6 +35,8 @@ export function BookingChatSystem() {
   const messagesEndRef = useRef(null);
   const echoRef = useRef(null);
   const currentUserId = useRef(null);
+  const location = useLocation();
+  const initialBookingIdRef = useRef(location.state?.bookingId ?? null);
 
   const [token] = useState(() => localStorage.getItem('token'));
 
@@ -144,6 +147,18 @@ export function BookingChatSystem() {
       setLoadingBookings(false);
     }
   };
+
+  // If navigated here with a specific bookingId in location.state, auto-select that booking once bookings are loaded
+  useEffect(() => {
+    if (!bookings.length) return;
+    const targetId = initialBookingIdRef.current ?? location.state?.bookingId;
+    if (!targetId) return;
+    if (selectedBooking && String(selectedBooking.id) === String(targetId)) return;
+    const found = bookings.find((b) => String(b.id) === String(targetId));
+    if (found) {
+      setSelectedBooking(found);
+    }
+  }, [bookings, selectedBooking, location.state]);
 
   /** ------------------- SCROLL TO BOTTOM ------------------- **/
   const scrollToBottom = () => {

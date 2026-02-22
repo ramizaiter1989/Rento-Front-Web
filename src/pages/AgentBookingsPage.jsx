@@ -8,8 +8,10 @@ import {
   Wallet, Award, ChevronLeft, ChevronRight, AlertCircle, Clock, Car,
   TrendingUp, Eye, Filter, Search, Download, RefreshCw, Zap, CheckCircle2,
   Timer, Activity, DollarSign, UserCheck, BadgeCheck, Briefcase, Hash,
-  Navigation, MapPinned, CalendarDays, CreditCard, FileText, Table2
+  Navigation, MapPinned, CalendarDays, CreditCard, FileText, Table2,
+  MessageCircle
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +38,7 @@ const COLORS = {
 };
 
 export function AgentBookingsPage() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCar, setSelectedCar] = useState(null);
@@ -105,6 +108,19 @@ export function AgentBookingsPage() {
     acc[carId].bookings.push(booking);
     return acc;
   }, {});
+
+  const getLocationLabel = (loc) => {
+    if (!loc) return "N/A";
+    if (typeof loc === "string") return loc;
+    if (typeof loc === "object") {
+      if (loc.address) return loc.address;
+      const lat = loc.lat ?? loc.latitude;
+      const lng = loc.lng ?? loc.longitude;
+      if (lat != null && lng != null) return `${lat}, ${lng}`;
+      return JSON.stringify(loc);
+    }
+    return String(loc);
+  };
 
   const handleAcceptBooking = async (bookingId) => {
     setProcessingBookingId(bookingId);
@@ -1041,7 +1057,7 @@ export function AgentBookingsPage() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
           >
             {Object.values(filteredGroupedByCar).map(({ car, bookings: carBookings }, index) => {
               const pendingCount = carBookings.filter((b) => b.booking_request_status === "pending").length;
@@ -1179,6 +1195,9 @@ export function AgentBookingsPage() {
                         const profile = client?.profile || {};
                         const config = getStatusConfig(booking.booking_request_status);
                         const StatusIcon = config.icon;
+                        const isAcceptedBooking =
+                          booking.booking_request_status === "accepted" ||
+                          booking.booking_request_status === "confirmed";
 
                         return (
                           <motion.div
@@ -1282,16 +1301,32 @@ export function AgentBookingsPage() {
                                       </div>
                                     </>
                                   )}
+                                  {booking.needs_delivery && (
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600 dark:text-gray-400">Delivery:</span>
+                                      <span className="font-semibold text-right truncate max-w-[160px]">
+                                        Requested
+                                      </span>
+                                    </div>
+                                  )}
+                                  {booking.needs_driver && (
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600 dark:text-gray-400">Driver:</span>
+                                      <span className="font-semibold text-right truncate max-w-[160px]">
+                                        With driver
+                                      </span>
+                                    </div>
+                                  )}
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Pickup:</span>
                                     <span className="font-semibold text-right truncate max-w-[160px]">
-                                      {booking.pickup_location || "N/A"}
+                                      {getLocationLabel(booking.pickup_location)}
                                     </span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Dropoff:</span>
                                     <span className="font-semibold text-right truncate max-w-[160px]">
-                                      {booking.dropoff_location || "N/A"}
+                                      {getLocationLabel(booking.dropoff_location)}
                                     </span>
                                   </div>
                                 </div>
@@ -1302,7 +1337,13 @@ export function AgentBookingsPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                               {[
                                 { label: "Email", value: client?.email, icon: Mail },
-                                { label: "Phone", value: client?.phone_number, icon: Phone },
+                                {
+                                  label: "Phone",
+                                  value: isAcceptedBooking
+                                    ? client?.phone_number
+                                    : "Hidden until booking accepted",
+                                  icon: Phone,
+                                },
                                 { label: "City", value: client?.city, icon: MapPin },
                                 { label: "Profession", value: profile?.profession, icon: Briefcase },
                               ].map((item, i) => (
@@ -1400,6 +1441,24 @@ export function AgentBookingsPage() {
                                 >
                                   <XCircle className="w-5 h-5" />
                                   {processingBookingId === booking.id ? "Processing..." : "Reject Booking"}
+                                </motion.button>
+                              </div>
+                            )}
+
+                            {/* Chat button for accepted bookings */}
+                            {isAcceptedBooking && (
+                              <div className="flex gap-2.5 pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate("/BookingChat", { state: { bookingId: booking.id } });
+                                  }}
+                                  className="flex-1 py-2.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl"
+                                >
+                                  <MessageCircle className="w-5 h-5" />
+                                  Chat with client
                                 </motion.button>
                               </div>
                             )}

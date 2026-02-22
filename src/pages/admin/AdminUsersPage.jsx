@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axios";
-import { Eye, Pencil, Trash2, Search, Edit, Users } from "lucide-react";
+import { getOnlineUsers, getUsers } from "@/lib/adminApi";
+import { Eye, Pencil, Trash2, Search, Edit, Users, Circle, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,8 +37,11 @@ const AdminUsersPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const PER_PAGE = 20;
   const [users, setUsers] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [meta, setMeta] = useState({ current_page: 1, last_page: 1, per_page: PER_PAGE, total: 0 });
+  const [page, setPage] = useState(1);
+  const [onlineCount, setOnlineCount] = useState(null);
   const [loading, setLoading] = useState(true);
 
   //Start tony update
@@ -52,32 +56,76 @@ const AdminUsersPage = () => {
   /* filters */
   const [search, setSearch] = useState("");
   const [roles, setRoles] = useState([]);
-  const [sort, setSort] = useState("newest");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
   /* ============================
-     Fetch users
+     Fetch users (paginated, always sorted by newest)
   ============================ */
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page,
+        per_page: PER_PAGE,
+        sort_by: "created_at",
+        sort_order: "desc",
+      };
+      if (search.trim()) params.search = search.trim();
+      if (roles.length === 1) params.role = roles[0];
+      else if (roles.length > 1) params.role = roles.join(",");
+      if (statusFilter === "active") params.status = true;
+      else if (statusFilter === "blocked") params.status = false;
+
+      const res = await getUsers(params);
+      const payload = res.data?.users ?? res.data;
+      const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+      setUsers(Array.isArray(list) ? list : []);
+
+      const pagination = payload?.current_page != null
+        ? { current_page: payload.current_page, last_page: payload.last_page ?? 1, per_page: payload.per_page ?? PER_PAGE, total: payload.total ?? 0 }
+        : { current_page: page, last_page: 1, per_page: PER_PAGE, total: 0 };
+      setMeta((m) => ({
+        ...m,
+        current_page: pagination.current_page ?? page,
+        last_page: pagination.last_page ?? 1,
+        per_page: pagination.per_page ?? PER_PAGE,
+        total: pagination.total ?? 0,
+      }));
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, roles, statusFilter]);
+
   useEffect(() => {
-    const fetchUsers = async () => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, roles, statusFilter]);
+
+  useEffect(() => {
+    const fetchOnline = async () => {
       try {
-        const res = await api.get("/admin/users");
-        setUsers(res.data?.users?.data || []);
-        setTotal(res.data?.users?.total || 0);
-      } catch (err) {
-        toast({
-          title: "Error",
-          description: "Failed to load users",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+        const res = await getOnlineUsers({ minutes: 30 });
+        const data = res.data ?? res;
+        const list = data?.online_users ?? data?.users ?? data?.data ?? [];
+        setOnlineCount(data?.online_users_count ?? (Array.isArray(list) ? list.length : 0));
+      } catch {
+        setOnlineCount(0);
       }
     };
-
-    fetchUsers();
-  }, [toast]);
+    fetchOnline();
+  }, []);
 
   /* ============================
      Fetch user details tony 
@@ -111,47 +159,10 @@ const AdminUsersPage = () => {
   };
 
   //End Tony Update
-  /* ============================
-     Filter + sort
-  ============================ */
-  const filteredUsers = useMemo(() => {
-    let data = [...users];
-
-    // search
-    if (search) {
-      const q = search.toLowerCase();
-      data = data.filter(
-        (u) =>
-          u.username?.toLowerCase().includes(q) ||
-          u.phone_number?.includes(q) ||
-          u.role?.toLowerCase().includes(q),
-      );
-    }
-
-    // role filter (multi)
-    if (roles.length > 0) {
-      data = data.filter((u) => roles.includes(u.role));
-    }
-
-    // status filter
-    if (statusFilter !== "all") {
-      const isActive = statusFilter === "active";
-      data = data.filter((u) => !!u.update_access === isActive);
-    }
-
-    // sort
-    if (sort === "az") {
-      data.sort((a, b) => a.username.localeCompare(b.username));
-    }
-    if (sort === "za") {
-      data.sort((a, b) => b.username.localeCompare(a.username));
-    }
-    if (sort === "newest") {
-      data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    }
-
-    return data;
-  }, [users, search, roles, statusFilter, sort]);
+  /* Display users with newest first (client-side fallback if backend ignores sort) */
+  const filteredUsers = [...users].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
 
   /* ============================
      Actions
@@ -163,6 +174,7 @@ const AdminUsersPage = () => {
     try {
       await api.delete(`/admin/users/${id}`);
       setUsers((prev) => prev.filter((u) => u.id !== id));
+      setMeta((m) => ({ ...m, total: Math.max(0, (m.total ?? 0) - 1) }));
       toast({ title: "User deleted" });
     } catch {
       toast({
@@ -237,13 +249,20 @@ const AdminUsersPage = () => {
 
   {/* Right actions */}
   <div className="flex items-center gap-3">
-    {/* Total users */}
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Users className="h-4 w-4" />
-      <span>Total:</span>
-      <span className="font-semibold text-foreground">
-        {filteredUsers.length}
-      </span>
+    {/* Total users & Online */}
+    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4" />
+        <span>Total:</span>
+        <span className="font-semibold text-foreground">{meta.total}</span>
+      </div>
+      {onlineCount !== null && (
+        <div className="flex items-center gap-2">
+          <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500" />
+          <span>Online now:</span>
+          <span className="font-semibold text-foreground">{onlineCount}</span>
+        </div>
+      )}
     </div>
 
     {/* Toggle filters */}
@@ -259,18 +278,6 @@ const AdminUsersPage = () => {
 
 {showFilters && (
   <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg border p-4 bg-background">
-    {/* Sort */}
-    <Select value={sort} onValueChange={setSort}>
-      <SelectTrigger>
-        <SelectValue placeholder="Sort by" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="newest">Newest</SelectItem>
-        <SelectItem value="az">A–Z</SelectItem>
-        <SelectItem value="za">Z–A</SelectItem>
-      </SelectContent>
-    </Select>
-
     {/* Status */}
     <Select value={statusFilter} onValueChange={setStatusFilter}>
       <SelectTrigger>
@@ -405,6 +412,46 @@ const AdminUsersPage = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {meta.last_page > 1 && !loading && filteredUsers.length > 0 && (
+            <div className="flex flex-col items-center gap-3 mt-6 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page <span className="font-semibold text-foreground">{meta.current_page}</span> of{" "}
+                <span className="font-semibold text-foreground">{meta.last_page}</span> ({meta.total} users)
+              </div>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={meta.current_page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                {Array.from({ length: meta.last_page }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === meta.last_page || Math.abs(p - meta.current_page) <= 2)
+                  .map((p) => (
+                    <Button
+                      key={p}
+                      size="sm"
+                      variant={p === meta.current_page ? "default" : "outline"}
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={meta.current_page >= meta.last_page}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -835,11 +882,13 @@ function EditUserView({ user, setUser, onClose, onSaved }) {
       <div className="text-sm font-semibold">Editable Fields</div>
 
       <div className="rounded-md border p-3 space-y-1">
-        <ToggleRow
-          label="Verified by Admin"
-          value={user?.verified_by_admin}
-          onChange={(v) => setVal("verified_by_admin", v)}
-        />
+        {user?.verified_by_admin && (
+          <ToggleRow
+            label="Verified by Admin (can revoke only)"
+            value={user?.verified_by_admin}
+            onChange={(v) => setVal("verified_by_admin", v)}
+          />
+        )}
 
         <ToggleRow
           label="Status (Active)"

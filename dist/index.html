@@ -33,36 +33,29 @@
     <link rel="icon" type="image/png" sizes="192x192" href="https://rento-lb.com/rento-512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="https://rento-lb.com/rento-512.png" />
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-13QSYTLK5D"></script>
+<!-- Google tag (gtag.js) - only on production to avoid Tracking Prevention console noise on localhost -->
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-13QSYTLK5D');
+  if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
+    (function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-13QSYTLK5D';document.head.appendChild(s);})();
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-13QSYTLK5D');
+  }
 </script>
 
-    <!-- Meta Pixel (Facebook) -->
+    <!-- Meta Pixel (Facebook) - only on production to avoid Tracking Prevention console noise on localhost -->
     <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '882085247864603');
-      fbq('track', 'PageView');
+      if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','882085247864603');fbq('track','PageView');
+      }
     </script>
-    <!-- End Meta Pixel Code -->
-    <script type="module" crossorigin src="/assets/index-DVoMMlWf.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DrW6ViCY.css">
+    <script type="module" crossorigin src="/assets/index-7KQ8PyWI.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CoTrPiGA.css">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
   </head>
   <body>
-    <!-- Meta Pixel noscript fallback (must be in body: img not allowed in noscript in head) -->
+    <!-- Meta Pixel noscript fallback (only relevant when JS disabled) -->
     <noscript><img height="1" width="1" style="display:none"
       src="https://www.facebook.com/tr?id=882085247864603&ev=PageView&noscript=1"
       alt="" /></noscript>

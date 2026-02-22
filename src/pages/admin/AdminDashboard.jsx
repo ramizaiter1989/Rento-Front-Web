@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "@/lib/axios";
+import { getOnlineUsers, getMobileAppClicks, getMobileAppClicksChart } from "@/lib/adminApi";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Car, CalendarCheck, DollarSign } from "lucide-react";
+import { Users, Car, CalendarCheck, DollarSign, Circle, Clock, MousePointerClick } from "lucide-react";
+import { formatLastSeen, getLatestLastSeen } from "@/lib/formatLastSeen";
 
 import BookingsOverviewChart from "@/components/admin/BookingsOverviewChart";
 import CarsByModelBarChart from "@/components/admin/CarsByModelBarChart";
+import MobileAppClicksChart from "@/components/admin/MobileAppClicksChart";
+import MobileAppClicksPieChart from "@/components/admin/MobileAppClicksPieChart";
 
 /* =====================================================
    HELPERS
@@ -160,7 +164,8 @@ const AdminDashboard = () => {
     bookings: 0,
     revenue: 0,
   });
-
+  const [onlineCount, setOnlineCount] = useState(null);
+  const [onlineUsersList, setOnlineUsersList] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
   /* =========================
@@ -188,16 +193,16 @@ const AdminDashboard = () => {
         setLoadingStats(true);
 
         const usersRes = await api.get("/admin/users");
-        const carsRes = await api.get("/cars");
+        const carsRes = await api.get("/admin/cars", { params: { per_page: 1, page: 1 } });
         const bookingsRes = await api.get("/admin/bookings");
         const paymentsRes = await api.get("/admin/payments");
 
+        const carsData = carsRes.data?.cars ?? carsRes.data;
+        const carsTotal = carsData?.total ?? carsRes.data?.meta?.total ?? 0;
+
         setStats({
           users: usersRes.data?.users?.total ?? 0,
-          cars:
-            carsRes.data?.cars?.total ??
-            carsRes.data?.total ??
-            0,
+          cars: carsTotal,
           bookings:
             bookingsRes.data?.bookings?.total ??
             bookingsRes.data?.total ??
@@ -215,6 +220,22 @@ const AdminDashboard = () => {
     };
 
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchOnline = async () => {
+      try {
+        const res = await getOnlineUsers({ minutes: 30 });
+        const data = res.data ?? res;
+        const list = data?.online_users ?? data?.users ?? data?.data ?? [];
+        setOnlineUsersList(Array.isArray(list) ? list : []);
+        setOnlineCount(data?.online_users_count ?? (Array.isArray(list) ? list.length : 0));
+      } catch {
+        setOnlineCount(0);
+        setOnlineUsersList([]);
+      }
+    };
+    fetchOnline();
   }, []);
 
   /* =========================
@@ -249,7 +270,7 @@ const AdminDashboard = () => {
   /* =========================
      STAT CARD
   ========================== */
-  const StatCard = ({ title, value, icon: Icon, color }) => (
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
     <Card>
       <CardContent className="p-6 flex items-center gap-4">
         <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center`}>
@@ -260,6 +281,12 @@ const AdminDashboard = () => {
           <h2 className="text-2xl font-bold">
             {loadingStats ? "—" : value}
           </h2>
+          {subtitle != null && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Circle className="w-2 h-2 fill-green-500 text-green-500" />
+              {subtitle}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -374,7 +401,88 @@ useEffect(() => {
   setCarsChartData(data);
 }, [carsRaw, selectedMake, selectedModel]);
 
+/* =========================
+   MOBILE APP CLICKS
+========================= */
+const [clicksRaw, setClicksRaw] = useState([]);
+const [clicksPeriod, setClicksPeriod] = useState("day");
+const [clicksChartData, setClicksChartData] = useState([]);
+const [clicksByStore, setClicksByStore] = useState({ playstore: 0, appstore: 0 });
+const [clicksTotalCount, setClicksTotalCount] = useState(0);
+const [clicksLoading, setClicksLoading] = useState(true);
+const [clicksListLoading, setClicksListLoading] = useState(true);
+const [clicksApiAvailable, setClicksApiAvailable] = useState(null);
+const [clicksDateRange, setClicksDateRange] = useState({
+  from: (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 29);
+    return d;
+  })(),
+  to: new Date(),
+});
 
+const getDaysBack = () => {
+  if (clicksPeriod === "day") return 7;
+  if (clicksPeriod === "week") return 28;
+  return 30;
+};
+
+useEffect(() => {
+  const fetchChart = async () => {
+    try {
+      setClicksLoading(true);
+      setClicksApiAvailable(null);
+      const res = await getMobileAppClicksChart({
+        period: clicksPeriod,
+        days_back: getDaysBack(),
+      });
+      setClicksApiAvailable(true);
+      const data = res.data ?? res;
+      const series = data.series ?? data.data?.series ?? [];
+      const byStore = data.by_store ?? data.data?.by_store ?? { playstore: 0, appstore: 0 };
+      const total = data.total_clicks ?? data.data?.total_clicks ?? 0;
+      setClicksChartData(Array.isArray(series) ? series : []);
+      setClicksByStore(typeof byStore === "object" ? byStore : { playstore: 0, appstore: 0 });
+      setClicksTotalCount(typeof total === "number" ? total : 0);
+    } catch (err) {
+      setClicksApiAvailable(err.response?.status === 404 ? false : null);
+      if (err.response?.status !== 404) {
+        console.error("Clicks chart error", err);
+      }
+      setClicksChartData([]);
+      setClicksByStore({ playstore: 0, appstore: 0 });
+      setClicksTotalCount(0);
+    } finally {
+      setClicksLoading(false);
+    }
+  };
+  fetchChart();
+}, [clicksPeriod]);
+
+useEffect(() => {
+  const fetchList = async () => {
+    try {
+      setClicksListLoading(true);
+      const res = await getMobileAppClicks({
+        date_from: formatDate(clicksDateRange.from),
+        date_to: formatDate(clicksDateRange.to),
+        per_page: 100,
+      });
+      const root = res.data ?? res;
+      const payload = root.clicks ?? root.data?.clicks ?? root.data ?? root;
+      const raw = payload?.data ?? (Array.isArray(payload) ? payload : []);
+      setClicksRaw(Array.isArray(raw) ? raw : []);
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        console.error("Clicks list error", err);
+      }
+      setClicksRaw([]);
+    } finally {
+      setClicksListLoading(false);
+    }
+  };
+  fetchList();
+}, [clicksDateRange.from, clicksDateRange.to]);
 
   return (
     <div className="space-y-6">
@@ -382,11 +490,53 @@ useEffect(() => {
 
       {/* STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Users" value={stats.users} icon={Users} color="bg-blue-500" />
+        <StatCard
+          title="Total Users"
+          value={stats.users}
+          icon={Users}
+          color="bg-blue-500"
+          subtitle={onlineCount !== null ? `Online now: ${onlineCount}` : undefined}
+        />
         <StatCard title="Total Cars" value={stats.cars} icon={Car} color="bg-[#00A19C]" />
         <StatCard title="Total Bookings" value={stats.bookings} icon={CalendarCheck} color="bg-purple-500" />
         <StatCard title="Total Revenue" value={`$${stats.revenue}`} icon={DollarSign} color="bg-green-500" />
       </div>
+
+      {/* ONLINE USERS (under Total Users) */}
+      {onlineUsersList.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <Circle className="w-4 h-4 fill-green-500 text-green-500" />
+              Online Users ({onlineCount})
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[240px] overflow-y-auto">
+              {onlineUsersList.slice(0, 12).map((u) => {
+                const lastSeen = getLatestLastSeen(u);
+                const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || `User #${u.id}`;
+                return (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border p-3 bg-muted/30"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{displayName}</p>
+                      <p className="text-xs text-muted-foreground truncate">@{u.username} • {u.role}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatLastSeen(lastSeen)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {onlineUsersList.length > 12 && (
+              <p className="text-xs text-muted-foreground mt-2">+{onlineUsersList.length - 12} more</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* BOOKING OVERVIEW */}
 <Card>
@@ -517,8 +667,157 @@ useEffect(() => {
   </CardContent>
 </Card>
 
+{/* MOBILE APP CLICKS */}
+<Card>
+  <CardContent className="p-6 space-y-6">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <MousePointerClick className="w-5 h-5" />
+        Mobile App Store Clicks
+      </h2>
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={clicksPeriod}
+          onChange={(e) => setClicksPeriod(e.target.value)}
+          className="border rounded-md px-3 py-1.5 text-sm bg-background"
+        >
+          <option value="day">Daily</option>
+          <option value="week">Weekly</option>
+          <option value="month">Monthly</option>
+        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={formatDate(clicksDateRange.from)}
+            onChange={(e) =>
+              setClicksDateRange((p) => ({ ...p, from: new Date(e.target.value) }))
+            }
+            className="border rounded-md px-2 py-1 text-sm"
+          />
+          <span className="text-muted-foreground">–</span>
+          <input
+            type="date"
+            value={formatDate(clicksDateRange.to)}
+            onChange={(e) =>
+              setClicksDateRange((p) => ({ ...p, to: new Date(e.target.value) }))
+            }
+            className="border rounded-md px-2 py-1 text-sm"
+          />
+        </div>
+      </div>
+    </div>
 
+    {clicksApiAvailable === false && (
+      <p className="text-sm text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3">
+        API not found (404). Ensure the backend exposes <code className="text-xs bg-amber-100 dark:bg-amber-900/50 px-1 rounded">GET /api/admin/mobile-app-clicks</code> and <code className="text-xs bg-amber-100 dark:bg-amber-900/50 px-1 rounded">GET /api/admin/mobile-app-clicks/chart</code>.
+      </p>
+    )}
 
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2 h-[300px]">
+        {clicksLoading ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Loading chart...
+          </div>
+        ) : clicksChartData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+            <span>No click data</span>
+            {clicksApiAvailable === true && (
+              <span className="text-xs">Clicks are recorded when users tap Play Store / App Store links.</span>
+            )}
+          </div>
+        ) : (
+          <div className="h-full">
+            <p className="text-xs text-muted-foreground mb-1">Timeline</p>
+            <MobileAppClicksChart data={clicksChartData} />
+          </div>
+        )}
+      </div>
+      <div className="h-[260px] lg:h-[300px]">
+        {clicksLoading ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            Loading...
+          </div>
+        ) : (clicksByStore?.playstore || clicksByStore?.appstore) > 0 ? (
+          <>
+            <p className="text-xs text-muted-foreground mb-1">By store</p>
+            <MobileAppClicksPieChart byStore={clicksByStore} />
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
+            <span>No store breakdown yet</span>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {(clicksByStore?.playstore || clicksByStore?.appstore || clicksTotalCount) > 0 && (
+      <p className="text-sm text-muted-foreground">
+        Total: {clicksTotalCount} — Play Store: {clicksByStore?.playstore ?? 0} · App Store: {clicksByStore?.appstore ?? 0}
+      </p>
+    )}
+
+    <div>
+      <h3 className="text-sm font-semibold mb-3">Clickers list (date range below)</h3>
+      <div className="overflow-x-auto rounded-md border max-h-[320px] overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 sticky top-0">
+            <tr>
+              <th className="text-left p-3">Date</th>
+              <th className="text-left p-3">Store</th>
+              <th className="text-left p-3">IP</th>
+              <th className="text-left p-3">City</th>
+              <th className="text-left p-3">Country</th>
+            </tr>
+          </thead>
+          <tbody>
+            {clicksListLoading ? (
+              <tr>
+                <td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  Loading...
+                </td>
+              </tr>
+            ) : clicksRaw.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  No clicks recorded
+                </td>
+              </tr>
+            ) : (
+              [...clicksRaw]
+                .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+                .map((c) => (
+                  <tr key={c.id || `${c.created_at}-${c.ip}`} className="border-t hover:bg-muted/30">
+                    <td className="p-3">
+                      {c.created_at
+                        ? new Date(c.created_at).toLocaleString()
+                        : "—"}
+                    </td>
+                    <td className="p-3">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                          (c.store || "").includes("ios")
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {(c.store || "").toLowerCase().includes("app") ? "App Store" : "Play Store"}
+                      </span>
+                    </td>
+                    <td className="p-3 font-mono text-xs">{c.ip || "—"}</td>
+                    <td className="p-3">{c.city || "—"}</td>
+                    <td className="p-3">
+                      {c.country_name || c.country || c.country_code || "—"}
+                    </td>
+                  </tr>
+                ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </CardContent>
+</Card>
 
     </div>
   );

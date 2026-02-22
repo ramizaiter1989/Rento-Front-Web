@@ -149,12 +149,14 @@ const UserEditModal = ({ open, onClose, user, onSaved }) => {
               checked={form.update_access}
               onChange={(v) => handleChange("update_access", v)}
             />
-            <Toggle
-              label="Verified by Admin"
-              checked={form.verified_by_admin}
-              aria-label="Toggle user verification status"
-              onChange={(v) => handleChange("verified_by_admin", v)}
-            />
+            {form.verified_by_admin && (
+              <Toggle
+                label="Verified by Admin (can revoke only)"
+                checked={form.verified_by_admin}
+                aria-label="Revoke verification"
+                onChange={(v) => handleChange("verified_by_admin", v)}
+              />
+            )}
             <Toggle
               label="Account Locked"
               checked={form.is_locked}

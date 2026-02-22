@@ -11,7 +11,8 @@ import {
   LogOut,
   User,
   Home,
-  Wallet
+  Wallet,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -62,6 +63,11 @@ export const AgentNavbar = () => {
       to: '/Mycars-bookings', 
       label: 'Bookings', 
       icon: Calendar 
+    },
+    { 
+      to: '/BookingChat', 
+      label: 'Chats', 
+      icon: MessageCircle 
     },
     { 
       to: '/Balance', 

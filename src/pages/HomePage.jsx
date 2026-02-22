@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import api from '../lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { handleMobileAppStoreClick } from '@/lib/mobileAppClick';
 import {
   Search,
   MapPin,
@@ -460,7 +461,34 @@ export const HomePage = () => {
                 </span>
               </h1>
 
-            
+              {/* Get the App - Store badges */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-6 sm:mb-12">
+                <a
+                  href="#"
+                  onClick={(e) => handleMobileAppStoreClick(e, "playstore")}
+                  className="inline-flex transition-all hover:scale-105 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 rounded-lg overflow-hidden"
+                  aria-label="Get it on Google Play"
+                >
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+                    alt="Get it on Google Play"
+                    className="h-10 sm:h-12 w-auto"
+                  />
+                </a>
+                <a
+                  href="#"
+                  onClick={(e) => handleMobileAppStoreClick(e, "appstore")}
+                  className="inline-flex transition-all hover:scale-105 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 rounded-lg overflow-hidden"
+                  aria-label="Download on the App Store"
+                >
+                  <img
+                    src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+                    alt="Download on the App Store"
+                    className="h-10 sm:h-12 w-auto"
+                  />
+                </a>
+              </div>
+
             <p className="text-base sm:text-xl md:text-2xl text-gray-100 mb-6 sm:mb-12 max-w-2xl mx-auto font-medium drop-shadow-lg px-4">
               All you need in one place — the only platform with full search and filters
             </p>

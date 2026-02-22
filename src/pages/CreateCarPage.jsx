@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Car, Upload, MapPin, DollarSign, Settings, Image, FileText, Sparkles, Check, X, Navigation, Search, Building2, FileDown } from 'lucide-react';
+import { ArrowLeft, Car, Upload, MapPin, DollarSign, Settings, Image, FileText, Sparkles, Check, X, Navigation, Search, Building2, FileDown, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -150,6 +150,48 @@ function parseGoogleMapsLink(url) {
   return null;
 }
 
+/** Detect Google Maps short links (maps.app.goo.gl or goo.gl/maps) */
+function isShortMapLink(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  return /^(https?:)?\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(trimmed) || /^https?:\/\/maps\.app\.goo\.gl\//i.test(trimmed);
+}
+
+/**
+ * Resolve a short Google Maps link by following redirects (client-side).
+ * Often fails due to CORS; use resolveShortMapLinkViaBackend when possible.
+ */
+async function resolveShortMapLink(url) {
+  const trimmed = (url || '').trim();
+  if (!isShortMapLink(trimmed)) return null;
+  try {
+    const res = await fetch(trimmed, { redirect: 'follow', method: 'HEAD' });
+    return parseGoogleMapsLink(res.url || trimmed);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve short map link via backend (no CORS). Backend should GET the short URL,
+ * follow redirects, parse final URL for lat/lng, return { lat, lng } or { latitude, longitude }.
+ */
+async function resolveShortMapLinkViaBackend(url) {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return null;
+  try {
+    const { data } = await api.get('/resolve-map-link', { params: { url: trimmed } });
+    const lat = data?.lat ?? data?.latitude;
+    const lng = data?.lng ?? data?.longitude;
+    if (lat != null && lng != null && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng))) {
+      return { lat: Number(lat), lng: Number(lng) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Get agency office location from stored user (user.agent.location).
  * location can be JSON string like "{\"city\":\"beirut\",\"lat\":33.8938,\"lng\":35.5018}"
@@ -256,6 +298,7 @@ export const CreateCarPage = () => {
   const [mapSearchQuery, setMapSearchQuery] = useState('');
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
   const [googleLinkInputs, setGoogleLinkInputs] = useState({ liveLocation: '', deliveryLocation: '', returnLocation: '' });
+  const [linkResolvingField, setLinkResolvingField] = useState(null);
   
   const [formData, setFormData] = useState({
     make: '',
@@ -266,12 +309,13 @@ export const CreateCarPage = () => {
     licensePlate: '',
     color: '',
     mileage: 0,
-    fuelType: '',
+    fuelType: 'Petrol',
     transmission: '',
     wheelsDrive: '',
     carCategory: '',
     seats: 5,
     doors: 4,
+    cylinderNumber: '',
     dailyRate: '',
     holidayRate: '',
     notes: '',
@@ -289,6 +333,7 @@ export const CreateCarPage = () => {
     liveLocation: { address: '', latitude: 0, longitude: 0 },
     deliveryLocation: { address: '', latitude: 0, longitude: 0 },
     returnLocation: { address: '', latitude: 0, longitude: 0 },
+    isPrivate: false,
   });
   
   const [images, setImages] = useState({
@@ -442,8 +487,19 @@ export const CreateCarPage = () => {
     }));
   };
 
-  const applyGoogleLink = (field, url) => {
-    const coords = parseGoogleMapsLink(url);
+  const applyGoogleLink = async (field, url) => {
+    const trimmed = (url || '').trim();
+    if (!trimmed) return;
+    let coords = parseGoogleMapsLink(trimmed);
+    if (!coords && isShortMapLink(trimmed)) {
+      setLinkResolvingField(field);
+      try {
+        coords = await resolveShortMapLink(trimmed);
+        if (!coords) coords = await resolveShortMapLinkViaBackend(trimmed);
+      } finally {
+        setLinkResolvingField(null);
+      }
+    }
     if (coords) {
       setFormData((prev) => ({
         ...prev,
@@ -456,7 +512,14 @@ export const CreateCarPage = () => {
       }));
       toast.success('Location set from Google Maps link.');
     } else {
-      toast.error('Could not read coordinates from this link. Use a link with lat,lng (e.g. @33.89,35.50 or ?q=33.89,35.50).');
+      if (isShortMapLink(trimmed)) {
+        toast.error(
+          'Short link (maps.app.goo.gl) not resolved: browser cannot follow the link, and the server may not have the resolve endpoint yet. Workaround: open the link in a new tab, then copy the long URL from the address bar and paste it here, or set location with "Select on map" / "Use current location".',
+          { duration: 7000 }
+        );
+      } else {
+        toast.error('Could not read coordinates from this link. Use a link with lat,lng (e.g. @33.89,35.50 or ?q=33.89,35.50) or a maps.app.goo.gl link.');
+      }
     }
   };
 
@@ -578,6 +641,7 @@ export const CreateCarPage = () => {
         carCategory: form.carCategory ?? prev.carCategory,
         seats: form.seats ?? prev.seats,
         doors: form.doors ?? prev.doors,
+        cylinderNumber: form.cylinderNumber ?? form.cylinder_number ?? prev.cylinderNumber,
         dailyRate: form.dailyRate != null ? form.dailyRate : prev.dailyRate,
         holidayRate: form.holidayRate != null ? form.holidayRate : prev.holidayRate,
         notes: form.notes ?? prev.notes,
@@ -650,6 +714,13 @@ export const CreateCarPage = () => {
     setLoading(true);
     const data = new FormData();
 
+    const liveAddress = (formData.liveLocation?.address || '').trim();
+    if (!liveAddress) {
+      toast.error('Please enter the Live Location address (region/address).');
+      setLoading(false);
+      return;
+    }
+
     const isOtherMake = formData.make === 'Other';
     const isOtherModel = formData.model === 'Other';
     const resolvedMake = isOtherMake ? formData.customMake.trim() : formData.make;
@@ -690,6 +761,7 @@ export const CreateCarPage = () => {
     data.append('daily_rate', formData.dailyRate);
     data.append('seats', formData.seats);
     data.append('doors', formData.doors);
+    if (formData.cylinderNumber) data.append('cylinder_number', formData.cylinderNumber);
     
     // Append optional fields
     if (formData.color) data.append('color', formData.color);
@@ -720,6 +792,8 @@ export const CreateCarPage = () => {
     if (formData.driverAvailable && formData.driverFees > 0) {
       data.append('driver_fees', formData.driverFees);
     }
+
+    data.append('is_private', formData.isPrivate ? '1' : '0');
     
     // Append locations as JSON strings
     data.append('live_location', JSON.stringify(formData.liveLocation));
@@ -1096,6 +1170,23 @@ export const CreateCarPage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Cylinder number
+                    </label>
+                    <select
+                      value={formData.cylinderNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, cylinderNumber: e.target.value })}
+                      className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
+                    >
+                      <option value="">—</option>
+                      <option value="4">4</option>
+                      <option value="6">6</option>
+                      <option value="8">8</option>
+                      <option value="10">10</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Category <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -1105,13 +1196,15 @@ export const CreateCarPage = () => {
                       className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
                     >
                       <option value="">Select...</option>
-                      <option value="Luxury">Luxury</option>
-                      <option value="Sport">Sport</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Industrial">Industrial</option>
-                      <option value="Normal">Normal</option>
-                      <option value="Event">Event</option>
-                      <option value="Sea">Sea</option>
+                      <option value="Sedan">Sedan</option>
+                      <option value="Hatchback">Hatchback</option>
+                      <option value="Coupe">Coupe</option>
+                      <option value="SUV">SUV</option>
+                      <option value="Crossover">Crossover</option>
+                      <option value="Wagon">Wagon</option>
+                      <option value="Pickup">Pickup</option>
+                      <option value="Minivan">Minivan</option>
+                      <option value="Convertible">Convertible</option>
                     </select>
                   </div>
                 </div>
@@ -1343,6 +1436,18 @@ export const CreateCarPage = () => {
                       </div>
                     </div>
                   )}
+                  <div className="flex items-center space-x-3 w-full">
+                    <input
+                      type="checkbox"
+                      id="isPrivate"
+                      checked={formData.isPrivate}
+                      onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
+                      className="w-5 h-5 rounded border-2 border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <label htmlFor="isPrivate" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Private car (hidden from public listings)
+                    </label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1442,24 +1547,34 @@ export const CreateCarPage = () => {
                       
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address (region)</label>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Address (region) {field === 'liveLocation' && <span className="text-red-500">*</span>}
+                          </label>
                           <select
                             value={loc.address || ''}
                             onChange={(e) => handleLocationAddressChange(field, e.target.value)}
-                            className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
+                            className={`w-full h-12 border-2 rounded-xl px-4 bg-white dark:bg-gray-900 ${
+                              field === 'liveLocation' && !(loc.address || '').trim()
+                                ? 'border-amber-400 dark:border-amber-500 focus:border-teal-500'
+                                : 'border-gray-200 dark:border-gray-700 focus:border-teal-500'
+                            }`}
+                            required={field === 'liveLocation'}
                           >
                             <option value="">Select region...</option>
                             {ADDRESS_OPTIONS.map((opt) => (
                               <option key={opt} value={opt}>{opt}</option>
                             ))}
                           </select>
+                          {field === 'liveLocation' && (
+                            <p className="text-xs text-muted-foreground mt-1">Required: enter the live address/region where the car is located.</p>
+                          )}
                         </div>
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Paste Google Maps link (to set coordinates)</label>
                           <div className="flex gap-2">
                             <Input
-                              placeholder="e.g. https://www.google.com/maps/@33.8938,35.5018,17z"
+                              placeholder="e.g. https://www.google.com/maps/@33.89,35.50 or https://maps.app.goo.gl/..."
                               value={googleLinkInputs[field] || ''}
                               onChange={(e) => setGoogleLinkInputs((prev) => ({ ...prev, [field]: e.target.value }))}
                               onBlur={(e) => {
@@ -1471,16 +1586,26 @@ export const CreateCarPage = () => {
                             <Button
                               type="button"
                               variant="outline"
+                              disabled={linkResolvingField === field}
                               onClick={() => {
                                 const v = googleLinkInputs[field];
                                 if (v?.trim()) applyGoogleLink(field, v);
                               }}
-                              className="h-12 shrink-0"
+                              className="h-12 shrink-0 min-w-[80px]"
                             >
-                              Apply
+                              {linkResolvingField === field ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  Resolving...
+                                </>
+                              ) : (
+                                'Apply'
+                              )}
                             </Button>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">Paste a link with coordinates to fill the pin location if missing.</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Paste a link with coordinates (e.g. google.com/maps/@33.89,35.50) or a short link (maps.app.goo.gl). If a short link fails, open it in a new tab, copy the long URL from the address bar, and paste that here.
+                          </p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">

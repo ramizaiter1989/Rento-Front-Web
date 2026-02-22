@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import {
   getAgencies,
   getAgency,
+  updateAgency,
 } from "@/lib/adminApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,11 +29,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Building2,
   Search,
   Eye,
+  Edit2,
   Loader2,
   RefreshCw,
   CheckCircle2,
@@ -123,11 +126,15 @@ export default function AdminAgenciesPage() {
   const [address, setAddress] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [includeAll, setIncludeAll] = useState(false);
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAgency, setSelectedAgency] = useState(null);
   const [agencyDetail, setAgencyDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const fetchAgencies = useCallback(async () => {
     setLoading(true);
@@ -143,6 +150,7 @@ export default function AdminAgenciesPage() {
       if (businessType) params.business_type = businessType;
       if (address) params.address = address;
       if (search.trim()) params.search = search.trim();
+      if (includeAll) params.include_all = true;
 
       const res = await getAgencies(params);
       const payload = res.data?.agencies ?? res.data;
@@ -166,7 +174,7 @@ export default function AdminAgenciesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, perPage, search, verifiedOnly, businessType, address, sortBy, sortOrder]);
+  }, [page, perPage, search, verifiedOnly, businessType, address, sortBy, sortOrder, includeAll]);
 
   useEffect(() => {
     fetchAgencies();
@@ -197,6 +205,83 @@ export default function AdminAgenciesPage() {
     setDetailOpen(false);
     setSelectedAgency(null);
     setAgencyDetail(null);
+    setEditMode(false);
+  };
+
+  const startEdit = () => {
+    if (!agencyDetail) return;
+    const loc = agencyDetail.location || {};
+    setEditForm({
+      username: agencyDetail.username || "",
+      first_name: agencyDetail.first_name || "",
+      last_name: agencyDetail.last_name || "",
+      email: agencyDetail.email || "",
+      phone_number: agencyDetail.phone_number || "",
+      verified_by_admin: !!agencyDetail.verified_by_admin,
+      status: agencyDetail.status !== false,
+      is_locked: !!agencyDetail.is_locked,
+      country: agencyDetail.country || "",
+      city: agencyDetail.city || "",
+      bio: agencyDetail.bio || "",
+      gender: agencyDetail.gender || "",
+      birth_date: agencyDetail.birth_date || "",
+      business_type: agencyDetail.business_type || "",
+      company_number: agencyDetail.company_number || "",
+      address: agencyDetail.address || "",
+      location_lat: loc.lat ?? "",
+      location_lng: loc.lng ?? "",
+      location_city: loc.city || "",
+      website: agencyDetail.website || "",
+      profession: agencyDetail.profession || "",
+      policies: agencyDetail.policies || "",
+      app_fees: agencyDetail.app_fees ?? "",
+    });
+    setEditMode(true);
+  };
+
+  const handleEditChange = (key, value) => {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const saveEdit = async () => {
+    if (!selectedAgency?.id) return;
+    setSaving(true);
+    try {
+      const payload = {};
+      const strFields = ["username", "first_name", "last_name", "email", "phone_number", "country", "city", "bio", "gender", "birth_date", "business_type", "company_number", "address", "website", "profession", "policies"];
+      strFields.forEach((f) => {
+        if (editForm[f] !== undefined) payload[f] = String(editForm[f] || "").trim() || undefined;
+      });
+      if (editForm.verified_by_admin !== undefined) payload.verified_by_admin = !!editForm.verified_by_admin;
+      if (editForm.status !== undefined) payload.status = !!editForm.status;
+      if (editForm.is_locked !== undefined) payload.is_locked = !!editForm.is_locked;
+      if (editForm.app_fees !== undefined && editForm.app_fees !== "") {
+        const n = Number(editForm.app_fees);
+        if (!isNaN(n) && n >= 0 && n <= 100) payload.app_fees = n;
+      }
+      const lat = editForm.location_lat !== undefined && editForm.location_lat !== "" ? Number(editForm.location_lat) : null;
+      const lng = editForm.location_lng !== undefined && editForm.location_lng !== "" ? Number(editForm.location_lng) : null;
+      if (lat != null || lng != null || editForm.location_city) {
+        payload.location = {
+          lat: lat ?? undefined,
+          lng: lng ?? undefined,
+          city: editForm.location_city || undefined,
+        };
+      }
+
+      const res = await updateAgency(selectedAgency.id, payload);
+      const updated = res.data?.agency ?? res.data;
+      setAgencyDetail(updated);
+      setEditMode(false);
+      toast.success("Agency updated successfully");
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.errors
+        ? Object.values(err.response?.data?.errors || {}).flat().join(", ")
+        : err.response?.data?.error || "Failed to update agency";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSearch = () => {
@@ -301,6 +386,30 @@ export default function AdminAgenciesPage() {
           </SelectContent>
         </Select>
         <Select
+          value={includeAll ? "yes" : "no"}
+          onValueChange={(v) => {
+            setIncludeAll(v === "yes");
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Include" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="no">Active only</SelectItem>
+            <SelectItem value="yes">Include inactive/locked</SelectItem>
+          </SelectContent>
+        </Select>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeAll}
+            onChange={(e) => { setIncludeAll(e.target.checked); setPage(1); }}
+            className="rounded"
+          />
+          Include inactive/locked
+        </label>
+        <Select
           value={sortBy}
           onValueChange={(v) => {
             setSortBy(v);
@@ -378,8 +487,21 @@ export default function AdminAgenciesPage() {
                 key={agency.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate(`/admin/cars?agent_id=${agency.id}`)}
-                onKeyDown={(e) => e.key === "Enter" && navigate(`/admin/cars?agent_id=${agency.id}`)}
+                onClick={() =>
+                  navigate(
+                    `/admin/cars?agent_id=${agency.id}&agent_username=${encodeURIComponent(
+                      agency.username || displayName(agency)
+                    )}`
+                  )
+                }
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  navigate(
+                    `/admin/cars?agent_id=${agency.id}&agent_username=${encodeURIComponent(
+                      agency.username || displayName(agency)
+                    )}`
+                  )
+                }
                 className={`overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg ${getCardAccent(agency.business_type)}`}
               >
                 <CardHeader className="pb-2">
@@ -453,7 +575,14 @@ export default function AdminAgenciesPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/cars?agent_id=${agency.id}`); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(
+                          `/admin/cars?agent_id=${agency.id}&agent_username=${encodeURIComponent(
+                            agency.username || displayName(agency)
+                          )}`
+                        );
+                      }}
                     >
                       <Car className="w-4 h-4 mr-2" />
                       View cars
@@ -495,17 +624,39 @@ export default function AdminAgenciesPage() {
       <Dialog open={detailOpen} onOpenChange={(open) => !open && closeDetail()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              Agency — {selectedAgency ? displayName(selectedAgency) : ""} (ID:{" "}
-              {selectedAgency?.id})
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Agency — {selectedAgency ? displayName(selectedAgency) : ""} (ID:{" "}
+                {selectedAgency?.id})
+              </span>
+              {!detailLoading && agencyDetail && !editMode && (
+                <Button size="sm" onClick={startEdit}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
             </DialogTitle>
           </DialogHeader>
           {detailLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : agencyDetail ? (
+          ) : agencyDetail ? (editMode ? (
+            <EditAgencyForm
+              editForm={editForm}
+              handleEditChange={handleEditChange}
+              onCancel={() => setEditMode(false)}
+              onSave={saveEdit}
+              saving={saving}
+              agencyDetail={agencyDetail}
+              profileImgUrl={profileImgUrl}
+              ASSET_BASE={ASSET_BASE}
+              DEFAULT_AVATAR={DEFAULT_AVATAR}
+              GOVERNORATES={GOVERNORATES}
+              BUSINESS_TYPES={BUSINESS_TYPES}
+            />
+          ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <img
@@ -591,7 +742,7 @@ export default function AdminAgenciesPage() {
                 </div>
               )}
             </div>
-          ) : (
+          )) : (
             <p className="text-muted-foreground py-4">No details available.</p>
           )}
         </DialogContent>
@@ -606,6 +757,201 @@ function FieldRow({ label, value }) {
     <div>
       <span className="text-muted-foreground">{label}: </span>
       <span>{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
+    </div>
+  );
+}
+
+const PROFESSION_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "owner", label: "Owner" },
+  { value: "manager", label: "Manager" },
+];
+
+const GENDER_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
+];
+
+function EditAgencyForm({
+  editForm,
+  handleEditChange,
+  onCancel,
+  onSave,
+  saving,
+  agencyDetail,
+  profileImgUrl,
+  ASSET_BASE,
+  DEFAULT_AVATAR,
+  GOVERNORATES,
+  BUSINESS_TYPES,
+}) {
+  const btOptions = BUSINESS_TYPES.filter((t) => t.value);
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 pb-4 border-b">
+        <img
+          src={profileImgUrl(agencyDetail)}
+          alt=""
+          className="h-16 w-16 rounded-full object-cover"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = DEFAULT_AVATAR;
+          }}
+        />
+        <p className="text-sm text-muted-foreground">Profile photo cannot be changed here. Use User photo upload.</p>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-semibold mb-3">Account</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Username</label>
+            <Input value={editForm.username} onChange={(e) => handleEditChange("username", e.target.value)} placeholder="username" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">First name</label>
+            <Input value={editForm.first_name} onChange={(e) => handleEditChange("first_name", e.target.value)} placeholder="First name" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Last name</label>
+            <Input value={editForm.last_name} onChange={(e) => handleEditChange("last_name", e.target.value)} placeholder="Last name" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Email</label>
+            <Input type="email" value={editForm.email} onChange={(e) => handleEditChange("email", e.target.value)} placeholder="email@example.com" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Phone number</label>
+            <Input value={editForm.phone_number} onChange={(e) => handleEditChange("phone_number", e.target.value)} placeholder="Phone" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Country</label>
+            <Input value={editForm.country} onChange={(e) => handleEditChange("country", e.target.value)} placeholder="Country" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">City</label>
+            <Input value={editForm.city} onChange={(e) => handleEditChange("city", e.target.value)} placeholder="City" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Gender</label>
+            <Select value={editForm.gender || "_"} onValueChange={(v) => handleEditChange("gender", v === "_" ? "" : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {GENDER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value || "_"} value={o.value || "_"}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Birth date</label>
+            <Input type="date" value={editForm.birth_date} onChange={(e) => handleEditChange("birth_date", e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs text-muted-foreground block mb-1">Bio</label>
+            <Input value={editForm.bio} onChange={(e) => handleEditChange("bio", e.target.value)} placeholder="Bio (max 500)" maxLength={500} />
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editForm.verified_by_admin} onChange={(e) => handleEditChange("verified_by_admin", e.target.checked)} />
+              <span className="text-sm">Verified by admin</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editForm.status} onChange={(e) => handleEditChange("status", e.target.checked)} />
+              <span className="text-sm">Account active</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editForm.is_locked} onChange={(e) => handleEditChange("is_locked", e.target.checked)} />
+              <span className="text-sm">Locked</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-semibold mb-3">Business</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Business type</label>
+            <Select value={editForm.business_type || "_"} onValueChange={(v) => handleEditChange("business_type", v === "_" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Business type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_">—</SelectItem>
+                {btOptions.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Address (governorate)</label>
+            <Select value={editForm.address || "_"} onValueChange={(v) => handleEditChange("address", v === "_" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Address" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_">—</SelectItem>
+                {GOVERNORATES.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Company number</label>
+            <Input value={editForm.company_number} onChange={(e) => handleEditChange("company_number", e.target.value)} placeholder="e.g. LB-12345" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Profession</label>
+            <Select value={editForm.profession || "_"} onValueChange={(v) => handleEditChange("profession", v === "_" ? "" : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PROFESSION_OPTIONS.map((o) => (
+                  <SelectItem key={o.value || "_"} value={o.value || "_"}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Website</label>
+            <Input value={editForm.website} onChange={(e) => handleEditChange("website", e.target.value)} placeholder="https://..." />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">App fees (%)</label>
+            <Input type="number" min={0} max={100} value={editForm.app_fees} onChange={(e) => handleEditChange("app_fees", e.target.value)} placeholder="0–100" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Location lat</label>
+            <Input type="number" step="any" value={editForm.location_lat} onChange={(e) => handleEditChange("location_lat", e.target.value)} placeholder="33.8" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Location lng</label>
+            <Input type="number" step="any" value={editForm.location_lng} onChange={(e) => handleEditChange("location_lng", e.target.value)} placeholder="35.5" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Location city</label>
+            <Input value={editForm.location_city} onChange={(e) => handleEditChange("location_city", e.target.value)} placeholder="Beirut" />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs text-muted-foreground block mb-1">Policies (terms and conditions)</label>
+            <textarea
+              className="w-full min-h-[100px] rounded-md border px-3 py-2 text-sm"
+              value={editForm.policies}
+              onChange={(e) => handleEditChange("policies", e.target.value)}
+              placeholder="Terms and conditions..."
+              maxLength={10000}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button variant="outline" onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button onClick={onSave} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          Save changes
+        </Button>
+      </div>
     </div>
   );
 }
