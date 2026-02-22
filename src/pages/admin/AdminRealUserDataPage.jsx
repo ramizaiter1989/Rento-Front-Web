@@ -74,6 +74,7 @@ import { COLORS } from "@/contexts/AdminContext";
 const ASSET_BASE = "https://rento-lb.com/api/storage/";
 const API_BASE = "https://rento-lb.com/api/api";
 const DEFAULT_AVATAR = "/avatar.png";
+const USERS_PER_PAGE = 20;
 const FETCH_ALL_PER_PAGE = 500;
 const IMAGE_TYPES = [
   { key: "id_card_front", label: "ID Card Front" },
@@ -292,23 +293,36 @@ function getProfileImg(u) {
   return ASSET_BASE + cleaned;
 }
 
-/** User status for Real User Data page — one of 4 clear states */
+/** User status for Real User Data page — 3 clear states */
 const USER_STATUS = {
   VERIFIED: "verified",
   WAITING_ADMIN: "waiting_admin",
   PROFILE_INCOMPLETE: "profile_incomplete",
-  PENDING_USER: "pending_user",
 };
 
-function getUserStatusType(user, pendingUserIds) {
-  if (!user) return USER_STATUS.PROFILE_INCOMPLETE;
-  const isVerified = !!user.verified_by_admin;
-  const isProfileComplete = !!user.profile_complete;
-  const isPendingRealData = pendingUserIds.includes(user.id);
+function isProfileComplete(user) {
+  if (!user) return false;
+  const hasUserFields = !!(
+    user.first_name &&
+    user.last_name &&
+    user.gender &&
+    user.birth_date &&
+    user.city &&
+    user.id_card_front &&
+    user.id_card_back
+  );
+  if (user.role === "client") {
+    const c = user.client;
+    if (!c) return false;
+    return hasUserFields && !!(c.driver_license && c.license_number && c.profession && c.avg_salary);
+  }
+  return hasUserFields;
+}
 
-  if (isVerified) return USER_STATUS.VERIFIED;
-  if (isPendingRealData) return USER_STATUS.PENDING_USER;
-  if (isProfileComplete) return USER_STATUS.WAITING_ADMIN;
+function getUserStatusType(user) {
+  if (!user) return USER_STATUS.PROFILE_INCOMPLETE;
+  if (user.verified_by_admin) return USER_STATUS.VERIFIED;
+  if (isProfileComplete(user)) return USER_STATUS.WAITING_ADMIN;
   return USER_STATUS.PROFILE_INCOMPLETE;
 }
 
@@ -320,7 +334,6 @@ export default function AdminRealUserDataPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [lastUpdatedUserId, setLastUpdatedUserId] = useState(null);
-  const [pendingUserIds, setPendingUserIds] = useState([]);
   const [realStatusFilter, setRealStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState("realData"); // "users" | "realData"
   const [realDataList, setRealDataList] = useState([]);
@@ -357,7 +370,7 @@ export default function AdminRealUserDataPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const params = { page, per_page: perPage };
+      const params = { page, per_page: USERS_PER_PAGE };
       if (roleFilter && roleFilter !== "all") params.role = roleFilter;
       if (searchQuery?.trim()) params.search = searchQuery.trim();
       const res = await getUsers(params);
@@ -403,28 +416,6 @@ export default function AdminRealUserDataPage() {
     fetchUsers();
   };
 
-  // Load users who have real user data in pending status
-  const loadPendingRealUserData = async () => {
-    try {
-      const res = await getRealUserData({ status: "pending", per_page: 500 });
-      const payload = res.data?.real_user_data || res.data;
-      const data = payload?.data || [];
-      const ids = data
-        .map((item) => item.user_id)
-        .filter((id) => id != null);
-      setPendingUserIds(ids);
-    } catch (err) {
-      console.warn(
-        "Failed to load pending real user data",
-        err.response?.data || err.message
-      );
-    }
-  };
-
-  useEffect(() => {
-    loadPendingRealUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const loadRealUserDataList = async () => {
     setRealDataLoading(true);
@@ -601,7 +592,6 @@ export default function AdminRealUserDataPage() {
       if (viewMode === "realData") loadRealUserDataList();
       else {
         fetchUsers();
-        await loadPendingRealUserData();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update status");
@@ -633,7 +623,6 @@ export default function AdminRealUserDataPage() {
       toast.success("Real user data deleted.");
       closeModal();
       fetchUsers();
-      await loadPendingRealUserData();
       if (viewMode === "realData") loadRealUserDataList();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to delete");
@@ -667,13 +656,12 @@ export default function AdminRealUserDataPage() {
     let list = users;
     if (realStatusFilter === "all") return list;
 
-    const statusFilter = realStatusFilter;
     list = list.filter((u) => {
-      const status = getUserStatusType(u, pendingUserIds);
-      return status === statusFilter;
+      const status = getUserStatusType(u);
+      return status === realStatusFilter;
     });
     return list;
-  }, [users, realStatusFilter, pendingUserIds]);
+  }, [users, realStatusFilter]);
   const displayName = (u) =>
     u?.first_name && u?.last_name
       ? `${u.first_name} ${u.last_name}`
@@ -719,7 +707,6 @@ export default function AdminRealUserDataPage() {
               realStatusFilter === USER_STATUS.VERIFIED && "bg-emerald-100 border-emerald-500 text-emerald-800",
               realStatusFilter === USER_STATUS.WAITING_ADMIN && "bg-sky-100 border-sky-500 text-sky-800",
               realStatusFilter === USER_STATUS.PROFILE_INCOMPLETE && "bg-red-100 border-red-500 text-red-800",
-              realStatusFilter === USER_STATUS.PENDING_USER && "bg-amber-100 border-amber-500 text-amber-800",
             ].join(" ")}
           >
             <SelectValue placeholder="Status filter" />
@@ -729,7 +716,6 @@ export default function AdminRealUserDataPage() {
             <SelectItem value={USER_STATUS.VERIFIED}>Verified by admin</SelectItem>
             <SelectItem value={USER_STATUS.WAITING_ADMIN}>Profile complete — waiting for admin</SelectItem>
             <SelectItem value={USER_STATUS.PROFILE_INCOMPLETE}>Profile not complete</SelectItem>
-            <SelectItem value={USER_STATUS.PENDING_USER}>Pending — waiting for user</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -1055,7 +1041,7 @@ export default function AdminRealUserDataPage() {
         </Card>
       )}
 
-      {/* Status legend — 4 clear states (when viewing by users) */}
+      {/* Status legend — 3 clear states (when viewing by users) */}
       {viewMode === "users" && (
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-medium">
@@ -1069,10 +1055,6 @@ export default function AdminRealUserDataPage() {
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-300 text-red-800 font-medium">
             <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-sm" />
             Profile not complete
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-800 font-medium">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shadow-sm" />
-            Pending — admin asked; waiting for user to send info
           </span>
         </div>
       )}
@@ -1095,18 +1077,16 @@ export default function AdminRealUserDataPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredUsers.map((user) => {
-                const status = getUserStatusType(user, pendingUserIds);
+                const status = getUserStatusType(user);
                 const isVerified = status === USER_STATUS.VERIFIED;
                 const isWaitingAdmin = status === USER_STATUS.WAITING_ADMIN;
                 const isProfileIncomplete = status === USER_STATUS.PROFILE_INCOMPLETE;
-                const isPendingUser = status === USER_STATUS.PENDING_USER;
 
                 const cardClasses = [
                   "overflow-hidden border-2 transition-shadow rounded-xl",
                   isVerified && "border-emerald-400 bg-emerald-50/80 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
                   isWaitingAdmin && "border-sky-400 bg-sky-50/80 shadow-[0_0_10px_rgba(14,165,233,0.5)]",
                   isProfileIncomplete && "border-red-400 bg-red-50/80 shadow-[0_0_10px_rgba(239,68,68,0.5)]",
-                  isPendingUser && "border-amber-400 bg-amber-50/80 shadow-[0_0_10px_rgba(245,158,11,0.5)]",
                   lastUpdatedUserId === user.id && "ring-2 ring-emerald-400",
                 ]
                   .filter(Boolean)
@@ -1116,19 +1096,15 @@ export default function AdminRealUserDataPage() {
                   isVerified
                     ? "Verified by admin"
                     : isWaitingAdmin
-                    ? "Waiting for admin"
-                    : isProfileIncomplete
-                    ? "Profile not complete"
-                    : "Pending (waiting for user)";
+                    ? "Profile complete — waiting for admin"
+                    : "Profile not complete";
 
                 const statusBadgeClass =
                   isVerified
                     ? "bg-emerald-100 border-emerald-500 text-emerald-800"
                     : isWaitingAdmin
                     ? "bg-sky-100 border-sky-500 text-sky-800"
-                    : isProfileIncomplete
-                    ? "bg-red-100 border-red-500 text-red-800"
-                    : "bg-amber-100 border-amber-500 text-amber-800";
+                    : "bg-red-100 border-red-500 text-red-800";
 
                 return (
                   <Card key={user.id} className={cardClasses}>
