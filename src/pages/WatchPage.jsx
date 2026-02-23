@@ -1,13 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
-/**
- * Dedicated watch page for the Rento LB hero video.
- * Satisfies Google's "Video isn't on a watch page" requirement by providing
- * a page whose primary purpose is displaying this video, with VideoObject schema.
- */
 const WATCH_PAGE_URL = 'https://rento-lb.com/watch';
 const VIDEO_URL = 'https://rento-lb.com/hero.mp4';
 const THUMBNAIL_URL = 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1280&q=80';
@@ -30,21 +25,12 @@ const videoSchema = {
 export function WatchPage() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    document.title = 'Watch – Rento LB | Car Rental Lebanon';
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.setAttribute('data-watch-page-schema', 'true');
-    script.textContent = JSON.stringify(videoSchema);
-    document.head.appendChild(script);
-    return () => {
-      const el = document.querySelector('script[data-watch-page-schema="true"]');
-      if (el) document.head.removeChild(el);
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-black">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
+      />
       <div className="absolute top-4 left-4 z-10">
         <Button
           variant="secondary"

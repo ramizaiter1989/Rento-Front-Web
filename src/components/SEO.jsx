@@ -1,25 +1,64 @@
 import React, { useEffect } from 'react';
-import { partners } from './partners';
+import { useLocation } from 'react-router-dom';
 
-export const SEO = ({ noIndex = false }) => {
-  // Sync critical meta to document.head so crawlers (and Google) see index/noindex correctly.
-  // React renders meta inside body; search engines expect robots/title in <head>.
+const BASE_URL = 'https://rento-lb.com';
+
+const DEFAULT_TITLE = 'Rento LB | Rent & Compare Cars in Lebanon';
+const DEFAULT_DESCRIPTION =
+  'Compare rental cars in Lebanon from agencies and private owners. Book easily and communicate directly.';
+
+export const SEO = ({
+  noIndex = false,
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
+  ogTitle,
+  ogDescription,
+  ogImage = `${BASE_URL}/og-cover.png`,
+}) => {
+  const location = useLocation();
+  const canonicalUrl = `${BASE_URL}${location.pathname === '/' ? '' : location.pathname}`;
+
   useEffect(() => {
-    document.title = 'Rento LB | Rent & Compare Cars in Lebanon';
-    let robots = document.querySelector('meta[name="robots"]');
-    if (!robots) {
-      robots = document.createElement('meta');
-      robots.setAttribute('name', 'robots');
-      document.head.appendChild(robots);
-    }
-    robots.setAttribute('content', noIndex ? 'noindex,nofollow' : 'index,follow');
-  }, [noIndex]);
+    document.title = title;
+
+    const setMeta = (selector, attr, value) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        const parts = selector.match(/\[(\w+)="([^"]+)"\]/g);
+        if (parts) {
+          parts.forEach((p) => {
+            const [, a, v] = p.match(/\[(\w+)="([^"]+)"\]/);
+            el.setAttribute(a, v);
+          });
+        }
+        document.head.appendChild(el);
+      }
+      el.setAttribute(attr, value);
+    };
+
+    const setLink = (rel, href) => {
+      let el = document.querySelector(`link[rel="${rel}"]`);
+      if (!el) {
+        el = document.createElement('link');
+        el.setAttribute('rel', rel);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('href', href);
+    };
+
+    setMeta('meta[name="robots"]', 'content', noIndex ? 'noindex,nofollow' : 'index,follow');
+    setMeta('meta[name="description"]', 'content', description);
+    setLink('canonical', canonicalUrl);
+
+    setMeta('meta[property="og:url"]', 'content', canonicalUrl);
+    setMeta('meta[property="og:title"]', 'content', ogTitle || title);
+    setMeta('meta[property="og:description"]', 'content', ogDescription || description);
+    setMeta('meta[property="og:image"]', 'content', ogImage);
+  }, [noIndex, title, description, canonicalUrl, ogTitle, ogDescription, ogImage]);
 
   const INCLUDE_AGGREGATE_RATING = false;
 
-  /* ===============================
-     MULTILINGUAL FAQs (UNCHANGED)
-     =============================== */
   const faqsByLanguage = {
     en: [
       {
@@ -44,25 +83,22 @@ export const SEO = ({ noIndex = false }) => {
     ]
   };
 
-  /* ===============================
-     UNIFIED BUSINESS SCHEMA (FIXED)
-     =============================== */
   const unifiedBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "RentalCarAgency",
-    "@id": "https://rento-lb.com/#organization",
+    "@id": `${BASE_URL}/#organization`,
     name: "Rento LB",
     alternateName: "Rento Lebanon",
-    url: "https://rento-lb.com/",
+    url: `${BASE_URL}/`,
     logo: {
       "@type": "ImageObject",
-      "@id": "https://rento-lb.com/#logo",
-      url: "https://rento-lb.com/rento-512.png",
-      contentUrl: "https://rento-lb.com/rento-512.png",
+      "@id": `${BASE_URL}/#logo`,
+      url: `${BASE_URL}/rento-512.png`,
+      contentUrl: `${BASE_URL}/rento-512.png`,
       width: 512,
       height: 512
     },
-    image: "https://rento-lb.com/rento-512.png",
+    image: `${BASE_URL}/rento-512.png`,
 
     telephone: "+96181001301",
     email: "social@rento-lb.com",
@@ -118,33 +154,27 @@ export const SEO = ({ noIndex = false }) => {
     })
   };
 
-  /* ===============================
-     WEBSITE SCHEMA (UNCHANGED)
-     =============================== */
   const webSiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "@id": "https://rento-lb.com/#website",
+    "@id": `${BASE_URL}/#website`,
     name: "Rento LB",
-    url: "https://rento-lb.com/",
+    url: `${BASE_URL}/`,
     publisher: {
-      "@id": "https://rento-lb.com/#organization"
+      "@id": `${BASE_URL}/#organization`
     },
     potentialAction: {
       "@type": "SearchAction",
-      target: "https://rento-lb.com/search?query={search_term_string}",
+      target: `${BASE_URL}/search?query={search_term_string}`,
       "query-input": "required name=search_term_string"
     },
     inLanguage: ["en", "fr", "ar"]
   };
 
-  /* ===============================
-     FAQ SCHEMA (UNCHANGED)
-     =============================== */
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "@id": "https://rento-lb.com/#faq",
+    "@id": `${BASE_URL}/#faq`,
     mainEntity: Object.values(faqsByLanguage)
       .flat()
       .map((faq) => ({
@@ -157,9 +187,6 @@ export const SEO = ({ noIndex = false }) => {
       }))
   };
 
-  /* ===============================
-     BREADCRUMB SCHEMA (UNCHANGED)
-     =============================== */
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -168,44 +195,27 @@ export const SEO = ({ noIndex = false }) => {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://rento-lb.com/"
+        item: `${BASE_URL}/`
       }
     ]
   };
 
   return (
     <>
-      {/* BASIC META - title and robots are set in document.head via useEffect */}
       <meta
         name="trustpilot-one-time-domain-verification-id"
         content="2ddec9a3-46a7-4ab8-a397-7482d145e508"
       />
-
-      <meta
-        name="description"
-        content="Compare rental cars in Lebanon from agencies and private owners. Book easily and communicate directly."
-      />
-
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="theme-color" content="#0d9488" />
+      <meta name="author" content="Rento LB" />
       <meta
         name="keywords"
         content="car rental Lebanon, rent a car Beirut, private car rental Lebanon"
       />
 
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <meta name="theme-color" content="#0d9488" />
-      <meta name="author" content="Rento LB" />
-
-      {/* CANONICAL */}
-      <link rel="canonical" href="https://rento-lb.com" />
-
-      {/* OPEN GRAPH */}
       <meta property="og:type" content="website" />
-      <meta property="og:url" content="https://rento-lb.com" />
-      <meta property="og:title" content="Rento LB | Car Rental in Lebanon" />
-      <meta property="og:description" content="Find rental cars across Lebanon." />
-      <meta property="og:image" content="https://rento-lb.com/og-cover.png" />
 
-      {/* STRUCTURED DATA */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(unifiedBusinessSchema) }}

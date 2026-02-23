@@ -23,6 +23,8 @@ export function useActiveHeartbeat(isAuthenticated) {
     }
 
     const tick = () => {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) return;
       postMeActive().catch(() => {});
     };
 

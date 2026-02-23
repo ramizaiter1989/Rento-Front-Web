@@ -1,9 +1,36 @@
 import React from "react";
 import { handleMobileAppStoreClick, STORE_URLS } from "@/lib/mobileAppClick";
 
+const PLAY_STORE_URL = STORE_URLS.playstore;
+const APP_STORE_URL = STORE_URLS.appstore;
+
+const mobileAppSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Rento LB",
+  operatingSystem: "iOS, Android",
+  applicationCategory: "TravelApplication",
+  description:
+    "Book rental cars in Lebanon on the go. Compare prices from agencies and private owners.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  installUrl: [PLAY_STORE_URL, APP_STORE_URL],
+  publisher: {
+    "@id": "https://rento-lb.com/#organization",
+  },
+  image: "https://rento-lb.com/mobileapp.png",
+};
+
 export function MobileAppPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(mobileAppSchema) }}
+      />
       <div className="w-full max-w-5xl mx-auto space-y-2">
         <div className="text-center space-y-5">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
@@ -38,6 +65,8 @@ export function MobileAppPage() {
               <img
                 src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
                 alt="Get it on Google Play"
+                width="135"
+                height="40"
                 className="h-10 sm:h-12"
               />
             </div>
@@ -64,6 +93,8 @@ export function MobileAppPage() {
               <img
                 src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
                 alt="Download on the App Store"
+                width="120"
+                height="40"
                 className="h-10 sm:h-12"
               />
             </div>

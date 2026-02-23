@@ -3,6 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Preconnect to Google Fonts for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Google Fonts: non-blocking load with media swap trick -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
     <meta name="robots" content="index,follow" />
     <meta http-equiv="Permissions-Policy" content="local-network=(), cast=(), display-capture=()">
     <title>Rento LB | Rent & Compare Cars in Lebanon</title>
@@ -23,7 +40,7 @@
     <meta name="twitter:description" content="Compare and book rental cars in Lebanon..." />
     <meta name="twitter:image" content="https://rento-lb.com/rentologo.png" />
 
-<!-- Canonical -->
+<!-- Canonical (dynamically updated by SEO component per route) -->
     <link rel="canonical" href="https://rento-lb.com" />
 
     <!-- Favicon & site icon for Google Search and browsers (absolute URLs for reliable crawling) -->

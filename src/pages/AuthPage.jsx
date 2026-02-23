@@ -29,7 +29,7 @@ const PhoneRow = ({ countries, iso2, setIso2, phone, setPhone, disabledPhone }) 
     <select
       value={iso2}
       onChange={(e) => setIso2(e.target.value)}
-      className="w-[100px] sm:w-[120px] shrink-0 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-[#00A19C] focus:border-transparent transition-all"
+      className="w-[100px] sm:w-[120px] shrink-0 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-[#007A76] focus:border-transparent transition-all"
       disabled={disabledPhone}
     >
       {countries.map((c) => (
@@ -45,7 +45,7 @@ const PhoneRow = ({ countries, iso2, setIso2, phone, setPhone, disabledPhone }) 
       value={phone}
       onChange={(e) => setPhone(onlyDigits(e.target.value))}
       placeholder="70123456"
-      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#00A19C] focus:border-transparent transition-all"
+      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#007A76] focus:border-transparent transition-all"
       disabled={disabledPhone}
     />
   </div>
@@ -581,7 +581,7 @@ export function AuthPage() {
         {/* Animated Background Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#1e5f7a]/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#00A19C]/10 rounded-full blur-3xl animate-pulse animation-delay-700" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#007A76]/10 rounded-full blur-3xl animate-pulse animation-delay-700" />
           <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-[#8EDC81]/10 rounded-full blur-3xl animate-pulse animation-delay-1400" />
         </div>
 
@@ -589,23 +589,23 @@ export function AuthPage() {
           <Button
             variant="ghost"
             onClick={resetForgotPasswordFlow}
-            className="mb-6 hover:bg-[#00A19C]/10 transition-all hover:scale-105"
+            className="mb-6 hover:bg-[#007A76]/10 transition-all hover:scale-105"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Login
           </Button>
 
           <div className="flex flex-col items-center mb-8 animate-fade-in">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] flex items-center justify-center shadow-xl shadow-[#00A19C]/30 mb-4 animate-float">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1e5f7a] via-[#007A76] to-[#8EDC81] flex items-center justify-center shadow-xl shadow-[#007A76]/30 mb-4 animate-float">
               <Car className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-black bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] bg-clip-text text-transparent">
+            <h1 className="text-4xl font-black bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] bg-clip-text text-transparent">
               Rento LB
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2 font-medium">Reset Your Password</p>
           </div>
 
-          <Card className="border-2 border-gray-200 dark:border-gray-700 hover:border-[#00A19C] transition-all duration-500 hover:shadow-2xl hover:shadow-[#00A19C]/20 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+          <Card className="border-2 border-gray-200 dark:border-gray-700 hover:border-[#007A76] transition-all duration-500 hover:shadow-2xl hover:shadow-[#007A76]/20 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</CardTitle>
               <CardDescription>Enter your phone number to receive an OTP</CardDescription>
@@ -628,7 +628,7 @@ export function AuthPage() {
                       variant="link" 
                       size="sm" 
                       onClick={changeForgotNumber} 
-                      className="px-0 text-[#00A19C] hover:text-[#8EDC81] transition-colors"
+                      className="px-0 text-[#007A76] hover:text-[#8EDC81] transition-colors"
                     >
                       Change number
                     </Button>
@@ -649,12 +649,12 @@ export function AuthPage() {
                         }}
                         placeholder="Enter 6-digit OTP"
                         maxLength={6}
-                        className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                        className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all"
                       />
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Check your phone</p>
                         {forgotResendTimer > 0 ? (
-                          <p className="text-xs text-[#00A19C] font-semibold">Resend in {forgotResendTimer}s</p>
+                          <p className="text-xs text-[#007A76] font-semibold">Resend in {forgotResendTimer}s</p>
                         ) : (
                           <Button
                             type="button"
@@ -662,7 +662,7 @@ export function AuthPage() {
                             size="sm"
                             onClick={handleResendForgotOtp}
                             disabled={!forgotCanResend || loading}
-                            className="h-auto p-0 text-xs text-[#00A19C] hover:text-[#8EDC81] transition-colors"
+                            className="h-auto p-0 text-xs text-[#007A76] hover:text-[#8EDC81] transition-colors"
                           >
                             <RefreshCw className="w-3 h-3 mr-1" />
                             Resend OTP
@@ -679,7 +679,7 @@ export function AuthPage() {
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                          className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all"
                           minLength={6}
                           placeholder="At least 6 characters"
                         />
@@ -694,7 +694,7 @@ export function AuthPage() {
                           type="password"
                           value={confirmNewPassword}
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                          className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all"
                           placeholder="Re-enter password"
                         />
                       </div>
@@ -705,7 +705,7 @@ export function AuthPage() {
                 {!forgotOtpSent ? (
                   <Button
                     onClick={handleSendForgotOtp}
-                    className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105"
+                    className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#007A76]/30 hover:shadow-xl hover:shadow-[#007A76]/40 transition-all duration-300 hover:scale-105"
                     disabled={loading}
                   >
                     {loading ? (
@@ -720,7 +720,7 @@ export function AuthPage() {
                 ) : (
                   <Button
                     onClick={handleResetPassword}
-                    className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105"
+                    className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#007A76]/30 hover:shadow-xl hover:shadow-[#007A76]/40 transition-all duration-300 hover:scale-105"
                     disabled={loading}
                   >
                     {loading ? (
@@ -749,21 +749,21 @@ export function AuthPage() {
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#1e5f7a]/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#00A19C]/10 rounded-full blur-3xl animate-pulse animation-delay-700" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#007A76]/10 rounded-full blur-3xl animate-pulse animation-delay-700" />
         <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-[#8EDC81]/10 rounded-full blur-3xl animate-pulse animation-delay-1400" />
         
         {/* Floating Particles */}
-        <div className="absolute top-[10%] left-[15%] w-3 h-3 bg-[#00A19C] rounded-full animate-float animation-delay-500 opacity-20" />
+        <div className="absolute top-[10%] left-[15%] w-3 h-3 bg-[#007A76] rounded-full animate-float animation-delay-500 opacity-20" />
         <div className="absolute top-[60%] left-[80%] w-4 h-4 bg-[#8EDC81] rounded-full animate-float animation-delay-1000 opacity-20" />
         <div className="absolute top-[80%] left-[20%] w-2 h-2 bg-[#1e5f7a] rounded-full animate-float animation-delay-1500 opacity-20" />
-        <div className="absolute top-[30%] left-[70%] w-3 h-3 bg-[#00A19C] rounded-full animate-float animation-delay-2000 opacity-20" />
+        <div className="absolute top-[30%] left-[70%] w-3 h-3 bg-[#007A76] rounded-full animate-float animation-delay-2000 opacity-20" />
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-fade-in-up">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className="mb-6 hover:bg-[#00A19C]/10 transition-all hover:scale-105 group"
+          className="mb-6 hover:bg-[#007A76]/10 transition-all hover:scale-105 group"
         >
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
           Back to Home
@@ -774,21 +774,23 @@ export function AuthPage() {
             <img
               src="/rentologo.png"
               alt="Rento LB Logo"
+              width="96"
+              height="96"
               className="w-24 h-24 object-contain"
             />
           </div>
 
-          <h1 className="text-4xl font-black bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] bg-clip-text text-transparent mb-2">
             Rento LB
           </h1>
           <p className="text-gray-600 dark:text-gray-400 font-medium flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#00A19C]" />
+            <Sparkles className="w-4 h-4 text-[#007A76]" />
             Lebanon's Premier Car Rental
             <Sparkles className="w-4 h-4 text-[#8EDC81]" />
           </p>
         </div>
 
-        <Card className="border-2 border-gray-200 dark:border-gray-700 hover:border-[#00A19C] transition-all duration-500 hover:shadow-2xl hover:shadow-[#00A19C]/20 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+        <Card className="border-2 border-gray-200 dark:border-gray-700 hover:border-[#007A76] transition-all duration-500 hover:shadow-2xl hover:shadow-[#007A76]/20 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-black text-gray-900 dark:text-white">Welcome Back</CardTitle>
             <CardDescription className="text-base">
@@ -808,13 +810,13 @@ export function AuthPage() {
               <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 dark:bg-gray-700 p-1 rounded-xl">
                 <TabsTrigger 
                   value="login" 
-                  className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1e5f7a] data-[state=active]:via-[#00A19C] data-[state=active]:to-[#8EDC81] data-[state=active]:text-white font-semibold transition-all"
+                  className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1e5f7a] data-[state=active]:via-[#007A76] data-[state=active]:to-[#8EDC81] data-[state=active]:text-white font-semibold transition-all"
                 >
                   Login
                 </TabsTrigger>
                 <TabsTrigger 
                   value="register"
-                  className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1e5f7a] data-[state=active]:via-[#00A19C] data-[state=active]:to-[#8EDC81] data-[state=active]:text-white font-semibold transition-all"
+                  className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1e5f7a] data-[state=active]:via-[#007A76] data-[state=active]:to-[#8EDC81] data-[state=active]:text-white font-semibold transition-all"
                 >
                   Register
                 </TabsTrigger>
@@ -825,7 +827,7 @@ export function AuthPage() {
                 <div className="space-y-5">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-[#00A19C]" />
+                      <Phone className="w-4 h-4 text-[#007A76]" />
                       Phone Number
                     </Label>
                     <PhoneRow
@@ -840,7 +842,7 @@ export function AuthPage() {
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-[#00A19C]" />
+                      <Lock className="w-4 h-4 text-[#007A76]" />
                       Password
                     </Label>
                     <div className="relative">
@@ -849,7 +851,7 @@ export function AuthPage() {
                         type="password"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all"
+                        className="pl-10 border-2 border-gray-300 dark:border-gray-600 focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all"
                         placeholder="Enter your password"
                         onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                       />
@@ -859,7 +861,7 @@ export function AuthPage() {
                   <Button
                     type="button"
                     variant="link"
-                    className="w-full text-sm p-0 h-auto text-[#00A19C] hover:text-[#8EDC81] font-semibold transition-colors"
+                    className="w-full text-sm p-0 h-auto text-[#007A76] hover:text-[#8EDC81] font-semibold transition-colors"
                     onClick={() => setShowForgotPassword(true)}
                   >
                     Forgot Password?
@@ -868,7 +870,7 @@ export function AuthPage() {
                   <Button
                     onClick={handleLogin}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105 group"
+                    className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#007A76]/30 hover:shadow-xl hover:shadow-[#007A76]/40 transition-all duration-300 hover:scale-105 group"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -891,7 +893,7 @@ export function AuthPage() {
                   <div className="space-y-5">
                     <div className="space-y-2">
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-[#00A19C]" />
+                        <Phone className="w-4 h-4 text-[#007A76]" />
                         Phone Number
                       </Label>
                       <PhoneRow
@@ -917,12 +919,12 @@ export function AuthPage() {
                           }}
                           placeholder="Enter 6-digit OTP"
                           maxLength={6}
-                          className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all text-center text-2xl font-bold tracking-widest"
+                          className="border-2 border-gray-300 dark:border-gray-600 focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all text-center text-2xl font-bold tracking-widest"
                         />
                         <div className="flex items-center justify-between mt-2">
                           <p className="text-xs text-gray-500 dark:text-gray-400">Check your phone</p>
                           {resendTimer > 0 ? (
-                            <p className="text-xs text-[#00A19C] font-semibold">
+                            <p className="text-xs text-[#007A76] font-semibold">
                               Resend in {resendTimer}s
                             </p>
                           ) : (
@@ -932,7 +934,7 @@ export function AuthPage() {
                               size="sm"
                               onClick={handleResendOtp}
                               disabled={!canResend || loading}
-                              className="h-auto p-0 text-xs text-[#00A19C] hover:text-[#8EDC81] transition-colors"
+                              className="h-auto p-0 text-xs text-[#007A76] hover:text-[#8EDC81] transition-colors"
                             >
                               <RefreshCw className="w-3 h-3 mr-1" />
                               Resend OTP
@@ -946,7 +948,7 @@ export function AuthPage() {
                       {!otpSent ? (
                         <Button
                           onClick={handleSendOtp}
-                          className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105"
+                          className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#007A76]/30 hover:shadow-xl hover:shadow-[#007A76]/40 transition-all duration-300 hover:scale-105"
                           disabled={loading}
                         >
                           {loading ? (
@@ -963,14 +965,14 @@ export function AuthPage() {
                           <Button
                             variant="outline"
                             onClick={changeRegisterNumber}
-                            className="w-1/3 border-2 border-gray-300 hover:border-[#00A19C] hover:bg-[#00A19C]/10 transition-all"
+                            className="w-1/3 border-2 border-gray-300 hover:border-[#007A76] hover:bg-[#007A76]/10 transition-all"
                             disabled={loading}
                           >
                             Change
                           </Button>
                           <Button
                             onClick={handleVerifyOtp}
-                            className="w-2/3 bg-gradient-to-r from-[#00A19C] to-[#8EDC81] hover:from-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105"
+                            className="w-2/3 bg-gradient-to-r from-[#007A76] to-[#8EDC81] hover:from-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#007A76]/30 hover:shadow-xl hover:shadow-[#007A76]/40 transition-all duration-300 hover:scale-105"
                             disabled={loading}
                           >
                             {loading ? (
@@ -990,7 +992,7 @@ export function AuthPage() {
                   <div className="space-y-5 animate-fade-in">
                     <div className="space-y-2">
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <User className="w-4 h-4 text-[#00A19C]" />
+                        <User className="w-4 h-4 text-[#007A76]" />
                         Username
                       </Label>
                       <div className="relative">
@@ -1007,7 +1009,7 @@ export function AuthPage() {
                           }
                           className={`pl-10 border-2 ${
                             registerErrors.username ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                          } focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all`}
                           placeholder="Choose a username"
                         />
                       </div>
@@ -1028,7 +1030,7 @@ export function AuthPage() {
                           }
                           className={`border-2 ${
                             registerErrors.first_name ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                          } focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all`}
                           placeholder="First name"
                         />
                       </div>
@@ -1046,7 +1048,7 @@ export function AuthPage() {
                           }
                           className={`border-2 ${
                             registerErrors.last_name ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                          } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                          } focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all`}
                           placeholder="Last name"
                         />
                       </div>
@@ -1066,14 +1068,14 @@ export function AuthPage() {
                         }
                         className={`border-2 ${
                           registerErrors.license_number ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                        } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                        } focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all`}
                         placeholder="License number"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-[#00A19C]" />
+                        <Lock className="w-4 h-4 text-[#007A76]" />
                         Password
                       </Label>
                       <Input
@@ -1089,7 +1091,7 @@ export function AuthPage() {
                         minLength={6}
                         className={`border-2 ${
                           registerErrors.password ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                        } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                        } focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all`}
                         placeholder="At least 6 characters"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 6 characters</p>
@@ -1114,7 +1116,7 @@ export function AuthPage() {
                           registerErrors.password_confirmation
                             ? "border-red-500"
                             : "border-gray-300 dark:border-gray-600"
-                        } focus:border-[#00A19C] focus:ring-2 focus:ring-[#00A19C]/20 transition-all`}
+                        } focus:border-[#007A76] focus:ring-2 focus:ring-[#007A76]/20 transition-all`}
                         placeholder="Re-enter password"
                       />
                     </div>
@@ -1131,15 +1133,15 @@ export function AuthPage() {
                         }}
                         className={`mt-1 h-4 w-4 rounded ${
                           registerErrors.terms ? "border-red-500" : "border-gray-300"
-                        } text-[#00A19C] focus:ring-[#00A19C]`}
+                        } text-[#007A76] focus:ring-[#007A76]`}
                       />
                       <Label htmlFor="terms-accept" className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer leading-tight">
                         I accept the{" "}
-                        <a href="/Terms-and-Conditions" target="_blank" rel="noopener noreferrer" className="text-[#00A19C] hover:underline font-medium">
+                        <a href="/Terms-and-Conditions" target="_blank" rel="noopener noreferrer" className="text-[#007A76] hover:underline font-medium">
                           Terms of Use
                         </a>{" "}
                         and{" "}
-                        <a href="/Privacy-Policy" target="_blank" rel="noopener noreferrer" className="text-[#00A19C] hover:underline font-medium">
+                        <a href="/Privacy-Policy" target="_blank" rel="noopener noreferrer" className="text-[#007A76] hover:underline font-medium">
                           Privacy Policy
                         </a>
                         <span className="text-red-500"> *</span>
@@ -1150,14 +1152,14 @@ export function AuthPage() {
                       <Button
                         variant="outline"
                         onClick={() => setOtpVerified(false)}
-                        className="w-1/3 border-2 border-gray-300 hover:border-[#00A19C] hover:bg-[#00A19C]/10 transition-all"
+                        className="w-1/3 border-2 border-gray-300 hover:border-[#007A76] hover:bg-[#007A76]/10 transition-all"
                         disabled={loading}
                       >
                         Back
                       </Button>
                       <Button
                         onClick={handleRegister}
-                        className="w-2/3 bg-gradient-to-r from-[#00A19C] to-[#8EDC81] hover:from-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#00A19C]/30 hover:shadow-xl hover:shadow-[#00A19C]/40 transition-all duration-300 hover:scale-105"
+                        className="w-2/3 bg-gradient-to-r from-[#007A76] to-[#8EDC81] hover:from-[#008c88] hover:to-[#7bc876] text-white font-bold py-6 rounded-xl shadow-lg shadow-[#007A76]/30 hover:shadow-xl hover:shadow-[#007A76]/40 transition-all duration-300 hover:scale-105"
                         disabled={loading}
                       >
                         {loading ? (
@@ -1178,7 +1180,7 @@ export function AuthPage() {
             <div className="mt-6 text-center border-t border-gray-200 dark:border-gray-700 pt-6">
               <button
                 onClick={() => navigate("/")}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#00A19C] dark:hover:text-[#8EDC81] transition-colors font-medium flex items-center gap-2 mx-auto group"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#007A76] dark:hover:text-[#8EDC81] transition-colors font-medium flex items-center gap-2 mx-auto group"
               >
                 <Sparkles className="w-4 h-4 group-hover:animate-pulse" />
                 Continue as Guest

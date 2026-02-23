@@ -5,12 +5,12 @@ import { handleMobileAppStoreClick } from '@/lib/mobileAppClick';
 
 // Logo colors
 const COLORS = {
-  darkBlue: '#0E4C81',
-  teal: '#008C95',
-  limeGreen: '#8AC640',
-  darkBlueDim: 'rgba(14, 76, 129, 0.1)',
-  tealDim: 'rgba(0, 140, 149, 0.1)',
-  limeGreenDim: 'rgba(138, 198, 64, 0.1)',
+  darkBlue: '#0A3D6B',
+  teal: '#006D73',
+  limeGreen: '#4D7C0F',
+  darkBlueDim: 'rgba(10, 61, 107, 0.1)',
+  tealDim: 'rgba(0, 109, 115, 0.1)',
+  limeGreenDim: 'rgba(77, 124, 15, 0.1)',
 };
 
 export const Footer = () => {
@@ -69,6 +69,9 @@ export const Footer = () => {
               <img 
                 src="/rentologo.png" 
                 alt="Rento Logo" 
+                width="40"
+                height="40"
+                loading="lazy"
                 className="rounded-lg w-10 h-10 object-contain" 
               />
               <span 
@@ -193,7 +196,7 @@ export const Footer = () => {
               Book on the go with our mobile app
             </p>
             <Link to="/mobile-app" className="text-xs hover:underline mb-2 block" style={{ color: COLORS.teal }}>
-              Learn more
+              Download the Rento LB mobile app
             </Link>
             <div className="flex flex-col sm:flex-row gap-3">
               <a
@@ -205,6 +208,8 @@ export const Footer = () => {
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
                   alt="Get it on Google Play"
+                  width="135"
+                  height="40"
                   className="h-10 w-auto"
                 />
               </a>
@@ -217,6 +222,8 @@ export const Footer = () => {
                 <img
                   src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
                   alt="Download on the App Store"
+                  width="120"
+                  height="40"
                   className="h-10 w-auto"
                 />
               </a>
@@ -267,6 +274,8 @@ export const Footer = () => {
               <img
                 src="https://images.dmca.com/Badges/DMCA_logo-std-btn120w.png?ID=25eee832-1169-46e9-9a63-19f82b7e1b01"
                 alt="DMCA.com Protection Status"
+                width="120"
+                height="30"
                 className="h-8 w-auto"
               />
             </a>

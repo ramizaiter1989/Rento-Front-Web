@@ -11,6 +11,8 @@ import {
   RefreshCw,
   ChevronRight,
   Calendar,
+  XCircle,
+  Ban,
 } from "lucide-react";
 import { getOwnerEarnings } from "@/lib/api";
 import api from "@/lib/axios";
@@ -93,6 +95,8 @@ export default function BalancePage() {
         bookings_count: 0,
         cancelled_count: 0,
         rejected_count: 0,
+        cancelled_amount: 0,
+        rejected_amount: 0,
       };
     }
 
@@ -115,12 +119,18 @@ export default function BalancePage() {
       0
     );
 
-    const cancelled_count = filtered.filter(
-      (b) => b.booking_request_status === "cancelled"
-    ).length;
-    const rejected_count = filtered.filter(
-      (b) => b.booking_request_status === "rejected"
-    ).length;
+    const cancelledBookings = filtered.filter((b) => b.booking_request_status === "cancelled");
+    const rejectedBookings = filtered.filter((b) => b.booking_request_status === "rejected");
+    const cancelled_count = cancelledBookings.length;
+    const rejected_count = rejectedBookings.length;
+    const cancelled_amount = cancelledBookings.reduce(
+      (sum, b) => sum + parseFloat(b.total_booking_price || 0),
+      0
+    );
+    const rejected_amount = rejectedBookings.reduce(
+      (sum, b) => sum + parseFloat(b.total_booking_price || 0),
+      0
+    );
 
     return {
       total_amount,
@@ -129,6 +139,8 @@ export default function BalancePage() {
       bookings_count: earningsBookings.length,
       cancelled_count,
       rejected_count,
+      cancelled_amount,
+      rejected_amount,
     };
   };
 
@@ -374,15 +386,15 @@ export default function BalancePage() {
               {stats && (
                 <>
                   <div className="flex items-center gap-2">
-                    <Receipt className="w-5 h-5 text-gray-500" />
+                    <XCircle className="w-5 h-5 text-amber-500" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Cancelled bookings: <strong>{stats.cancelled_count}</strong>
+                      Cancelled: <strong>{stats.cancelled_count}</strong> (${formatMoney(stats.cancelled_amount)})
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Receipt className="w-5 h-5 text-gray-500" />
+                    <Ban className="w-5 h-5 text-red-500" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Rejected bookings: <strong>{stats.rejected_count}</strong>
+                      Rejected: <strong>{stats.rejected_count}</strong> (${formatMoney(stats.rejected_amount)})
                     </span>
                   </div>
                 </>
