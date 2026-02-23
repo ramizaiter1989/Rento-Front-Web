@@ -98,16 +98,33 @@ export default function AdminAlertsPage() {
     }
   };
 
-  const handleNavigate = (notification) => {
-    const type = notification.type;
-    const data = notification.data || {};
-    if (type === "profile_completed" && data.user_id) {
-      navigate("/admin/real-user-data", { state: { highlightUserId: data.user_id } });
-    } else if (type === "new_otp") {
-      navigate("/admin/otps");
-    }
-  };
+ const handleNavigate = (notification) => {
+  const phone = notification.data?.phone_number;
 
+  // OTP sent → OTP page
+  if (notification.title?.toLowerCase().includes("otp sent") && phone) {
+    navigate(`/admin/otps?phone=${encodeURIComponent(phone)}`);
+    return;
+  }
+
+  // OTP led to registration
+  if (notification.title?.toLowerCase().includes("registration")) {
+    const userId = notification.data?.user_id;
+    if (userId) navigate(`/admin/real-user-data?user=${userId}`);
+    return;
+  }
+
+  // ⭐ PROFILE COMPLETED → filter by user
+  if (notification.title?.toLowerCase().includes("profile")) {
+    const userId = notification.data?.user_id;
+
+    if (userId) {
+      navigate(`/admin/real-user-data?user=${userId}`);
+    } else {
+      navigate("/admin/real-user-data");
+    }
+  }
+};
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -141,7 +158,10 @@ export default function AdminAlertsPage() {
                 <SelectItem value="50">50</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={() => handleMarkRead()}>
+            <Button variant="outline" size="sm" onClick={(e) => {
+              e.stopPropagation();
+              handleMarkRead([n.id]);
+            }}>
               <CheckCheck className="w-4 h-4 mr-1" />
               Mark all read
             </Button>
@@ -165,7 +185,20 @@ export default function AdminAlertsPage() {
                 return (
                   <li
                     key={n.id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 ${!n.is_read ? "bg-primary/5 border-primary/20" : "bg-card"}`}
+                    onClick={() => {
+  console.log("CLICKED NOTIFICATION:", n);
+  handleNavigate(n);
+}}
+                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer
+transition-all duration-300 ease-out
+hover:bg-emerald-100/40 hover:border-emerald-400
+hover:shadow-lg hover:shadow-emerald-200/50
+hover:-translate-y-0.5
+${
+  !n.is_read
+    ? "bg-primary/5 border-primary/20"
+    : "bg-card"
+}`}
                   >
                     <div className={`rounded-full p-2 ${config.color}`}>
                       <Icon className="w-4 h-4" />
@@ -173,8 +206,17 @@ export default function AdminAlertsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium">{n.title || config.label}</p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {n.notification_text ?? n.message ?? ""}
-                      </p>
+  {(() => {
+    let text = n.notification_text ?? n.message ?? "";
+
+    // replace masked phone with real phone from API
+    if (n.type === "new_otp" && n.data?.phone_number) {
+      text = text.replace(/\+\d+\*+/, n.data.phone_number);
+    }
+
+    return text;
+  })()}
+</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
                       </p>
@@ -186,7 +228,10 @@ export default function AdminAlertsPage() {
                         </Button>
                       )}
                       {(n.type === "profile_completed" || n.type === "new_otp") && (
-                        <Button variant="outline" size="sm" onClick={() => handleNavigate(n)}>
+                        <Button variant="outline" size="sm" onClick={(e) => {
+                          e.stopPropagation();
+                          handleNavigate(n);
+                        }}>
                           Open
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>

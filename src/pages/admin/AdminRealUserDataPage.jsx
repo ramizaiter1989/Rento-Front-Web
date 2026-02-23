@@ -6,7 +6,7 @@
  * Displays user's ID card and license images in modal.
  * Users loaded with pagination.
  */
-
+import { useSearchParams } from "react-router-dom";
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -348,7 +348,7 @@ export default function AdminRealUserDataPage() {
   const [statusDialogTarget, setStatusDialogTarget] = useState(null); // { status: 'approved'|'not_approved'|'pending' }
   const [linkRealDataId, setLinkRealDataId] = useState("");
   const [linking, setLinking] = useState(false);
-
+const [searchParams] = useSearchParams();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
@@ -411,6 +411,15 @@ export default function AdminRealUserDataPage() {
     fetchUsers();
   }, [page, roleFilter]);
 
+  useEffect(() => {
+  const userId = searchParams.get("user");
+
+  if (userId) {
+    setViewMode("users");    
+    setSearchQuery(userId);    
+    setPage(1);
+  }
+}, [searchParams]);
   const handleSearch = () => {
     setPage(1);
     fetchUsers();

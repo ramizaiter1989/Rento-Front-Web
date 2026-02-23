@@ -4,9 +4,10 @@
  * Delivery status is always live: every GET refreshes reports from Moursel.
  * SMS balance; optional manual delivery-report POST for a single batch.
  */
-
+import { useLocation } from "react-router-dom";
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   getOtps,
   getOtp,
@@ -335,6 +336,9 @@ export default function AdminOtpsPage() {
   const [otpDetail, setOtpDetail] = useState(null);
   const [otpDetailLoading, setOtpDetailLoading] = useState(false);
 
+const [searchParams] = useSearchParams();
+  const location = useLocation();
+
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -380,6 +384,21 @@ export default function AdminOtpsPage() {
   useEffect(() => {
     fetchList();
   }, [fetchList]);
+
+useEffect(() => {
+  const phone = searchParams.get("phone");
+
+  if (phone) {
+    setPhoneNumber(phone); 
+    setPage(1);            
+  }
+}, [searchParams]);
+  useEffect(() => {
+  if (location.state?.phoneFilter) {
+    setPhoneNumber(location.state.phoneFilter);
+    setPage(1);
+  }
+}, [location.state]);
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
