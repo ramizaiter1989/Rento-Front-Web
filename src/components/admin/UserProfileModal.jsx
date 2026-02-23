@@ -213,4 +213,8 @@ const DocCard = ({ label, path }) => {
       )}
     </div>
   );
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2

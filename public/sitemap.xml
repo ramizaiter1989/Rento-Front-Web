@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+  xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+
+  <!-- Homepage -->
+  <url>
+    <loc>https://rento-lb.com/</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rento-lb.com/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://rento-lb.com/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://rento-lb.com/" />
+  </url>
+
+  <!-- About -->
+  <url>
+    <loc>https://rento-lb.com/about</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Contact -->
+  <url>
+    <loc>https://rento-lb.com/contact</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Mobile App -->
+  <url>
+    <loc>https://rento-lb.com/mobile-app</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Watch (video page) -->
+  <url>
+    <loc>https://rento-lb.com/watch</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <video:video>
+      <video:content_loc>https://rento-lb.com/hero.mp4</video:content_loc>
+      <video:thumbnail_loc>https://rento-lb.com/og-cover.png</video:thumbnail_loc>
+      <video:title>Rento LB – Rent a Car in Lebanon</video:title>
+      <video:description>Premium car rental in Lebanon. Compare and book from agencies and private owners.</video:description>
+    </video:video>
+  </url>
+
+  <!-- Social Media -->
+  <url>
+    <loc>https://rento-lb.com/socialmedia</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://rento-lb.com/Privacy-Policy</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Terms and Conditions -->
+  <url>
+    <loc>https://rento-lb.com/Terms-and-Conditions</loc>
+    <lastmod>2026-02-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+/* Google Fonts loaded via <link> in index.html for non-blocking preload */
 @import './styles/homepage-animations.css';
 @import './styles/animations.css';
 @tailwind base;

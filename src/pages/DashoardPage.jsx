@@ -566,7 +566,7 @@ export default function EnhancedDashboard() {
             className="space-y-6"
           >
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
               {statsCards.map((stat, i) => (
                 <motion.div
                   key={i}
@@ -648,7 +648,7 @@ export default function EnhancedDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
                 {quickActions.map((action, i) => (
                   <motion.div
                     key={i}
@@ -775,7 +775,7 @@ export default function EnhancedDashboard() {
                       <h3 className="text-lg font-bold">Earnings & Balance</h3>
                       <span className="text-xs opacity-90">View details →</span>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                       <div>
                         <p className="text-xs font-medium opacity-90">Total booking amount</p>
                         <p className="text-xl md:text-2xl font-bold">${(parseFloat(earnings.total_amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>

@@ -29,7 +29,7 @@ import { getSearchStatistics } from '@/lib/api';
 Chart.register(...registerables);
 
 // Human-readable labels for API values (per Frequent Search Statistics API docs)
-const CATEGORY_LABELS = { normal: 'Normal', sport: 'Sport', luxury: 'Luxury', commercial: 'Commercial', industrial: 'Industrial', event: 'Event', sea: 'Sea' };
+const CATEGORY_LABELS = { normal: 'Normal', sport: 'Sport', luxury: 'Luxury', hatchback: 'Hatchback', commercial: 'Commercial', industrial: 'Industrial', event: 'Event', sea: 'Sea' };
 const DRIVE_TYPE_LABELS = { '4x4': '4x4 / AWD', '2_front': 'Front Wheel', '2_back': 'Rear Wheel', autoblock: 'Autoblock' };
 const TRANSMISSION_LABELS = { automatic: 'Automatic', manual: 'Manual' };
 const FUEL_TYPE_LABELS = { benz: 'Gasoline', diesel: 'Diesel', electric: 'Electric', hybrid: 'Hybrid' };
@@ -197,6 +197,7 @@ export const StatisticPage = () => {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          indexAxis: options.indexAxis || 'x',
           plugins: {
             legend: {
               position: type === 'bar' || type === 'line' ? 'top' : 'bottom',
@@ -316,6 +317,24 @@ export const StatisticPage = () => {
         topCities.map(i => i.city),
         topCities.map(i => i.total),
         chartColors.teal
+      );
+    }
+
+    // Price Range Chart - Horizontal bar (better for long labels)
+    if (data.by_price_range?.length > 0) {
+      const priceData = data.by_price_range.slice(0, 8);
+      const labels = priceData.map(r =>
+        r.daily_rate_max != null
+          ? (r.daily_rate_min != null ? `$${r.daily_rate_min}-$${r.daily_rate_max}` : `Up to $${r.daily_rate_max}`)
+          : 'Any'
+      );
+      createChart(
+        'priceChart',
+        'bar',
+        labels,
+        priceData.map(r => r.total),
+        chartColors.limeGreen,
+        { indexAxis: 'y' }
       );
     }
 
@@ -512,7 +531,7 @@ export const StatisticPage = () => {
           className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div className="flex flex-wrap items-center gap-2">
-            {DATE_PRESETS.map((p) => (
+            {DATE_PRESETS.filter(p => !p.custom).map((p) => (
               <Button
                 key={p.key}
                 variant={datePreset === p.key ? 'default' : 'outline'}
@@ -523,8 +542,16 @@ export const StatisticPage = () => {
                 {p.label}
               </Button>
             ))}
+            <Button
+              variant={datePreset === 'custom' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDatePreset('custom')}
+              style={datePreset === 'custom' ? { backgroundColor: LOGO_COLORS.teal } : {}}
+            >
+              Custom
+            </Button>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Custom:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Range:</span>
               <input
                 type="date"
                 value={customFrom}
@@ -581,7 +608,7 @@ export const StatisticPage = () => {
           <StatCard
             icon={Gauge}
             title="Popular Category"
-            value={data.by_category?.[0]?.category || '—'}
+            value={CATEGORY_LABELS[data.by_category?.[0]?.category] || data.by_category?.[0]?.category || '—'}
             subtitle={`${data.by_category?.[0]?.total || 0} searches`}
             gradient={`linear-gradient(135deg, ${LOGO_COLORS.darkBlue}, ${LOGO_COLORS.limeGreen})`}
             delay={0.3}
@@ -676,6 +703,15 @@ export const StatisticPage = () => {
               delay={0.9}
             />
           )}
+          {data.by_price_range?.length > 0 && (
+            <ChartCard
+              title="Price Range"
+              subtitle="Searches by daily rate"
+              icon={DollarSign}
+              id="priceChart"
+              delay={0.92}
+            />
+          )}
         </div>
 
         {/* Price range & Top features */}
@@ -706,16 +742,34 @@ export const StatisticPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.by_price_range.map((row, i) => (
-                          <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
-                            <td className="py-2 text-gray-700 dark:text-gray-300">
-                              {row.daily_rate_min != null || row.daily_rate_max != null
-                                ? `${row.daily_rate_min ?? '—'} – ${row.daily_rate_max ?? '—'}`
-                                : 'Any'}
-                            </td>
-                            <td className="py-2 text-right font-medium dark:text-white">{row.total}</td>
-                          </tr>
-                        ))}
+                        {data.by_price_range.map((row, i) => {
+                          const maxTotal = Math.max(...(data.by_price_range?.map(r => r.total) || [1]));
+                          const pct = maxTotal > 0 ? (row.total / maxTotal) * 100 : 0;
+                          const label = row.daily_rate_min != null && row.daily_rate_max != null
+                            ? `$${row.daily_rate_min} – $${row.daily_rate_max}`
+                            : row.daily_rate_max != null
+                              ? `Up to $${row.daily_rate_max}`
+                              : 'Any';
+                          return (
+                            <tr key={i} className="border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                              <td className="py-2.5 text-gray-700 dark:text-gray-300 font-medium">{label}</td>
+                              <td className="py-2.5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="w-20 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${pct}%` }}
+                                      transition={{ duration: 0.6, delay: 0.1 * i }}
+                                      className="h-full rounded-full"
+                                      style={{ backgroundColor: LOGO_COLORS.teal }}
+                                    />
+                                  </div>
+                                  <span className="font-semibold dark:text-white w-8 text-right">{row.total}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -742,14 +796,21 @@ export const StatisticPage = () => {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {data.top_features.map((item, i) => (
-                      <Badge
+                      <motion.div
                         key={i}
-                        variant="secondary"
-                        className="text-xs px-3 py-1"
-                        style={{ backgroundColor: `${LOGO_COLORS.teal}20`, color: LOGO_COLORS.darkBlue }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.05 * i }}
+                        whileHover={{ scale: 1.05 }}
                       >
-                        {item.feature} ({item.count})
-                      </Badge>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs px-3 py-1 cursor-default"
+                          style={{ backgroundColor: `${LOGO_COLORS.teal}20`, color: LOGO_COLORS.darkBlue }}
+                        >
+                          {item.feature ?? item.name ?? 'Feature'} ({item.count ?? item.total ?? 0})
+                        </Badge>
+                      </motion.div>
                     ))}
                   </div>
                 </CardContent>
@@ -786,12 +847,35 @@ export const StatisticPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.most_active_users.map((row) => (
-                        <tr key={row.user_id} className="border-b border-gray-100 dark:border-gray-800">
-                          <td className="py-2 text-gray-700 dark:text-gray-300">{row.user_name ?? `User #${row.user_id}`}</td>
-                          <td className="py-2 text-right font-medium dark:text-white">{row.total_searches}</td>
-                        </tr>
-                      ))}
+                      {data.most_active_users.map((row, idx) => {
+                        const maxSearches = data.most_active_users?.[0]?.total_searches || 1;
+                        const pct = (row.total_searches / maxSearches) * 100;
+                        return (
+                          <motion.tr
+                            key={row.user_id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.05 * idx }}
+                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <td className="py-2.5 text-gray-700 dark:text-gray-300 font-medium">{row.user_name ?? `User #${row.user_id}`}</td>
+                            <td className="py-2.5">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-24 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{ duration: 0.5, delay: 0.1 * idx }}
+                                    className="h-full rounded-full"
+                                    style={{ backgroundColor: idx === 0 ? LOGO_COLORS.limeGreen : LOGO_COLORS.teal }}
+                                  />
+                                </div>
+                                <span className="font-bold dark:text-white w-10 text-right">{row.total_searches}</span>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -831,7 +915,7 @@ export const StatisticPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <p className="font-bold text-sm md:text-base dark:text-white truncate">
-                            {search.make || 'Any Make'} {search.model || ''}
+                            {[search.make, search.model].filter(Boolean).join(' ') || 'Any criteria'}
                           </p>
                           {search.year_min != null && (
                             <Badge variant="secondary" className="text-xs px-2 py-0.5">
@@ -901,9 +985,10 @@ const StatCard = ({ icon: Icon, title, value, subtitle, gradient, delay }) => (
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.4, delay }}
-    whileHover={{ scale: 1.02, y: -3 }}
+    whileHover={{ scale: 1.03, y: -4 }}
+    whileTap={{ scale: 0.98 }}
   >
-    <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-lg rounded-xl border-0 hover:shadow-xl transition-all duration-300 h-full">
+    <Card className="bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-lg rounded-xl border-0 hover:shadow-2xl hover:border-teal-500/30 transition-all duration-300 h-full cursor-default">
       <CardContent className="p-3 md:p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center shadow-md" style={{ background: gradient }}>

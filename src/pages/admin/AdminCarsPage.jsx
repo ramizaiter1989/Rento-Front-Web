@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "@/lib/axios";
+<<<<<<< HEAD
 import { getCars, getCar, updateCar, updateCarPhoto, updateCarAcceptReject, downloadCarImage, deleteCar as deleteCarApi } from "@/lib/adminApi";
+=======
+import { getCars, getCar, updateCar, updateCarPhoto, updateCarAcceptReject, downloadCarImage, deleteCar as deleteCarApi, getAgencies } from "@/lib/adminApi";
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2
 import {
   Search,
   Car,
@@ -11,7 +16,14 @@ import {
   Trash2,
   Edit,
   ChevronLeft,
+<<<<<<< HEAD
   ChevronRight
+=======
+  ChevronRight,
+  MapPin,
+  Navigation,
+  Building2,
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2
 } from "lucide-react";
 
 
@@ -47,6 +59,36 @@ import { useToast } from "@/hooks/use-toast";
 
 // End Tony Update
 const PER_PAGE = 20;
+
+// Lebanese governorates / regions for address dropdown (same as Add Car)
+const ADDRESS_OPTIONS = [
+  { label: "Select region...", value: "" },
+  { label: "Beirut", value: "Beirut" },
+  { label: "Mount Lebanon", value: "Mount Lebanon" },
+  { label: "North", value: "North" },
+  { label: "South", value: "South" },
+  { label: "Bekaa", value: "Bekaa" },
+  { label: "Baalbek", value: "Baalbek" },
+  { label: "Keserwan", value: "Keserwan" },
+  { label: "Nabatieh", value: "Nabatieh" },
+  { label: "Akkar", value: "Akkar" },
+];
+
+function parseGoogleMapsLink(url) {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  const atMatch = trimmed.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (atMatch) return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
+  const qMatch = trimmed.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (qMatch) return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+  const llMatch = trimmed.match(/(?:!3d|!4d|!1d)(-?\d+\.?\d*)/g);
+  if (llMatch && llMatch.length >= 2) {
+    const lat = parseFloat(llMatch[0].replace(/\D/g, ""));
+    const lng = parseFloat(llMatch[1].replace(/\D/g, ""));
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+  return null;
+}
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "available", label: "Available" },
@@ -66,6 +108,7 @@ const IS_PRIVATE_OPTIONS = [
 ];
 
 const AdminCarsPage = () => {
+  const [searchParams] = useSearchParams();
   const [cars, setCars] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, per_page: PER_PAGE, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -77,7 +120,35 @@ const AdminCarsPage = () => {
   const [carAcceptedFilter, setCarAcceptedFilter] = useState("all");
   const [isPrivateFilter, setIsPrivateFilter] = useState("all");
   const [agentIdFilter, setAgentIdFilter] = useState("");
+  const [agents, setAgents] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Sync agent_id from URL (e.g. from Agencies page click)
+  useEffect(() => {
+    const agentId = searchParams.get("agent_id");
+    if (agentId != null && agentId !== "") {
+      setAgentIdFilter(agentId);
+    }
+  }, [searchParams]);
+
+  // Load agencies list once for agent-name dropdown filter
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const res = await getAgencies({
+          per_page: 500,
+          sort_by: "username",
+          sort_order: "asc",
+        });
+        const payload = res.data?.agencies ?? res.data;
+        const data = payload?.data ?? [];
+        setAgents(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to load agencies for cars filter", err);
+      }
+    };
+    fetchAgents();
+  }, []);
 
   // client-side filters (in-memory on current page)
   const [categories, setCategories] = useState([]);
@@ -195,7 +266,8 @@ const getAgentLogo = (agent) => {
     });
   };
 
-  // Open edit modal: show list car immediately, then try to load full details in background
+  // Open edit modal: show list car immediately, then try to load full details in background.
+  // When full details arrive, merge into current state so we don't overwrite user's in-progress edits (focus loss).
   const openEditCar = (listCar) => {
     setSelectedItem(listCar);
     setEditingCar({ ...listCar });
@@ -204,7 +276,7 @@ const getAgentLogo = (agent) => {
     fetchCarDetails(listCar.id).then((full) => {
       if (full) {
         setSelectedItem(full);
-        setEditingCar({ ...full });
+        setEditingCar((prev) => (prev && prev.id === full.id ? { ...full, ...prev } : { ...full }));
       }
     });
   };
@@ -312,7 +384,12 @@ const getAgentLogo = (agent) => {
 
   // categories (multi)
   if (categories.length > 0) {
+<<<<<<< HEAD
     data = data.filter((c) => categories.includes(c.car_category));
+=======
+    const catLower = categories.map((x) => String(x).toLowerCase());
+    data = data.filter((c) => catLower.includes((c.car_category || "").toLowerCase()));
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2
   }
 
   // status (reserved / available)
@@ -433,17 +510,29 @@ const getAgentLogo = (agent) => {
               }}
             />
           </div>
-          <Input
-            type="number"
-            placeholder="Agent ID"
-            className="h-9 w-[100px]"
-            value={agentIdFilter}
-            onChange={(e) => {
-              setAgentIdFilter(e.target.value);
+          <Select
+            value={agentIdFilter || "all"}
+            onValueChange={(v) => {
+              const next = v === "all" ? "" : v;
+              setAgentIdFilter(next);
               setPage(1);
             }}
-            min={1}
-          />
+          >
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Filter by agency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All agencies</SelectItem>
+              {agents.map((agent) => (
+                <SelectItem key={agent.id} value={String(agent.id)}>
+                  {agent.username
+                    || (agent.first_name && agent.last_name
+                      ? `${agent.first_name} ${agent.last_name}`
+                      : `Agency #${agent.id}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select
             value={statusFilter}
             onValueChange={(v) => {
@@ -538,9 +627,15 @@ const getAgentLogo = (agent) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="luxury">Luxury</SelectItem>
-                <SelectItem value="sport">Sport</SelectItem>
+                <SelectItem value="sedan">Sedan</SelectItem>
+                <SelectItem value="hatchback">Hatchback</SelectItem>
+                <SelectItem value="coupe">Coupe</SelectItem>
+                <SelectItem value="suv">SUV</SelectItem>
+                <SelectItem value="crossover">Crossover</SelectItem>
+                <SelectItem value="wagon">Wagon</SelectItem>
+                <SelectItem value="pickup">Pickup</SelectItem>
+                <SelectItem value="minivan">Minivan</SelectItem>
+                <SelectItem value="convertible">Convertible</SelectItem>
               </SelectContent>
             </Select>
 
@@ -612,8 +707,13 @@ const getAgentLogo = (agent) => {
   border rounded-lg p-3 transition-all duration-300
   ${
     car.car_accepted
+<<<<<<< HEAD
       ? "bg-green-500/10 border-green-500/40 hover:bg-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.4)]"
       : "bg-red-500/10 border-red-500/40 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+=======
+      ? "bg-green-500/10 border-green-500/40 hover:bg-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.4)]"
+      : "bg-red-500/10 border-red-500/40 hover:bg-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.4)]"
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2
   }
 `}
 
@@ -627,6 +727,7 @@ const getAgentLogo = (agent) => {
     className="w-full h-full object-cover"
   />
 
+<<<<<<< HEAD
  {/* Agent Logo */}
 {car.agent?.profile_picture && (
   <img
@@ -643,6 +744,35 @@ const getAgentLogo = (agent) => {
     }}
   />
 )}
+=======
+ {/* Agent Logo + Username */}
+          <div className="absolute bottom-2 right-2 z-20 flex flex-col items-end gap-0.5">
+            {car.agent?.profile_picture ? (
+              <img
+                src={
+                  car.agent.profile_picture.startsWith("http")
+                    ? car.agent.profile_picture
+                    : `https://rento-lb.com/api/storage/${car.agent.profile_picture.replace(/^\/?storage\//, "")}`
+                }
+                alt={car.agent?.username}
+                className="w-8 h-8 rounded-full border-2 border-white shadow-md bg-white object-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/avatar.png";
+                }}
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full border-2 border-white shadow-md bg-muted flex items-center justify-center">
+                <Car className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
+            {(car.agent?.username != null && car.agent.username !== "") && (
+              <span className="text-[10px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] bg-black/50 px-1.5 py-0.5 rounded max-w-[80px] truncate" title={car.agent.username}>
+                @{car.agent.username}
+              </span>
+            )}
+          </div>
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2
 
 
 </div>
@@ -1127,6 +1257,240 @@ const IMAGE_TYPES = [
   { type: "right", label: "Right", fullKey: "right_image_full_url", pathKey: "right_image_url" },
 ];
 
+// Stable row components (defined outside EditCarView so they don't remount on every render and steal focus)
+function EditInputRow({ label, type = "text", disabled = false, value = "", onChange }) {
+  const handleChange = (e) => {
+    const v = e.target.value;
+    onChange(type === "number" ? (v === "" ? "" : Number(v)) : v);
+  };
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <Input type={type} value={value} onChange={handleChange} disabled={disabled} />
+    </div>
+  );
+}
+
+function EditSelectRow({ label, options, emptySentinel, value = "", onValueChange }) {
+  const displayValue = emptySentinel ? (value ?? "") || emptySentinel : String(value ?? "");
+  const handleSelect = (v) => onValueChange(emptySentinel && v === emptySentinel ? "" : v);
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <Select value={displayValue} onValueChange={handleSelect}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select..." />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((op) => {
+            const val = op.value === "" || op.value == null ? (emptySentinel || "__none__") : String(op.value);
+            return (
+              <SelectItem key={val} value={val}>
+                {op.label}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function EditToggleRow({ label, value, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2">
+      <div className="text-sm">{label}</div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={!!value}
+        onClick={() => onChange(!value)}
+        className={[
+          "relative inline-flex h-5 w-10 items-center rounded-full transition-colors",
+          value ? "bg-teal-600" : "bg-muted",
+          "focus:outline-none focus:ring-2 focus:ring-teal-500/40",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+            value ? "translate-x-5" : "translate-x-1",
+            "shadow",
+          ].join(" ")}
+        />
+      </button>
+    </div>
+  );
+}
+
+function AdminEditLocationSection({ car, setVal }) {
+  const { toast } = useToast();
+  const [googleLink, setGoogleLink] = useState("");
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [tempMapLocation, setTempMapLocation] = useState(null);
+
+  const loc = car?.live_location || { address: "", latitude: 0, longitude: 0 };
+  const hasLocation = loc.latitude && loc.longitude && (Number(loc.latitude) !== 0 || Number(loc.longitude) !== 0);
+
+  const updateLoc = (updates) => setVal("live_location", { ...loc, ...updates });
+
+  const applyGoogleLink = () => {
+    const coords = parseGoogleMapsLink(googleLink);
+    if (coords) {
+      updateLoc({ latitude: coords.lat, longitude: coords.lng });
+      toast({ title: "Coordinates applied" });
+    } else {
+      toast({ title: "Could not parse link", description: "Paste a valid Google Maps URL with coordinates", variant: "destructive" });
+    }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocation not supported", variant: "destructive" });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        updateLoc({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        toast({ title: "Current location set" });
+      },
+      () => toast({ title: "Could not get location", variant: "destructive" })
+    );
+  };
+
+  const useOfficeLocation = () => {
+    const agentLoc = car?.agent?.location;
+    if (agentLoc && (agentLoc.lat != null || agentLoc.latitude != null)) {
+      const lat = agentLoc.latitude ?? agentLoc.lat ?? 33.8547;
+      const lng = agentLoc.longitude ?? agentLoc.lng ?? 35.8623;
+      updateLoc({ latitude: lat, longitude: lng });
+      toast({ title: "Office location set" });
+    } else {
+      toast({ title: "No office location", description: "Car agent has no location set", variant: "destructive" });
+    }
+  };
+
+  const openMapPicker = () => {
+    setTempMapLocation({ latitude: loc.latitude || 33.8547, longitude: loc.longitude || 35.8623 });
+    setShowMapModal(true);
+  };
+
+  const confirmMapLocation = () => {
+    if (tempMapLocation) {
+      updateLoc({ latitude: tempMapLocation.latitude, longitude: tempMapLocation.longitude });
+      toast({ title: "Location set from map" });
+    }
+    setShowMapModal(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="text-sm font-semibold flex items-center gap-2">
+        <MapPin className="w-4 h-4" />
+        Location &amp; Address (same as Add Car)
+      </div>
+      <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Address (region)</div>
+          <Select
+            value={loc.address || "__empty__"}
+            onValueChange={(v) => updateLoc({ address: v === "__empty__" ? "" : v })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select region..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__empty__">Select region...</SelectItem>
+              {ADDRESS_OPTIONS.filter((o) => o.value).map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Paste Google Maps link (to set coordinates)</div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g. https://www.google.com/maps/@33.89,35.50 or maps.app.goo.gl/..."
+              value={googleLink}
+              onChange={(e) => setGoogleLink(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={applyGoogleLink}>
+              Apply
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={useCurrentLocation}>
+            <Navigation className="w-4 h-4 mr-2" />
+            Use Current Location
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={openMapPicker}>
+            <MapPin className="w-4 h-4 mr-2" />
+            Select on Map
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={useOfficeLocation}>
+            <Building2 className="w-4 h-4 mr-2" />
+            Office location
+          </Button>
+        </div>
+        {hasLocation ? (
+          <div className="text-sm text-muted-foreground">
+            Location set: Lat {loc.latitude} • Lng {loc.longitude}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">No coordinates set yet.</div>
+        )}
+      </div>
+
+      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select location on map</DialogTitle>
+          </DialogHeader>
+          {tempMapLocation && (
+            <AdminLocationMap
+              center={tempMapLocation}
+              selectedLocation={tempMapLocation}
+              onLocationSelect={(lat, lng) => setTempMapLocation({ latitude: lat, longitude: lng })}
+            />
+          )}
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowMapModal(false)}>Cancel</Button>
+            <Button onClick={confirmMapLocation}>Confirm</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AdminLocationMap({ center, selectedLocation, onLocationSelect }) {
+  const mapRef = React.useRef(null);
+  const markerRef = React.useRef(null);
+  const mapId = "admin-edit-car-location-map";
+  React.useEffect(() => {
+    if (!window.L || mapRef.current) return;
+    const lat = parseFloat(center?.latitude) || 33.8547;
+    const lng = parseFloat(center?.longitude) || 35.8623;
+    const map = window.L.map(mapId).setView([lat, lng], 13);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
+    const marker = window.L.marker([lat, lng], { draggable: true }).addTo(map);
+    marker.on("dragend", (e) => {
+      const pos = e.target.getLatLng();
+      onLocationSelect(pos.lat, pos.lng);
+    });
+    map.on("click", (e) => {
+      marker.setLatLng(e.latlng);
+      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    });
+    mapRef.current = map;
+    markerRef.current = marker;
+  }, []);
+  return <div id={mapId} className="w-full h-[300px] rounded-md" />;
+}
+
 function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
   const { toast } = useToast();
   const [replacing, setReplacing] = useState(null);
@@ -1180,73 +1544,6 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
     );
   };
 
-  const ToggleRow = ({ label, value, onChange }) => (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <div className="text-sm">{label}</div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={!!value}
-        onClick={() => onChange(!value)}
-        className={[
-          "relative inline-flex h-5 w-10 items-center rounded-full transition-colors",
-          value ? "bg-teal-600" : "bg-muted",
-          "focus:outline-none focus:ring-2 focus:ring-teal-500/40",
-        ].join(" ")}
-      >
-        <span
-          className={[
-            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-            value ? "translate-x-5" : "translate-x-1",
-            "shadow",
-          ].join(" ")}
-        />
-      </button>
-    </div>
-  );
-
-  function InputRow({ label, field, type = "text", disabled = false }) {
-    return (
-      <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <Input
-          type={type}
-          value={car?.[field] ?? ""}
-          onChange={(e) => setVal(field, type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
-          disabled={disabled}
-        />
-      </div>
-    );
-  }
-
-  // emptySentinel: use when options include an "empty" choice; Radix Select forbids value=""
-  function SelectRow({ label, field, options, emptySentinel }) {
-    const raw = car?.[field];
-    const value = emptySentinel ? (raw ?? "") || emptySentinel : String(raw ?? "");
-    const onSelect = (v) => setVal(field, emptySentinel && v === emptySentinel ? "" : v);
-    return (
-      <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <Select value={value} onValueChange={onSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select..." />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((op) => {
-              const val = op.value === "" || op.value == null ? (emptySentinel || "__none__") : String(op.value);
-              return (
-                <SelectItem key={val} value={val}>
-                  {op.label}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  }
-
   const save = async () => {
     try {
       const payload = {
@@ -1284,6 +1581,17 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
         clicks_count: car.clicks_count != null && car.clicks_count !== "" ? Number(car.clicks_count) : undefined,
         search_count: car.search_count != null && car.search_count !== "" ? Number(car.search_count) : undefined,
       };
+      const loc = car?.live_location;
+      const locAddr = loc?.address ?? "";
+      const locLat = loc?.latitude ?? loc?.lat ?? "";
+      const locLng = loc?.longitude ?? loc?.lng ?? "";
+      if (locAddr || (locLat !== "" && locLng !== "")) {
+        payload.live_location = {
+          address: String(locAddr || ""),
+          latitude: locLat !== "" ? Number(locLat) : 0,
+          longitude: locLng !== "" ? Number(locLng) : 0,
+        };
+      }
       const res = await updateCar(car.id, payload);
       const data = res.data || res;
       const updated = data?.car ?? data ?? car;
@@ -1302,43 +1610,46 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
-        <InputRow label="ID" field="id" disabled />
-        <InputRow label="Make" field="make" />
-        <InputRow label="Model" field="model" />
-        <InputRow label="Year" field="year" type="number" />
-        <SelectRow label="Cylinder" field="cylinder_number" emptySentinel="__none__" options={[{ label: "—", value: "" }, { label: "4", value: "4" }, { label: "6", value: "6" }, { label: "8", value: "8" }, { label: "10", value: "10" }, { label: "12", value: "12" }]} />
+        <EditInputRow label="ID" value={car?.id ?? ""} onChange={() => {}} disabled />
+        <EditInputRow label="Make" value={car?.make ?? ""} onChange={(v) => setVal("make", v)} />
+        <EditInputRow label="Model" value={car?.model ?? ""} onChange={(v) => setVal("model", v)} />
+        <EditInputRow label="Year" value={car?.year ?? ""} onChange={(v) => setVal("year", v)} type="number" />
+        <EditSelectRow label="Cylinder" value={car?.cylinder_number ?? ""} onValueChange={(v) => setVal("cylinder_number", v)} emptySentinel="__none__" options={[{ label: "—", value: "" }, { label: "4", value: "4" }, { label: "6", value: "6" }, { label: "8", value: "8" }, { label: "10", value: "10" }, { label: "12", value: "12" }]} />
 
-        <InputRow label="License Plate" field="license_plate" />
-        <InputRow label="Color" field="color" />
+        <EditInputRow label="License Plate" value={car?.license_plate ?? ""} onChange={(v) => setVal("license_plate", v)} />
+        <EditInputRow label="Color" value={car?.color ?? ""} onChange={(v) => setVal("color", v)} />
 
-        <InputRow label="Mileage" field="mileage" type="number" />
-        <InputRow label="Fuel Type" field="fuel_type" />
+        <EditInputRow label="Mileage" value={car?.mileage ?? ""} onChange={(v) => setVal("mileage", v)} type="number" />
+        <EditInputRow label="Fuel Type" value={car?.fuel_type ?? ""} onChange={(v) => setVal("fuel_type", v)} />
 
-        <InputRow label="Transmission" field="transmission" />
-        <InputRow label="Wheels Drive" field="wheels_drive" />
+        <EditInputRow label="Transmission" value={car?.transmission ?? ""} onChange={(v) => setVal("transmission", v)} />
+        <EditInputRow label="Wheels Drive" value={car?.wheels_drive ?? ""} onChange={(v) => setVal("wheels_drive", v)} />
 
-        <InputRow label="Category" field="car_category" />
+        <EditSelectRow label="Category" value={car?.car_category ?? ""} onValueChange={(v) => setVal("car_category", v)} emptySentinel="__none__" options={[{ label: "—", value: "" }, { label: "Sedan", value: "Sedan" }, { label: "Hatchback", value: "Hatchback" }, { label: "Coupe", value: "Coupe" }, { label: "SUV", value: "SUV" }, { label: "Crossover", value: "Crossover" }, { label: "Wagon", value: "Wagon" }, { label: "Pickup", value: "Pickup" }, { label: "Minivan", value: "Minivan" }, { label: "Convertible", value: "Convertible" }]} />
 
-        <InputRow label="Seats" field="seats" type="number" />
-        <InputRow label="Doors" field="doors" type="number" />
+        <EditInputRow label="Seats" value={car?.seats ?? ""} onChange={(v) => setVal("seats", v)} type="number" />
+        <EditInputRow label="Doors" value={car?.doors ?? ""} onChange={(v) => setVal("doors", v)} type="number" />
 
-        <InputRow label="Daily Rate" field="daily_rate" type="number" />
-        <InputRow label="Holiday Rate" field="holiday_rate" type="number" />
-        <InputRow label="Deposit" field="deposit" type="number" />
-        <InputRow label="Delivery Fees" field="delivery_fees" type="number" />
-        <InputRow label="Driver Fees" field="driver_fees" type="number" />
+        <EditInputRow label="Daily Rate" value={car?.daily_rate ?? ""} onChange={(v) => setVal("daily_rate", v)} type="number" />
+        <EditInputRow label="Holiday Rate" value={car?.holiday_rate ?? ""} onChange={(v) => setVal("holiday_rate", v)} type="number" />
+        <EditInputRow label="Deposit" value={car?.deposit ?? ""} onChange={(v) => setVal("deposit", v)} type="number" />
+        <EditInputRow label="Delivery Fees" value={car?.delivery_fees ?? ""} onChange={(v) => setVal("delivery_fees", v)} type="number" />
+        <EditInputRow label="Driver Fees" value={car?.driver_fees ?? ""} onChange={(v) => setVal("driver_fees", v)} type="number" />
 
-        <InputRow label="Min Rental Days" field="min_rental_days" type="number" />
-        <InputRow label="Max Driving Mileage" field="max_driving_mileage" type="number" />
+        <EditInputRow label="Min Rental Days" value={car?.min_rental_days ?? ""} onChange={(v) => setVal("min_rental_days", v)} type="number" />
+        <EditInputRow label="Max Driving Mileage" value={car?.max_driving_mileage ?? ""} onChange={(v) => setVal("max_driving_mileage", v)} type="number" />
 
-        <InputRow label="Agent ID (reassign owner)" field="agent_id" type="number" />
-        <InputRow label="Insurance Expiry" field="insurance_expiry" type="date" />
-        <InputRow label="Registration Expiry" field="registration_expiry" type="date" />
+        <EditInputRow label="Agent ID (reassign owner)" value={car?.agent_id ?? ""} onChange={(v) => setVal("agent_id", v)} type="number" />
+        <EditInputRow label="Insurance Expiry" value={car?.insurance_expiry ?? ""} onChange={(v) => setVal("insurance_expiry", v)} type="date" />
+        <EditInputRow label="Registration Expiry" value={car?.registration_expiry ?? ""} onChange={(v) => setVal("registration_expiry", v)} type="date" />
 
-        <InputRow label="Views Count" field="views_count" type="number" />
-        <InputRow label="Clicks Count" field="clicks_count" type="number" />
-        <InputRow label="Search Count" field="search_count" type="number" />
+        <EditInputRow label="Views Count" value={car?.views_count ?? ""} onChange={(v) => setVal("views_count", v)} type="number" />
+        <EditInputRow label="Clicks Count" value={car?.clicks_count ?? ""} onChange={(v) => setVal("clicks_count", v)} type="number" />
+        <EditInputRow label="Search Count" value={car?.search_count ?? ""} onChange={(v) => setVal("search_count", v)} type="number" />
       </div>
+
+      <div className="border-t pt-3" />
+      <AdminEditLocationSection car={car} setVal={setVal} />
 
       <div className="border-t pt-3" />
 
@@ -1403,9 +1714,10 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
       </div>
 
       <div className="space-y-2">
-        <SelectRow
+        <EditSelectRow
           label="Status"
-          field="status"
+          value={car?.status ?? ""}
+          onValueChange={(v) => setVal("status", v)}
           options={[
             { label: "Available", value: "available" },
             { label: "Not Available", value: "not_available" },
@@ -1422,11 +1734,11 @@ function EditCarView({ car, setCar, imgUrl, onClose, onSaved }) {
         />
       </div>
 
-      <ToggleRow label="Car Accepted" value={car?.car_accepted} onChange={(v) => setVal("car_accepted", v ? 1 : 0)} />
-      <ToggleRow label="Is Private" value={car?.is_private} onChange={(v) => setVal("is_private", v ? 1 : 0)} />
-      <ToggleRow label="Is Deposit" value={car?.is_deposit} onChange={(v) => setVal("is_deposit", v ? 1 : 0)} />
-      <ToggleRow label="With Driver" value={car?.with_driver} onChange={(v) => setVal("with_driver", v ? 1 : 0)} />
-      <ToggleRow label="Is Delivered" value={car?.is_delivered} onChange={(v) => setVal("is_delivered", v ? 1 : 0)} />
+      <EditToggleRow label="Car Accepted" value={car?.car_accepted} onChange={(v) => setVal("car_accepted", v ? 1 : 0)} />
+      <EditToggleRow label="Is Private" value={car?.is_private} onChange={(v) => setVal("is_private", v ? 1 : 0)} />
+      <EditToggleRow label="Is Deposit" value={car?.is_deposit} onChange={(v) => setVal("is_deposit", v ? 1 : 0)} />
+      <EditToggleRow label="With Driver" value={car?.with_driver} onChange={(v) => setVal("with_driver", v ? 1 : 0)} />
+      <EditToggleRow label="Is Delivered" value={car?.is_delivered} onChange={(v) => setVal("is_delivered", v ? 1 : 0)} />
 
       <div className="pt-3 flex gap-2">
         <Button className="flex-1" onClick={save}>

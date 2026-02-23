@@ -1,13 +1,38 @@
 import React from "react";
+import { handleMobileAppStoreClick, STORE_URLS } from "@/lib/mobileAppClick";
 
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.rentolb.app&pcampaignid=web_share";
-const APP_STORE_URL = "https://apps.apple.com/us/app/rento-lb/id6756906813?l=en-GB";
+const PLAY_STORE_URL = STORE_URLS.playstore;
+const APP_STORE_URL = STORE_URLS.appstore;
+
+const mobileAppSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Rento LB",
+  operatingSystem: "iOS, Android",
+  applicationCategory: "TravelApplication",
+  description:
+    "Book rental cars in Lebanon on the go. Compare prices from agencies and private owners.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  installUrl: [PLAY_STORE_URL, APP_STORE_URL],
+  publisher: {
+    "@id": "https://rento-lb.com/#organization",
+  },
+  image: "https://rento-lb.com/mobileapp.png",
+};
 
 export function MobileAppPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-5xl mx-auto space-y-10">
-        <div className="text-center space-y-3">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(mobileAppSchema) }}
+      />
+      <div className="w-full max-w-5xl mx-auto space-y-2">
+        <div className="text-center space-y-5">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
             Rento LB Mobile App
           </h1>
@@ -18,13 +43,14 @@ export function MobileAppPage() {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {/* Google Play block */}
           <a
-            href={PLAY_STORE_URL}
+            href={STORE_URLS["playstore"]}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex flex-col items-center gap-6 p-4"
+            onClick={(e) => handleMobileAppStoreClick(e, "playstore")}
           >
             <div className="w-full flex justify-center mobile-phone-3d">
               <img
@@ -39,6 +65,8 @@ export function MobileAppPage() {
               <img
                 src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
                 alt="Get it on Google Play"
+                width="135"
+                height="40"
                 className="h-10 sm:h-12"
               />
             </div>
@@ -46,10 +74,11 @@ export function MobileAppPage() {
 
           {/* App Store block */}
           <a
-            href={APP_STORE_URL}
+            href={STORE_URLS["appstore"]}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex flex-col items-center gap-6 p-4"
+            onClick={(e) => handleMobileAppStoreClick(e, "appstore")}
           >
             <div className="w-full flex justify-center mobile-phone-3d">
               <img
@@ -64,16 +93,13 @@ export function MobileAppPage() {
               <img
                 src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
                 alt="Download on the App Store"
+                width="120"
+                height="40"
                 className="h-10 sm:h-12"
               />
             </div>
           </a>
         </div>
-
-        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-          Note: Make sure the image file is available at <code>/mobile-app.png</code> in your{" "}
-          <code>public</code> folder so that the preview renders correctly.
-        </p>
       </div>
     </div>
   );

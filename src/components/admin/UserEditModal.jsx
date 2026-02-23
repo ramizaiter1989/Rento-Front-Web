@@ -149,12 +149,23 @@ const UserEditModal = ({ open, onClose, user, onSaved }) => {
               checked={form.update_access}
               onChange={(v) => handleChange("update_access", v)}
             />
+<<<<<<< HEAD
             <Toggle
               label="Verified by Admin"
               checked={form.verified_by_admin}
               aria-label="Toggle user verification status"
               onChange={(v) => handleChange("verified_by_admin", v)}
             />
+=======
+            {form.verified_by_admin && (
+              <Toggle
+                label="Verified by Admin (can revoke only)"
+                checked={form.verified_by_admin}
+                aria-label="Revoke verification"
+                onChange={(v) => handleChange("verified_by_admin", v)}
+              />
+            )}
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2
             <Toggle
               label="Account Locked"
               checked={form.is_locked}
@@ -199,4 +210,8 @@ const Toggle = ({ label, checked, onChange }) => (
     <div className="font-medium">{label}</div>
     <Switch checked={checked} onCheckedChange={onChange} />
   </div>
+<<<<<<< HEAD
 );
+=======
+);
+>>>>>>> d7f0598ba238695ac2bb6c17afb46754360d3df2

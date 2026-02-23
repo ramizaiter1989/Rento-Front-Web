@@ -128,7 +128,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
 
   return (
     <Link to={`/cars/${carData.id}`} className="block group">
-      <Card className="relative overflow-hidden h-full flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#00A19C] transition-all duration-300 hover:shadow-lg hover:shadow-[#00A19C]/20 hover:-translate-y-1 aspect-[2/3]">
+      <Card className="relative overflow-hidden h-full flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#007A76] transition-all duration-300 hover:shadow-lg hover:shadow-[#007A76]/20 hover:-translate-y-1 aspect-[2/3]">
         
         {/* Image Section - 60% of card height */}
         <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ height: '60%' }}>
@@ -138,6 +138,9 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
           <img
             src={imageSrc}
             alt={`${carData.brand} ${carData.model}`}
+            loading="lazy"
+            width="400"
+            height="250"
             onLoad={() => setImageLoaded(true)}
             onError={(e) => {
               if (e.currentTarget.src.endsWith('/placeholder.png')) return;
@@ -173,7 +176,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
 
           {/* Category Badge */}
           <div className="absolute top-1.5 left-1.5 z-10">
-            <Badge className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm text-[#00A19C] dark:text-[#8EDC81] border border-[#00A19C]/30 dark:border-[#8EDC81]/30 text-[10px] font-semibold px-1.5 py-0.5">
+            <Badge className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm text-[#007A76] dark:text-[#8EDC81] border border-[#007A76]/30 dark:border-[#8EDC81]/30 text-[10px] font-semibold px-1.5 py-0.5">
               {carData.category}
             </Badge>
           </div>
@@ -190,7 +193,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
 
           {/* Price Badge */}
           <div className="absolute bottom-1.5 right-1.5 z-10">
-            <Badge className="bg-gradient-to-r from-[#00A19C] to-[#8EDC81] text-white text-[10px] font-bold px-1.5 py-0.5">
+            <Badge className="bg-gradient-to-r from-[#007A76] to-[#8EDC81] text-white text-[10px] font-bold px-1.5 py-0.5">
               ${carData.price}/day
             </Badge>
           </div>
@@ -202,10 +205,10 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
           <div className="mb-1">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
-                <p className="text-[10px] font-semibold text-[#00A19C] dark:text-[#8EDC81] uppercase tracking-wide">
+                <p className="text-[10px] font-semibold text-[#007A76] dark:text-[#8EDC81] uppercase tracking-wide">
                   {carData.brand}
                 </p>
-                <h3 className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-[#00A19C] dark:group-hover:text-[#8EDC81] transition-colors">
+                <h3 className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-[#007A76] dark:group-hover:text-[#8EDC81] transition-colors">
                   {carData.model}
                 </h3>
               </div>
@@ -223,22 +226,22 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
 
           {/* Specs Grid */}
           <div className="grid grid-cols-3 gap-1 mb-1">
-            <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors">
-              <Users className="w-2.5 h-2.5 text-[#00A19C] dark:text-[#8EDC81] mb-0.5" />
+            <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#007A76]/10 dark:group-hover:bg-[#007A76]/20 transition-colors">
+              <Users className="w-2.5 h-2.5 text-[#007A76] dark:text-[#8EDC81] mb-0.5" />
               <span className="text-[9px] font-semibold text-gray-700 dark:text-gray-300">
                 {carData.seats}
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors">
-              <Settings className="w-2.5 h-2.5 text-[#00A19C] dark:text-[#8EDC81] mb-0.5" />
+            <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#007A76]/10 dark:group-hover:bg-[#007A76]/20 transition-colors">
+              <Settings className="w-2.5 h-2.5 text-[#007A76] dark:text-[#8EDC81] mb-0.5" />
               <span className="text-[9px] font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
                 {carData.transmission.slice(0, 4)}
               </span>
             </div>
 
-            <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#00A19C]/10 dark:group-hover:bg-[#00A19C]/20 transition-colors">
-              <Fuel className="w-2.5 h-2.5 text-[#00A19C] dark:text-[#8EDC81] mb-0.5" />
+            <div className="flex flex-col items-center p-1 rounded bg-gray-50 dark:bg-gray-700/50 group-hover:bg-[#007A76]/10 dark:group-hover:bg-[#007A76]/20 transition-colors">
+              <Fuel className="w-2.5 h-2.5 text-[#007A76] dark:text-[#8EDC81] mb-0.5" />
               <span className="text-[9px] font-semibold text-gray-700 dark:text-gray-300 truncate w-full text-center">
                 {carData.fuelType.slice(0, 4)}
               </span>
@@ -249,7 +252,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
           {(carData.holidayRate || carData.isDeposit) && (
             <div className="flex items-center gap-1 mb-1 text-[9px]">
               {carData.holidayRate && (
-                <div className="flex-1 text-center p-1 bg-gradient-to-br from-[#00A19C]/10 to-[#8EDC81]/10 dark:from-[#1e5f7a]/20 dark:to-[#00A19C]/20 rounded border border-[#00A19C]/20">
+                <div className="flex-1 text-center p-1 bg-gradient-to-br from-[#007A76]/10 to-[#8EDC81]/10 dark:from-[#1e5f7a]/20 dark:to-[#007A76]/20 rounded border border-[#007A76]/20">
                   <p className="text-gray-600 dark:text-gray-400 font-medium text-[8px] leading-tight">Holiday</p>
                   <p className="font-bold text-[#1e5f7a] dark:text-[#8EDC81] text-[10px] leading-tight">${carData.holidayRate}</p>
                 </div>
@@ -257,7 +260,7 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
               {carData.isDeposit && (
                 <div className="flex-1 text-center p-1 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
                   <p className="text-gray-600 dark:text-gray-400 font-medium text-[8px] leading-tight">Deposit</p>
-                  <p className="font-bold text-amber-600 dark:text-amber-400 text-[10px] leading-tight">${carData.deposit}</p>
+                  <p className="font-bold text-amber-800 dark:text-amber-300 text-[10px] leading-tight">${carData.deposit}</p>
                 </div>
               )}
             </div>
@@ -270,20 +273,20 @@ export const CarCard = ({ car, forceFavorite = false, onToggleFavoriteApi }) => 
               e.stopPropagation();
               setShowFeedbacksModal(true);
             }}
-            className="w-full flex items-center justify-between p-1 rounded bg-gray-50 dark:bg-gray-700/50 hover:bg-[#00A19C]/10 dark:hover:bg-[#00A19C]/20 transition-all border border-gray-200 dark:border-gray-700 hover:border-[#00A19C] group/feedback mb-1"
+            className="w-full flex items-center justify-between p-1 rounded bg-gray-50 dark:bg-gray-700/50 hover:bg-[#007A76]/10 dark:hover:bg-[#007A76]/20 transition-all border border-gray-200 dark:border-gray-700 hover:border-[#007A76] group/feedback mb-1"
             aria-label="Open customer feedback"
           >
             <div className="flex items-center gap-1">
-              <MessageSquare className="w-2.5 h-2.5 text-[#00A19C] dark:text-[#8EDC81]" />
+              <MessageSquare className="w-2.5 h-2.5 text-[#007A76] dark:text-[#8EDC81]" />
               <span className="text-[9px] font-semibold text-gray-900 dark:text-white">Reviews</span>
             </div>
-            <Badge className="bg-gradient-to-r from-[#00A19C] to-[#8EDC81] text-white text-[9px] font-bold px-1 py-0">
+            <Badge className="bg-gradient-to-r from-[#007A76] to-[#8EDC81] text-white text-[9px] font-bold px-1 py-0">
               {carData.feedbacks.length}
             </Badge>
           </button>
 
           {/* CTA Button */}
-          <Button className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#00A19C] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-1.5 text-[10px] rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group/btn">
+          <Button className="w-full bg-gradient-to-r from-[#1e5f7a] via-[#007A76] to-[#8EDC81] hover:from-[#184a5e] hover:via-[#008c88] hover:to-[#7bc876] text-white font-bold py-1.5 text-[10px] rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group/btn">
             <span className="flex items-center justify-center gap-1">
               <Eye className="w-2.5 h-2.5" />
               View Details

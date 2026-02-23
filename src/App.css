@@ -49,7 +49,6 @@
   max-width: 200px;
   width: 200px;
   height: auto;
-  filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.5));
   transform-style: preserve-3d;
   animation: phone-tilt 4s ease-in-out infinite;
 }

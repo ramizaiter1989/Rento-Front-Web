@@ -1,0 +1,1 @@
+import{r as e}from"./index-DbvXYXc0.js";const n=e.createContext(null);function o(){const t=e.useContext(n);if(!t)throw new Error("useAdmin must be used within AdminProvider");return t}const s={darkBlue:"#0E4C81",teal:"#008C95",limeGreen:"#8AC640"};export{n as A,s as C,o as u};

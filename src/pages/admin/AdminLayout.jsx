@@ -21,6 +21,7 @@ import {
   Tag,
   Briefcase,
   FileCheck,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +39,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminNotificationToasts } from "@/hooks/useAdminNotificationToasts";
+import { getUnreadNotificationsCount, getMe } from "@/lib/api";
+import { formatLastSeen } from "@/lib/formatLastSeen";
 
 /* ===============================
    NAV CONFIG
@@ -53,6 +57,7 @@ const NAV_SECTIONS = [
     title: "MANAGEMENT",
     items: [
       { to: "/admin/users", label: "Users", icon: Users },
+      { to: "/admin/agencies", label: "Agencies", icon: Store },
       { to: "/admin/real-user-data", label: "Real User Data", icon: FileCheck },
       { to: "/admin/cars", label: "Cars", icon: Car },
       { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
@@ -73,12 +78,8 @@ const NAV_SECTIONS = [
       { to: "/admin/announcements", label: "Announcements", icon: Bell },
       { to: "/admin/appeals", label: "Appeals", icon: AlertCircle },
       { to: "/admin/suggestions", label: "Suggestions", icon: MessageSquare },
-      {
-        to: "/admin/notifications",
-        label: "Notifications",
-        icon: Bell,
-        badge: 3,
-      },
+      { to: "/admin/notifications", label: "Notifications", icon: Bell },
+      { to: "/admin/alerts", label: "Alerts", icon: Bell, badgeKey: "alerts" },
       { to: "/admin/otps", label: "OTPs", icon: KeyRound },
     ],
   },
@@ -87,12 +88,35 @@ const NAV_SECTIONS = [
 export const AdminLayout = () => {
   const location = useLocation();
   const { logout } = useAuth();
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
+
+  useAdminNotificationToasts();
+
+  useEffect(() => {
+    getUnreadNotificationsCount()
+      .then((res) => setUnreadAlertsCount(res.data?.unread_count ?? res.data?.count ?? 0))
+      .catch(() => setUnreadAlertsCount(0));
+  }, [location.pathname]);
 
   const [collapsed, setCollapsed] = useState(
     localStorage.getItem("admin_sidebar") === "true"
   );
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [meStatus, setMeStatus] = useState(null);
+
+  useEffect(() => {
+    getMe()
+      .then((res) => {
+        const d = res.data ?? res;
+        setMeStatus({
+          user: d.user,
+          lastSeenAt: d.last_seen_at ?? d.last_active_at,
+          isOnline: d.is_online,
+        });
+      })
+      .catch(() => setMeStatus(null));
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("admin_sidebar", collapsed);
@@ -154,14 +178,27 @@ export const AdminLayout = () => {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 mb-4 rounded-xl px-2 py-2 hover:bg-muted">
                   <img
-                    src="/rento-512.png"
+                    src={
+                      meStatus?.user?.profile_picture?.startsWith("http")
+                        ? meStatus.user.profile_picture
+                        : meStatus?.user?.profile_picture
+                        ? `https://rento-lb.com/api/storage/${meStatus.user.profile_picture.replace(/^\//, "")}`
+                        : "/rento-512.png"
+                    }
                     className="w-10 h-10 rounded-full"
+                    alt=""
                   />
                   {!collapsed && (
-                    <div>
-                      <p className="text-sm font-semibold">Abbas Nemer</p>
-                      <p className="text-xs text-muted-foreground">
-                        Lead Developer 
+                    <div className="text-left">
+                      <p className="text-sm font-semibold truncate">
+                        {meStatus?.user?.first_name || meStatus?.user?.username || "Admin"}
+                        {meStatus?.user?.last_name ? ` ${meStatus.user.last_name}` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        {meStatus?.isOnline ? (
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                        ) : null}
+                        {meStatus?.lastSeenAt ? formatLastSeen(meStatus.lastSeenAt) : "—"}
                       </p>
                     </div>
                   )}
@@ -207,41 +244,44 @@ export const AdminLayout = () => {
 
                   <div className="space-y-1">
                     {section.items.map(
-                      ({ to, label, icon: Icon, badge }) => (
-                        <div key={to}>
-                          <NavLink
-                            to={to}
-                            end
-                            className={({ isActive }) =>
-                              cn(
-                                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
-                                "transition-all duration-200",
-                                "hover:scale-[1.05]",
-                                isActive
-                                  ? "bg-primary/10 text-primary shadow-sm"
-                                  : "text-muted-foreground hover:bg-muted"
-                              )
-                            }
-                          >
-                            {/* Active glow */}
-                            <span className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-[.active]:opacity-100 blur-sm" />
+                      ({ to, label, icon: Icon, badge, badgeKey }) => {
+                        const badgeValue = badgeKey === "alerts" ? unreadAlertsCount : badge;
+                        return (
+                          <div key={to}>
+                            <NavLink
+                              to={to}
+                              end
+                              className={({ isActive }) =>
+                                cn(
+                                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
+                                  "transition-all duration-200",
+                                  "hover:scale-[1.05]",
+                                  isActive
+                                    ? "bg-primary/10 text-primary shadow-sm"
+                                    : "text-muted-foreground hover:bg-muted"
+                                )
+                              }
+                            >
+                              {/* Active glow */}
+                              <span className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-[.active]:opacity-100 blur-sm" />
 
-                            <Icon className="relative w-4 h-4" />
-                            {!collapsed && <span>{label}</span>}
+                              <Icon className="relative w-4 h-4" />
+                              {!collapsed && <span>{label}</span>}
 
-                            {/* Badge */}
-                            {badge && !collapsed && (
-                              <motion.span
-                                animate={{ scale: [1, 1.15, 1] }}
-                                transition={{ repeat: Infinity, duration: 1.8 }}
-                                className="ml-auto bg-primary text-white text-xs px-2 py-0.5 rounded-full"
-                              >
-                                {badge}
-                              </motion.span>
-                            )}
-                          </NavLink>
-                        </div>
-                      )
+                              {/* Badge */}
+                              {badgeValue != null && Number(badgeValue) > 0 && !collapsed && (
+                                <motion.span
+                                  animate={{ scale: [1, 1.15, 1] }}
+                                  transition={{ repeat: Infinity, duration: 1.8 }}
+                                  className="ml-auto bg-primary text-white text-xs px-2 py-0.5 rounded-full"
+                                >
+                                  {badgeValue}
+                                </motion.span>
+                              )}
+                            </NavLink>
+                          </div>
+                        );
+                      }
                     )}
                   </div>
                 </div>

@@ -40,9 +40,9 @@ export default function AdminCarsTab() {
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="not_available">Not Available</SelectItem>
               <SelectItem value="rented">Rented</SelectItem>
               <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="unavailable">Unavailable</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" onClick={fetchCars}>

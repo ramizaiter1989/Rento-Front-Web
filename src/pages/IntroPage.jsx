@@ -13,7 +13,7 @@ export const IntroPage = () => {
       icon: Car,
       title: 'Premium Luxury Fleet',
       description: 'Access the world\'s finest vehicles. From sports cars to luxury SUVs, find your perfect ride for any occasion.',
-      image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&q=80',
+      image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&q=75&fm=webp',
       gradient: 'from-primary to-secondary'
     },
     {

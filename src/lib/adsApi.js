@@ -1,73 +1,71 @@
 /**
  * Ads API Service
- * Public and admin endpoints for ads management
- * Updated to use public endpoints as per Frontend Implementation Guide v2.0.0
+ * Public endpoints for ads display and tracking.
+ * Uses a dedicated axios instance WITHOUT auth interceptor so expired/invalid
+ * tokens don't cause 401 errors on these public-only routes.
  */
 
-import api from './axios';
+import axios from 'axios';
+
+let baseURL = import.meta.env.VITE_API_URL || 'https://rento-lb.com/api/api';
+baseURL = baseURL.trim().replace(/\/+$/, '');
+
+const publicApi = axios.create({
+  baseURL,
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  },
+});
 
 /**
  * Get active ads for public display (no auth required)
- * Uses public endpoint: GET /api/ads
- * @returns {Promise} Response with active ads
+ * @returns {Promise<Array>} Active ads array
  */
 export const getActiveAds = async () => {
   try {
-    // Use public endpoint - no auth required
-    const response = await api.get('/ads');
+    const response = await publicApi.get('/ads');
     return response.data?.ads || [];
   } catch (error) {
-    console.error('Error fetching active ads:', error);
     return [];
   }
 };
 
 /**
  * Get single ad (public - no auth required)
- * @param {number} adId - Ad ID
- * @returns {Promise} Response with ad details
+ * @param {number} adId
  */
 export const getAd = async (adId) => {
   try {
-    const response = await api.get(`/ads/${adId}`);
+    const response = await publicApi.get(`/ads/${adId}`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching ad:', error);
     return null;
   }
 };
 
 /**
  * Track ad view (public - no auth required)
- * @param {number} adId - Ad ID
- * @returns {Promise} Response
+ * @param {number} adId
  */
 export const trackAdView = async (adId) => {
   try {
-    await api.post(`/ads/${adId}/view`);
-  } catch (error) {
+    await publicApi.post(`/ads/${adId}/view`);
+  } catch {
     // Silently fail - tracking shouldn't break the UI
-    console.error('Error tracking ad view:', error);
   }
 };
 
 /**
  * Track ad click (public - no auth required)
- * @param {number} adId - Ad ID
- * @returns {Promise} Response
+ * @param {number} adId
  */
 export const trackAdClick = async (adId) => {
   try {
-    await api.post(`/ads/${adId}/click`);
-  } catch (error) {
+    await publicApi.post(`/ads/${adId}/click`);
+  } catch {
     // Silently fail - tracking shouldn't break the UI
-    console.error('Error tracking ad click:', error);
   }
 };
 
-export default {
-  getActiveAds,
-  getAd,
-  trackAdView,
-  trackAdClick
-};
+export default { getActiveAds, getAd, trackAdView, trackAdClick };

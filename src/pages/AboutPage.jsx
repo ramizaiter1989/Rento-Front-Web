@@ -151,7 +151,7 @@ export const AboutPage = () => {
             {/* Right Images with SEO alt text */}
             <div className="grid grid-cols-2 gap-4">
               <img
-                src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=80"
+                src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=75&fm=webp"
                 alt="Affordable luxury car rental in Beirut Lebanon - Rento LB"
                 className="rounded-2xl w-full h-64 object-cover hover-glow"
               />

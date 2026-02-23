@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Car, Upload, MapPin, DollarSign, Settings, Image, FileText, Sparkles, Check, X, Navigation, Search, Building2 } from 'lucide-react';
+import { ArrowLeft, Car, Upload, MapPin, DollarSign, Settings, Image, FileText, Sparkles, Check, X, Navigation, Search, Building2, FileDown, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
+import { downloadCreateCarFormDocx } from '@/lib/createCarFormDocx';
 
 // Car makes and their models
 const CAR_DATA = {
@@ -149,6 +150,48 @@ function parseGoogleMapsLink(url) {
   return null;
 }
 
+/** Detect Google Maps short links (maps.app.goo.gl or goo.gl/maps) */
+function isShortMapLink(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  return /^(https?:)?\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(trimmed) || /^https?:\/\/maps\.app\.goo\.gl\//i.test(trimmed);
+}
+
+/**
+ * Resolve a short Google Maps link by following redirects (client-side).
+ * Often fails due to CORS; use resolveShortMapLinkViaBackend when possible.
+ */
+async function resolveShortMapLink(url) {
+  const trimmed = (url || '').trim();
+  if (!isShortMapLink(trimmed)) return null;
+  try {
+    const res = await fetch(trimmed, { redirect: 'follow', method: 'HEAD' });
+    return parseGoogleMapsLink(res.url || trimmed);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve short map link via backend (no CORS). Backend should GET the short URL,
+ * follow redirects, parse final URL for lat/lng, return { lat, lng } or { latitude, longitude }.
+ */
+async function resolveShortMapLinkViaBackend(url) {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return null;
+  try {
+    const { data } = await api.get('/resolve-map-link', { params: { url: trimmed } });
+    const lat = data?.lat ?? data?.latitude;
+    const lng = data?.lng ?? data?.longitude;
+    if (lat != null && lng != null && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng))) {
+      return { lat: Number(lat), lng: Number(lng) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Get agency office location from stored user (user.agent.location).
  * location can be JSON string like "{\"city\":\"beirut\",\"lat\":33.8938,\"lng\":35.5018}"
@@ -255,6 +298,7 @@ export const CreateCarPage = () => {
   const [mapSearchQuery, setMapSearchQuery] = useState('');
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
   const [googleLinkInputs, setGoogleLinkInputs] = useState({ liveLocation: '', deliveryLocation: '', returnLocation: '' });
+  const [linkResolvingField, setLinkResolvingField] = useState(null);
   
   const [formData, setFormData] = useState({
     make: '',
@@ -265,12 +309,13 @@ export const CreateCarPage = () => {
     licensePlate: '',
     color: '',
     mileage: 0,
-    fuelType: '',
+    fuelType: 'Petrol',
     transmission: '',
     wheelsDrive: '',
     carCategory: '',
     seats: 5,
     doors: 4,
+    cylinderNumber: '',
     dailyRate: '',
     holidayRate: '',
     notes: '',
@@ -288,6 +333,7 @@ export const CreateCarPage = () => {
     liveLocation: { address: '', latitude: 0, longitude: 0 },
     deliveryLocation: { address: '', latitude: 0, longitude: 0 },
     returnLocation: { address: '', latitude: 0, longitude: 0 },
+    isPrivate: false,
   });
   
   const [images, setImages] = useState({
@@ -331,10 +377,39 @@ export const CreateCarPage = () => {
   };
 
   const handleImageChange = (type, file) => {
-    if (file) {
-      setImages((prev) => ({ ...prev, [type]: file }));
-      setImagePreviews((prev) => ({ ...prev, [type]: URL.createObjectURL(file) }));
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file (e.g. JPG, PNG)');
+      return;
     }
+    setImages((prev) => ({ ...prev, [type]: file }));
+    setImagePreviews((prev) => {
+      const prevUrl = prev[type];
+      if (prevUrl) URL.revokeObjectURL(prevUrl);
+      return { ...prev, [type]: URL.createObjectURL(file) };
+    });
+  };
+
+  const [dragOverType, setDragOverType] = useState(null);
+
+  const handleDragOver = (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverType(type);
+  };
+
+  const handleDragLeave = (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverType((t) => (t === type ? null : t));
+  };
+
+  const handleDrop = (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverType(null);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleImageChange(type, file);
   };
 
   const removeImage = (type) => {
@@ -412,8 +487,19 @@ export const CreateCarPage = () => {
     }));
   };
 
-  const applyGoogleLink = (field, url) => {
-    const coords = parseGoogleMapsLink(url);
+  const applyGoogleLink = async (field, url) => {
+    const trimmed = (url || '').trim();
+    if (!trimmed) return;
+    let coords = parseGoogleMapsLink(trimmed);
+    if (!coords && isShortMapLink(trimmed)) {
+      setLinkResolvingField(field);
+      try {
+        coords = await resolveShortMapLink(trimmed);
+        if (!coords) coords = await resolveShortMapLinkViaBackend(trimmed);
+      } finally {
+        setLinkResolvingField(null);
+      }
+    }
     if (coords) {
       setFormData((prev) => ({
         ...prev,
@@ -426,7 +512,14 @@ export const CreateCarPage = () => {
       }));
       toast.success('Location set from Google Maps link.');
     } else {
-      toast.error('Could not read coordinates from this link. Use a link with lat,lng (e.g. @33.89,35.50 or ?q=33.89,35.50).');
+      if (isShortMapLink(trimmed)) {
+        toast.error(
+          'Short link (maps.app.goo.gl) not resolved: browser cannot follow the link, and the server may not have the resolve endpoint yet. Workaround: open the link in a new tab, then copy the long URL from the address bar and paste it here, or set location with "Select on map" / "Use current location".',
+          { duration: 7000 }
+        );
+      } else {
+        toast.error('Could not read coordinates from this link. Use a link with lat,lng (e.g. @33.89,35.50 or ?q=33.89,35.50) or a maps.app.goo.gl link.');
+      }
     }
   };
 
@@ -483,10 +576,150 @@ export const CreateCarPage = () => {
     }
   };
 
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiFillLoading, setAiFillLoading] = useState(false);
+
+  const handleAiFill = async () => {
+    const description = aiDescription.trim();
+    if (!description) {
+      toast.error('Please enter a short description of the car.');
+      return;
+    }
+    if (description.length > 2000) {
+      toast.error('Description must be at most 2000 characters.');
+      return;
+    }
+    setAiFillLoading(true);
+    try {
+      const { data } = await api.post('/ai/car-fill/parse', { description });
+      if (!data.success || !data.form) {
+        toast.error(data.message || 'Could not parse description.');
+        return;
+      }
+      const raw = data.form;
+      const use_office_location = raw.use_office_location === true;
+      const form = { ...raw };
+      delete form.use_office_location;
+
+      const normalizeLoc = (loc) => {
+        if (!loc || typeof loc !== 'object') return { address: '', latitude: 0, longitude: 0 };
+        const lat = loc.latitude ?? loc.lat ?? 0;
+        const lng = loc.longitude ?? loc.lng ?? 0;
+        return {
+          address: loc.address ?? '',
+          latitude: typeof lat === 'number' ? lat : parseFloat(lat) || 0,
+          longitude: typeof lng === 'number' ? lng : parseFloat(lng) || 0,
+        };
+      };
+
+      let make = form.make ?? '';
+      let model = form.model ?? '';
+      let customMake = '';
+      let customModel = '';
+      if (make && !Object.prototype.hasOwnProperty.call(CAR_DATA, make)) {
+        customMake = make;
+        make = 'Other';
+      }
+      if (make && make !== 'Other' && model && CAR_DATA[make] && !CAR_DATA[make].includes(model)) {
+        customModel = model;
+        model = 'Other';
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        make: make || prev.make,
+        model: model || prev.model,
+        customMake: customMake || prev.customMake,
+        customModel: customModel || prev.customModel,
+        year: form.year ?? prev.year,
+        licensePlate: form.licensePlate ?? prev.licensePlate,
+        color: form.color ?? prev.color,
+        mileage: form.mileage != null ? form.mileage : prev.mileage,
+        fuelType: form.fuelType ?? prev.fuelType,
+        transmission: form.transmission ?? prev.transmission,
+        wheelsDrive: form.wheelsDrive ?? prev.wheelsDrive,
+        carCategory: form.carCategory ?? prev.carCategory,
+        seats: form.seats ?? prev.seats,
+        doors: form.doors ?? prev.doors,
+        cylinderNumber: form.cylinderNumber ?? form.cylinder_number ?? prev.cylinderNumber,
+        dailyRate: form.dailyRate != null ? form.dailyRate : prev.dailyRate,
+        holidayRate: form.holidayRate != null ? form.holidayRate : prev.holidayRate,
+        notes: form.notes ?? prev.notes,
+        requireDeposit: form.requireDeposit ?? prev.requireDeposit,
+        depositAmount: form.depositAmount ?? prev.depositAmount,
+        deliveryAvailable: form.deliveryAvailable ?? prev.deliveryAvailable,
+        deliveryFees: form.deliveryFees ?? prev.deliveryFees,
+        driverAvailable: form.driverAvailable ?? prev.driverAvailable,
+        driverFees: form.driverFees ?? prev.driverFees,
+        maxDrivingMileage: form.maxDrivingMileage != null ? form.maxDrivingMileage : prev.maxDrivingMileage,
+        minRentalDays: form.minRentalDays ?? prev.minRentalDays,
+        selectedFeatures: Array.isArray(form.selectedFeatures) ? form.selectedFeatures : prev.selectedFeatures,
+        selectedAddons: Array.isArray(form.selectedAddons) ? form.selectedAddons : prev.selectedAddons,
+        selectedReasons: Array.isArray(form.selectedReasons) ? form.selectedReasons : prev.selectedReasons,
+        liveLocation: normalizeLoc(form.liveLocation),
+        deliveryLocation: normalizeLoc(form.deliveryLocation),
+        returnLocation: normalizeLoc(form.returnLocation),
+      }));
+
+      if (use_office_location) {
+        const office = getAgencyOfficeLocation();
+        if (office) {
+          setFormData((prev) => ({
+            ...prev,
+            liveLocation: {
+              ...prev.liveLocation,
+              address: prev.liveLocation?.address || '',
+              latitude: office.latitude,
+              longitude: office.longitude,
+            },
+            deliveryLocation: {
+              ...prev.deliveryLocation,
+              address: prev.deliveryLocation?.address || '',
+              latitude: office.latitude,
+              longitude: office.longitude,
+            },
+            returnLocation: {
+              ...prev.returnLocation,
+              address: prev.returnLocation?.address || '',
+              latitude: office.latitude,
+              longitude: office.longitude,
+            },
+          }));
+          toast.success('Form filled from description. Office location applied for Live, Delivery, and Return.');
+        } else {
+          toast.success('Form filled from description. Set your agency office location in profile to use it next time.');
+        }
+      } else {
+        toast.success('Form filled from description. Review, add license plate and photos, then submit.');
+      }
+    } catch (err) {
+      const status = err.response?.status;
+      const body = err.response?.data;
+      if (status === 403) {
+        toast.error(body?.message || 'Only agencies can use AI car fill.');
+      } else if (status === 422 && body?.errors?.description) {
+        body.errors.description.forEach((msg) => toast.error(msg));
+      } else if (status === 500 || body?.message) {
+        toast.error(body?.message || 'AI parsing failed. Please fill the form manually.');
+      } else {
+        toast.error('Could not parse description. Please fill the form manually.');
+      }
+    } finally {
+      setAiFillLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const data = new FormData();
+
+    const liveAddress = (formData.liveLocation?.address || '').trim();
+    if (!liveAddress) {
+      toast.error('Please enter the Live Location address (region/address).');
+      setLoading(false);
+      return;
+    }
 
     const isOtherMake = formData.make === 'Other';
     const isOtherModel = formData.model === 'Other';
@@ -528,6 +761,7 @@ export const CreateCarPage = () => {
     data.append('daily_rate', formData.dailyRate);
     data.append('seats', formData.seats);
     data.append('doors', formData.doors);
+    if (formData.cylinderNumber) data.append('cylinder_number', formData.cylinderNumber);
     
     // Append optional fields
     if (formData.color) data.append('color', formData.color);
@@ -558,6 +792,8 @@ export const CreateCarPage = () => {
     if (formData.driverAvailable && formData.driverFees > 0) {
       data.append('driver_fees', formData.driverFees);
     }
+
+    data.append('is_private', formData.isPrivate ? '1' : '0');
     
     // Append locations as JSON strings
     data.append('live_location', JSON.stringify(formData.liveLocation));
@@ -629,6 +865,23 @@ export const CreateCarPage = () => {
                 <Car className="w-4 h-4 mr-2" />
                 Go to Cars Page
               </Button>
+
+              <Button
+                variant="outline"
+                className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors border-2 border-dashed"
+                onClick={async () => {
+                  try {
+                    await downloadCreateCarFormDocx('create-car-form-agency.docx');
+                    toast.success('Form downloaded. Print and fill by hand if needed.');
+                  } catch (e) {
+                    console.error(e);
+                    toast.error('Failed to download form.');
+                  }
+                }}
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Download form (print & fill by hand)
+              </Button>
             </div>
 
             <div className="flex items-center gap-4 mb-4">
@@ -643,6 +896,49 @@ export const CreateCarPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* AI Fill */}
+            <Card className="border-2 border-teal-500/30 bg-teal-50/50 dark:bg-teal-950/30 transition-all duration-300 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Fill with AI</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Describe your car in one line; we&apos;ll pre-fill the form.</p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <textarea
+                    placeholder="e.g. bmw serie 5 2025 auto 4 seats 4 doors sport address beirut, location office"
+                    value={aiDescription}
+                    onChange={(e) => setAiDescription(e.target.value.slice(0, 2000))}
+                    maxLength={2000}
+                    rows={2}
+                    className="flex-1 min-w-0 h-auto resize-y rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-500"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAiFill}
+                    disabled={aiFillLoading || !aiDescription.trim()}
+                    className="shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 h-12 px-6 rounded-xl font-semibold"
+                  >
+                    {aiFillLoading ? (
+                      <>
+                        <span className="animate-pulse">Parsing…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2 inline" />
+                        Fill with AI
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{aiDescription.length}/2000</p>
+              </CardContent>
+            </Card>
+
             {/* Basic Information */}
             <Card className="border-2 border-transparent hover:border-teal-500/30 transition-all duration-300 shadow-lg">
               <CardContent className="p-8">
@@ -652,7 +948,7 @@ export const CreateCarPage = () => {
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Basic Information</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Make <span className="text-red-500">*</span>
@@ -799,7 +1095,7 @@ export const CreateCarPage = () => {
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Technical Specifications</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Fuel Type <span className="text-red-500">*</span>
@@ -874,6 +1170,23 @@ export const CreateCarPage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Cylinder number
+                    </label>
+                    <select
+                      value={formData.cylinderNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, cylinderNumber: e.target.value })}
+                      className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
+                    >
+                      <option value="">—</option>
+                      <option value="4">4</option>
+                      <option value="6">6</option>
+                      <option value="8">8</option>
+                      <option value="10">10</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Category <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -883,13 +1196,15 @@ export const CreateCarPage = () => {
                       className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
                     >
                       <option value="">Select...</option>
-                      <option value="Luxury">Luxury</option>
-                      <option value="Sport">Sport</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Industrial">Industrial</option>
-                      <option value="Normal">Normal</option>
-                      <option value="Event">Event</option>
-                      <option value="Sea">Sea</option>
+                      <option value="Sedan">Sedan</option>
+                      <option value="Hatchback">Hatchback</option>
+                      <option value="Coupe">Coupe</option>
+                      <option value="SUV">SUV</option>
+                      <option value="Crossover">Crossover</option>
+                      <option value="Wagon">Wagon</option>
+                      <option value="Pickup">Pickup</option>
+                      <option value="Minivan">Minivan</option>
+                      <option value="Convertible">Convertible</option>
                     </select>
                   </div>
                 </div>
@@ -976,7 +1291,7 @@ export const CreateCarPage = () => {
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Pricing & Rental Terms</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Daily Rate <span className="text-red-500">*</span>
@@ -1121,6 +1436,18 @@ export const CreateCarPage = () => {
                       </div>
                     </div>
                   )}
+                  <div className="flex items-center space-x-3 w-full">
+                    <input
+                      type="checkbox"
+                      id="isPrivate"
+                      checked={formData.isPrivate}
+                      onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
+                      className="w-5 h-5 rounded border-2 border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <label htmlFor="isPrivate" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Private car (hidden from public listings)
+                    </label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1140,14 +1467,33 @@ export const CreateCarPage = () => {
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         {type === 'main' ? 'Main Image *' : `${type.charAt(0).toUpperCase() + type.slice(1)} Image`}
                       </label>
-                      <div className="relative">
+                      <div
+                        className="relative"
+                        onDragOver={(e) => handleDragOver(e, type)}
+                        onDragLeave={(e) => handleDragLeave(e, type)}
+                        onDrop={(e) => handleDrop(e, type)}
+                      >
                         {imagePreviews[type] ? (
-                          <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-300">
-                            <img src={imagePreviews[type]} alt="" className="w-full h-full object-cover" />
+                          <div
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 bg-gray-100 dark:bg-gray-800 select-none ${dragOverType === type ? 'border-teal-500 ring-2 ring-teal-500/30' : 'border-gray-300'}`}
+                            onClick={(e) => e.preventDefault()}
+                            role="presentation"
+                          >
+                            <img
+                              src={imagePreviews[type]}
+                              alt=""
+                              className="w-full h-full object-cover pointer-events-none"
+                              draggable={false}
+                            />
+                            {dragOverType === type && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-teal-500/20 pointer-events-none">
+                                <span className="text-sm font-semibold text-teal-700 dark:text-teal-200">Drop to replace</span>
+                              </div>
+                            )}
                             <button
                               type="button"
-                              onClick={() => removeImage(type)}
-                              className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeImage(type); }}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 z-10"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -1158,11 +1504,17 @@ export const CreateCarPage = () => {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => handleImageChange(type, e.target.files[0])}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageChange(type, file);
+                                e.target.value = '';
+                              }}
                             />
-                            <div className="aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center hover:border-teal-500 transition bg-gray-50">
+                            <div
+                              className={`aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition bg-gray-50 dark:bg-gray-800/50 ${dragOverType === type ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30' : 'hover:border-teal-500'}`}
+                            >
                               <Upload className="w-10 h-10 text-gray-400" />
-                              <span className="text-sm text-gray-500 mt-2">Click to upload</span>
+                              <span className="text-sm text-gray-500 mt-2">Click or drag & drop</span>
                             </div>
                           </label>
                         )}
@@ -1182,6 +1534,7 @@ export const CreateCarPage = () => {
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Location Information</h2>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {['liveLocation', 'deliveryLocation', 'returnLocation'].map((field) => {
                   const label =
                     field === 'liveLocation' ? 'Live Location' : field === 'deliveryLocation' ? 'Delivery Location' : 'Return Location';
@@ -1189,29 +1542,39 @@ export const CreateCarPage = () => {
                   const hasLocation = loc.latitude && loc.longitude && loc.latitude !== 0 && loc.longitude !== 0;
                   
                   return (
-                    <div key={field} className="mb-6 p-5 border-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div key={field} className="p-5 border-2 rounded-lg bg-gray-50 dark:bg-gray-800">
                       <h4 className="font-semibold mb-4 text-lg">{label}</h4>
                       
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address (region)</label>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Address (region) {field === 'liveLocation' && <span className="text-red-500">*</span>}
+                          </label>
                           <select
                             value={loc.address || ''}
                             onChange={(e) => handleLocationAddressChange(field, e.target.value)}
-                            className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-teal-500 rounded-xl px-4 bg-white dark:bg-gray-900"
+                            className={`w-full h-12 border-2 rounded-xl px-4 bg-white dark:bg-gray-900 ${
+                              field === 'liveLocation' && !(loc.address || '').trim()
+                                ? 'border-amber-400 dark:border-amber-500 focus:border-teal-500'
+                                : 'border-gray-200 dark:border-gray-700 focus:border-teal-500'
+                            }`}
+                            required={field === 'liveLocation'}
                           >
                             <option value="">Select region...</option>
                             {ADDRESS_OPTIONS.map((opt) => (
                               <option key={opt} value={opt}>{opt}</option>
                             ))}
                           </select>
+                          {field === 'liveLocation' && (
+                            <p className="text-xs text-muted-foreground mt-1">Required: enter the live address/region where the car is located.</p>
+                          )}
                         </div>
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Paste Google Maps link (to set coordinates)</label>
                           <div className="flex gap-2">
                             <Input
-                              placeholder="e.g. https://www.google.com/maps/@33.8938,35.5018,17z"
+                              placeholder="e.g. https://www.google.com/maps/@33.89,35.50 or https://maps.app.goo.gl/..."
                               value={googleLinkInputs[field] || ''}
                               onChange={(e) => setGoogleLinkInputs((prev) => ({ ...prev, [field]: e.target.value }))}
                               onBlur={(e) => {
@@ -1223,16 +1586,26 @@ export const CreateCarPage = () => {
                             <Button
                               type="button"
                               variant="outline"
+                              disabled={linkResolvingField === field}
                               onClick={() => {
                                 const v = googleLinkInputs[field];
                                 if (v?.trim()) applyGoogleLink(field, v);
                               }}
-                              className="h-12 shrink-0"
+                              className="h-12 shrink-0 min-w-[80px]"
                             >
-                              Apply
+                              {linkResolvingField === field ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  Resolving...
+                                </>
+                              ) : (
+                                'Apply'
+                              )}
                             </Button>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">Paste a link with coordinates to fill the pin location if missing.</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Paste a link with coordinates (e.g. google.com/maps/@33.89,35.50) or a short link (maps.app.goo.gl). If a short link fails, open it in a new tab, copy the long URL from the address bar, and paste that here.
+                          </p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
@@ -1297,6 +1670,7 @@ export const CreateCarPage = () => {
                     </div>
                   );
                 })}
+                </div>
               </CardContent>
             </Card>
 

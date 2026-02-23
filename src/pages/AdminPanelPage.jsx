@@ -2708,13 +2708,15 @@ export default function AdminPanelPage() {
                   )}
                   <div className="border-t pt-4 space-y-3">
                     <Label className="text-sm font-semibold block">Editable Fields</Label>
-                    <div className="flex items-center justify-between">
-                      <Label>Verified by Admin</Label>
-                      <Switch
-                        checked={selectedItem.verified_by_admin || false}
-                        onCheckedChange={(checked) => setSelectedItem({...selectedItem, verified_by_admin: checked})}
-                      />
-                    </div>
+                    {selectedItem.verified_by_admin && (
+                      <div className="flex items-center justify-between">
+                        <Label>Verified by Admin (can revoke only)</Label>
+                        <Switch
+                          checked={selectedItem.verified_by_admin || false}
+                          onCheckedChange={(checked) => setSelectedItem({...selectedItem, verified_by_admin: checked})}
+                        />
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <Label>Status (Active)</Label>
                       <Switch

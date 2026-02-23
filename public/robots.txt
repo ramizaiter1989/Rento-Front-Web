@@ -1,0 +1,76 @@
+# robots.txt for RENTO LB - Car Rental Lebanon
+# Updated: February 2026
+
+User-agent: *
+Allow: /
+
+# Auth & profile routes
+Disallow: /auth
+Disallow: /Complete-Profile
+
+# Admin routes
+Disallow: /admin
+Disallow: /admin-auth
+Disallow: /admin-panel-page
+
+# Agent/agency routes
+Disallow: /Dashboard
+Disallow: /Statistic
+Disallow: /Mycars
+Disallow: /Mycars-bookings
+Disallow: /Balance
+Disallow: /add-car
+Disallow: /Add/car/qualification
+
+# Authenticated-only routes
+Disallow: /BookingChat
+Disallow: /client-Chat
+Disallow: /ClientBookings
+Disallow: /favorites
+
+# Block noisy query parameters
+Disallow: /*?print=
+Disallow: /*?share=
+Disallow: /*?sessionid=
+Disallow: /*?sortby=
+Disallow: /*?filterby=
+
+# Allow images for SEO
+User-agent: Googlebot-Image
+Allow: /images/
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+
+# Social media crawlers - allow full access
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Pinterest
+Allow: /
+
+# Throttle aggressive SEO crawlers
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+# Block unwanted crawlers
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+Sitemap: https://rento-lb.com/sitemap.xml

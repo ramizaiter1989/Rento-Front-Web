@@ -21,10 +21,24 @@ import api from './axios';
  * @param {boolean} params.status - Filter by status (true=active, false=inactive)
  * @param {number} params.page - Page number (default: 1)
  * @param {number} params.per_page - Number of items per page (default: 50)
- * @returns {Promise} Response with paginated users
+ * @param {string} params.search - Search in username, phone_number, etc.
+ * @param {string} params.sort_by - Sort field (created_at, username)
+ * @param {string} params.sort_order - Sort direction (asc, desc)
+ * @returns {Promise} Response with paginated users { users: { data, current_page, last_page, per_page, total } }
  */
 export const getUsers = (params = {}) => {
   return api.get('/admin/users', { params });
+};
+
+/**
+ * Get list of users currently online (tokens used in last N minutes).
+ * GET /api/admin/online-users
+ * @param {Object} params - Query parameters
+ * @param {number} params.minutes - Window in minutes (default 30)
+ * @returns {Promise} Response with online users list/count
+ */
+export const getOnlineUsers = (params = {}) => {
+  return api.get('/admin/online-users', { params });
 };
 
 /**
@@ -100,69 +114,72 @@ export const linkRealUserData = (userId, data) => {
 // ============================
 
 /**
- * Get all cars with optional filters
+ * Get all cars with optional filters (Super Admin Car Management)
+ * GET /api/admin/cars
  * @param {Object} params - Query parameters
  * @param {string} params.status - Filter: available, not_available, rented, maintenance
  * @param {string} params.car_accepted - Filter: true or false
  * @param {number} params.agent_id - Filter by owner (agency user ID)
  * @param {string} params.is_private - Filter: true or false
  * @param {string} params.search - Search in make, model, license_plate, color
- * @param {boolean} params.with_images - Include car images (default: true)
  * @param {number} params.per_page - Items per page (default: 50)
  * @param {number} params.page - Page number
- * @returns {Promise} Response with paginated cars
+ * @returns {Promise} Response with { cars, meta }
  */
 export const getCars = (params = {}) => {
-  const finalParams = { with_images: true, ...params };
-  return api.get('/admin/cars', { params: finalParams });
+  return api.get('/admin/cars', { params });
 };
 
 /**
- * Get car details by ID
+ * Get single car with full details (Super Admin)
+ * GET /api/admin/cars/{id}
  * @param {number} id - Car ID
- * @returns {Promise} Response with car details
+ * @returns {Promise} Response with { car } including agent, featured_listing, bookings, check_photos, holidays, feedbacks, deposits, balances, favorites
  */
 export const getCar = (id) => {
   return api.get(`/admin/cars/${id}`);
 };
 
 /**
- * Update car
+ * Update car (Super Admin). Data-only uses JSON; data + images use multipart/form-data.
+ * PUT /api/admin/cars/{id}
  * @param {number} id - Car ID
- * @param {Object} data - Car data to update
- * @param {string} data.status - Car status
- * @param {boolean} data.car_accepted - Approval status
- * @param {string} data.notes - Admin notes
- * @param {File|string} data.main_image - Main car image (File or URL)
- * @param {File|string} data.front_image - Front car image (File or URL)
- * @param {File|string} data.back_image - Back car image (File or URL)
- * @param {File|string} data.left_image - Left car image (File or URL)
- * @param {File|string} data.right_image - Right car image (File or URL)
- * @returns {Promise} Response with updated car
+ * @param {Object} data - Car data to update. Only fields you send are updated.
+ *   For images use File: main_image, front_image, back_image, left_image, right_image (jpg/jpeg/png, max 5MB).
+ *   Objects/arrays (live_location, features, car_add_on, reason_of_rent, qualification_code) can be sent as objects; they are JSON-stringified in FormData.
+ * @returns {Promise} Response with { message, car }
  */
 export const updateCar = (id, data) => {
-  const formData = new FormData();
+  const imageKeys = ['main_image', 'front_image', 'back_image', 'left_image', 'right_image'];
+  const hasFile = Object.keys(data).some(key => imageKeys.includes(key) && data[key] instanceof File);
 
-  Object.keys(data).forEach(key => {
-    const value = data[key];
-    if (value === undefined || value === null) return;
-    if (key.endsWith('_image') && value instanceof File) {
-      formData.append(key, value);
-    } else if (key.endsWith('_image') && typeof value === 'string') {
-      formData.append(key, value);
-    } else if (!key.endsWith('_image')) {
-      if (Array.isArray(value) || (typeof value === 'object' && value !== null && !(value instanceof File))) {
+  if (hasFile) {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+      if (value === undefined || value === null) return;
+      if (value instanceof File) {
+        formData.append(key, value);
+      } else if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
         formData.append(key, JSON.stringify(value));
       } else {
         formData.append(key, value);
       }
-    }
-  });
+    });
+    // Do not set Content-Type; browser sets multipart/form-data with boundary for FormData
+    const putConfig = { headers: { ...api.defaults.headers.common, ...(api.defaults.headers.put || {}) } };
+    delete putConfig.headers['Content-Type'];
+    return api.put(`/admin/cars/${id}`, formData, putConfig);
+  }
 
-  return api.put(`/admin/cars/${id}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+  const cleanData = {};
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    if (value === undefined || value === null) return;
+    cleanData[key] = value;
+  });
+  return api.put(`/admin/cars/${id}`, cleanData, {
+    headers: { 'Content-Type': 'application/json' },
   });
 };
 
@@ -189,21 +206,27 @@ export const deleteCar = (id) => {
 };
 
 /**
- * Update car photo (replace single image by type)
+ * Replace a single car image by type (Super Admin). Does not change other car data.
  * POST /api/admin/cars/{id}/photo
  * @param {number} id - Car ID
  * @param {File} image - Image file (jpg, jpeg, png, max 5MB)
- * @param {string} imageType - Image type: main, front, back, left, right
- * @returns {Promise} Response with updated car
+ * @param {string} imageType - One of: main, front, back, left, right
+ * @returns {Promise} Response with { message, car }
  */
 export const updateCarPhoto = (id, image, imageType) => {
   const formData = new FormData();
   formData.append('image', image);
-  formData.append('type', imageType); // API expects "type"
+  const type = String(imageType ?? '').trim().toLowerCase();
+  formData.append('type', type);
+
+  // Let browser set Content-Type with boundary (no Content-Type header so multipart works)
   return api.post(`/admin/cars/${id}/photo`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    transformRequest: [(data, headers) => {
+      if (typeof FormData !== 'undefined' && data instanceof FormData) {
+        delete headers['Content-Type'];
+      }
+      return data;
+    }],
   });
 };
 
@@ -219,6 +242,49 @@ export const downloadCarImage = async (id, type) => {
     responseType: 'blob',
   });
   return res.data;
+};
+
+// ============================
+// Agencies (Super Admin Only)
+// ============================
+
+/**
+ * List agencies (Super Admin only). Paginated with filters and sort.
+ * GET /api/admin/agencies
+ * @param {Object} params - Query parameters
+ * @param {number} params.per_page - Items per page (default: 20)
+ * @param {number} params.page - Page number
+ * @param {string} params.sort_by - created_at | username | first_name | last_name
+ * @param {string} params.sort_order - asc | desc
+ * @param {boolean} params.verified_only - If true, only verified agencies
+ * @param {string} params.business_type - rental | private | company | marina
+ * @param {string} params.address - Governorate filter (Beirut, Mount Lebanon, North, etc.)
+ * @param {string} params.search - Search username, first_name, last_name
+ * @returns {Promise} Response with { success, agencies: { data, current_page, last_page, per_page, total, ... } }
+ */
+export const getAgencies = (params = {}) => {
+  return api.get('/admin/agencies', { params });
+};
+
+/**
+ * Get single agency by ID (Super Admin only).
+ * GET /api/admin/agencies/{id}
+ * @param {number} id - Agency user ID
+ * @returns {Promise} Response with { success, agency }
+ */
+export const getAgency = (id) => {
+  return api.get(`/admin/agencies/${id}`);
+};
+
+/**
+ * Update agency (Super Admin only). Edit all user + agent details.
+ * PUT /api/admin/agencies/{id}
+ * @param {number} id - Agency user ID
+ * @param {Object} data - Fields to update (all optional)
+ * @returns {Promise} Response with { success, message, agency }
+ */
+export const updateAgency = (id, data) => {
+  return api.put(`/admin/agencies/${id}`, data);
 };
 
 // ============================
@@ -569,6 +635,35 @@ export const trackAdClick = (id) => {
   return api.post(`/admin/ads/${id}/track-click`);
 };
 
+/**
+ * Get mobile app store clicks list (paginated)
+ * GET /api/admin/mobile-app-clicks
+ * @param {Object} params - Query parameters
+ * @param {number} params.page - Page number (default 1)
+ * @param {number} params.per_page - Items per page (default 20)
+ * @param {string} params.date_from - Filter: YYYY-MM-DD (clicks on or after)
+ * @param {string} params.date_to - Filter: YYYY-MM-DD (clicks on or before)
+ * @param {string} params.store - Filter: playstore | appstore
+ * @param {string} params.country - Filter: country code (e.g. DE, US)
+ * @returns {Promise} Response with clicks.data, clicks.total, etc.
+ */
+export const getMobileAppClicks = (params = {}) => {
+  return api.get('/admin/mobile-app-clicks', { params });
+};
+
+/**
+ * Get mobile app clicks chart data (aggregated by period)
+ * GET /api/admin/mobile-app-clicks/chart
+ * @param {Object} params - Query parameters
+ * @param {string} params.period - day | week | month
+ * @param {number} params.days_back - Number of days (1-365)
+ * @param {string} params.store - Optional filter: playstore | appstore
+ * @returns {Promise} Response with series, by_store, total_clicks
+ */
+export const getMobileAppClicksChart = (params = {}) => {
+  return api.get('/admin/mobile-app-clicks/chart', { params });
+};
+
 // ============================
 // Featured Cars Management
 // ============================
@@ -680,12 +775,10 @@ export const deleteHoliday = (id) => {
 // ============================
 
 /**
- * Get all real user data with optional filters
- * @param {Object} params - Query parameters
- * @param {string} params.status - Filter by status (pending, approved, not_approved)
- * @param {number} params.user_id - Filter by user ID
- * @param {number} params.per_page - Number of items per page (default: 50)
- * @returns {Promise} Response with paginated real user data
+ * List all real user data
+ * GET /api/admin/real-user-data
+ * @param {Object} params - Query: status (pending|approved|not_approved), user_id, per_page (default 20)
+ * @returns {Promise} Response with { real_user_data: { data, current_page, last_page, per_page, total } }
  */
 export const getRealUserData = (params = {}) => {
   return api.get('/admin/real-user-data', { params });
@@ -695,7 +788,7 @@ export const getRealUserData = (params = {}) => {
  * Get real user data for specific user
  * GET /api/admin/real-user-data/{userId}
  * @param {number} userId - User ID
- * @returns {Promise} Response with { success, data }
+ * @returns {Promise} Response with { success, data, message }. When no real data: 200 with data: null (empty form).
  */
 export const getRealUserDataByUser = (userId) => {
   return api.get(`/admin/real-user-data/${userId}`);
@@ -738,6 +831,18 @@ export const updateRealUserDataStatus = (id, data) => {
 };
 
 /**
+ * Mark real user data as checked / unchecked
+ * PATCH /api/admin/real-user-data/{id}/check
+ * {id} is the real_user_data record ID.
+ * @param {number} id - Real user data record ID
+ * @param {Object} data - { is_checked: boolean }
+ * @returns {Promise} Response with { success, data, checked_by_admin_user_id }
+ */
+export const updateRealUserDataCheck = (id, data) => {
+  return api.patch(`/admin/real-user-data/${id}/check`, data);
+};
+
+/**
  * Delete real user data for a user
  * DELETE /api/admin/real-user-data/{userId}
  * @param {number} userId - User ID
@@ -757,6 +862,40 @@ export const deleteRealUserData = (userId) => {
 export const linkRealUserDataToUser = (userId, realUserDataId) => {
   return api.put(`/admin/users/${userId}/link-real-user-data`, {
     real_user_data_id: realUserDataId,
+  });
+};
+
+// ============================
+// Real User Data – Image Management
+// ============================
+
+/**
+ * Download user identity image as file (blob).
+ * GET /api/admin/real-user-data/{userId}/images/{type}/download
+ * @param {number} userId - User ID
+ * @param {string} type - id_card_front | id_card_back | profile_picture | driver_license
+ * @returns {Promise<Blob>}
+ */
+export const downloadRealUserImage = async (userId, type) => {
+  const res = await api.get(`/admin/real-user-data/${userId}/images/${type}/download`, {
+    responseType: 'blob',
+  });
+  return res.data;
+};
+
+/**
+ * Replace (upload new) user identity image.
+ * POST /api/admin/real-user-data/{userId}/images/{type}
+ * @param {number} userId - User ID
+ * @param {string} type - id_card_front | id_card_back | profile_picture | driver_license
+ * @param {File} imageFile - Image file (jpg, jpeg, png, pdf, max 5MB)
+ * @returns {Promise} Response with { message, type, path, user }
+ */
+export const replaceRealUserImage = (userId, type, imageFile) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  return api.post(`/admin/real-user-data/${userId}/images/${type}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
@@ -993,32 +1132,36 @@ export const sendNotificationToAll = (data) => {
 // ============================
 
 /**
- * Get all OTP codes with optional filters
+ * Get all OTP codes with optional filters.
+ * Every request refreshes delivery reports from Moursel first, so delivery_status is always live.
  * @param {Object} params - Query parameters
  * @param {string} params.phone_number - Filter by phone number
- * @param {string} params.expired - Filter by expiration (true for expired, false for active)
- * @param {string} params.from_date - Filter OTPs created from this date (YYYY-MM-DD)
- * @param {string} params.to_date - Filter OTPs created until this date (YYYY-MM-DD)
- * @param {number} params.per_page - Number of items per page (default: 50)
- * @param {number} params.page - Page number (default: 1)
- * @returns {Promise} Response with paginated OTP codes
+ * @param {boolean} params.expired - true = only expired, false = only active
+ * @param {string} params.from_date - From date inclusive (YYYY-MM-DD)
+ * @param {string} params.to_date - To date inclusive (YYYY-MM-DD)
+ * @param {string} params.delivery_status - 20 (Delivered), 21 (Not delivered), 22 (Waiting)
+ * @param {number} params.per_page - Items per page (default: 50)
+ * @param {number} params.page - Page number
+ * @param {string} params.group_by - "phone" = one row per phone with last_sent_at, otp_count, country_origin
+ * @param {string} params.registration - "only_not_registered" | "only_became_user" to filter by registration (live)
+ * @returns {Promise} Response: { otps: { data, ... } } or { otps_by_phone: { data, ... } }; items include is_registered_user, registered_user_id
  */
 export const getOtps = (params = {}) => {
   return api.get('/admin/otps', { params });
 };
 
 /**
- * Get OTP statistics
- * @returns {Promise} Response with OTP statistics
+ * Get OTP statistics. Delivery reports are refreshed from Moursel before computing, so data is always live.
+ * @returns {Promise} Response: total_otps, active_otps, expired_otps, otps_today, otps_this_week, otps_this_month, phones_never_registered, phones_became_user
  */
 export const getOtpStatistics = () => {
   return api.get('/admin/otps/statistics');
 };
 
 /**
- * Get single OTP by ID
+ * Get single OTP by ID. If OTP has batch_id, delivery report is refreshed from Moursel before returning.
  * @param {number} id - OTP ID
- * @returns {Promise} Response with OTP details
+ * @returns {Promise} Response with OTP details including is_expired, is_registered_user, registered_user_id
  */
 export const getOtp = (id) => {
   return api.get(`/admin/otps/${id}`);
@@ -1039,6 +1182,25 @@ export const deleteExpiredOtps = () => {
  */
 export const deleteOtp = (id) => {
   return api.delete(`/admin/otps/${id}`);
+};
+
+/**
+ * Get SMS provider balance (Moursel).
+ * GET /api/admin/sms/balance
+ * @returns {Promise} { success, balance_int, balance_decimal } or { success: false, error, balance_int: null, balance_decimal: null }
+ */
+export const getSmsBalance = () => {
+  return api.get('/admin/sms/balance');
+};
+
+/**
+ * Fetch delivery report for a single batch (optional; list/statistics/single OTP GETs already refresh delivery).
+ * POST /api/admin/sms/delivery-report
+ * @param {string} batchId - Batch ID from send response (stored in otps.batch_id)
+ * @returns {Promise} { success, batch_id, rows_received, delivery_status, otps_updated } or { success: false, error, code }
+ */
+export const postSmsDeliveryReport = (batchId) => {
+  return api.post('/admin/sms/delivery-report', { batch_id: batchId });
 };
 
 // ============================
@@ -1334,6 +1496,7 @@ export const getSystemLogs = (params = {}) => {
 export default {
   // Users
   getUsers,
+  getOnlineUsers,
   getUser,
   updateUser,
   deleteUser,
@@ -1344,6 +1507,9 @@ export default {
   // Cars
   getCars,
   getCar,
+  getAgencies,
+  getAgency,
+  updateAgency,
   updateCar,
   updateCarAcceptReject,
   deleteCar,
@@ -1408,6 +1574,7 @@ export default {
   getRealUserDataByUser,
   createOrUpdateRealUserData,
   updateRealUserDataStatus,
+  updateRealUserDataCheck,
   deleteRealUserData,
   linkRealUserDataToUser,
   
@@ -1443,6 +1610,8 @@ export default {
   getOtp,
   deleteExpiredOtps,
   deleteOtp,
+  getSmsBalance,
+  postSmsDeliveryReport,
   
   // Reports
   getSummaryReport,

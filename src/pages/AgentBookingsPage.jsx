@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
-import { getFeedbackTemplates, submitClientRating } from "@/lib/api";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Users, X, Check, XCircle, Calendar, MapPin, Phone, Mail, Shield, Star, 
   Wallet, Award, ChevronLeft, ChevronRight, AlertCircle, Clock, Car,
   TrendingUp, Eye, Filter, Search, Download, RefreshCw, Zap, CheckCircle2,
   Timer, Activity, DollarSign, UserCheck, BadgeCheck, Briefcase, Hash,
-  Navigation, MapPinned, CalendarDays, CreditCard, FileText, Table2
+  Navigation, MapPinned, CalendarDays, CreditCard, FileText, Table2,
+  MessageCircle
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -36,22 +31,14 @@ const COLORS = {
 };
 
 export function AgentBookingsPage() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCar, setSelectedCar] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [processingBookingId, setProcessingBookingId] = useState(null);
   const [activeTab, setActiveTab] = useState("list");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  // Agency rate client (feedback)
-  const [agentTemplates, setAgentTemplates] = useState([]);
-  const [rateClientBooking, setRateClientBooking] = useState(null);
-  const [rateForm, setRateForm] = useState({ rating: 0, template_selections: [], comment: "" });
-  const [rateSubmitting, setRateSubmitting] = useState(false);
-
   const fetchBookings = async () => {
     setLoading(true);
     try {
@@ -68,18 +55,6 @@ export function AgentBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
-
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const { data } = await getFeedbackTemplates();
-        setAgentTemplates(data?.agent_rates_client || []);
-      } catch (err) {
-        console.error("Failed to load feedback templates:", err);
-      }
-    };
-    loadTemplates();
   }, []);
 
   // Auto-swipe banner every 5 seconds
@@ -106,121 +81,25 @@ export function AgentBookingsPage() {
     return acc;
   }, {});
 
-  const handleAcceptBooking = async (bookingId) => {
-    setProcessingBookingId(bookingId);
-    try {
-      await api.post(`/driver/bookings/${bookingId}/accept`);
-      await fetchBookings();
-      if (selectedCar) {
-        const updatedBookings = bookings.filter((b) => b.car?.id === selectedCar.car?.id);
-        setSelectedCar({
-          ...selectedCar,
-          bookings: updatedBookings,
-        });
-      }
-      toast.success("🎉 Booking accepted successfully!");
-    } catch (error) {
-      console.error("Error accepting booking:", error);
-      toast.error("Failed to accept booking");
-    } finally {
-      setProcessingBookingId(null);
+  const getLocationLabel = (loc) => {
+    if (!loc) return "N/A";
+    if (typeof loc === "string") return loc;
+    if (typeof loc === "object") {
+      if (loc.address) return loc.address;
+      const lat = loc.lat ?? loc.latitude;
+      const lng = loc.lng ?? loc.longitude;
+      if (lat != null && lng != null) return `${lat}, ${lng}`;
+      return JSON.stringify(loc);
     }
+    return String(loc);
   };
 
-  const handleRejectBooking = async (bookingId) => {
-    if (!confirm("Are you sure you want to reject this booking?")) return;
-    setProcessingBookingId(bookingId);
-    try {
-      await api.post(`/driver/bookings/${bookingId}/decline`);
-      await fetchBookings();
-      if (selectedCar) {
-        const updatedBookings = bookings.filter((b) => b.car?.id === selectedCar.car?.id && b.id !== bookingId);
-        if (updatedBookings.length === 0) {
-          closeModal();
-        } else {
-          setSelectedCar({
-            ...selectedCar,
-            bookings: updatedBookings,
-          });
-        }
-      }
-      toast.success("Booking rejected successfully");
-    } catch (error) {
-      console.error("Error rejecting booking:", error);
-      toast.error("Failed to reject booking");
-    } finally {
-      setProcessingBookingId(null);
-    }
-  };
-
-  const openModal = (carData) => {
-    setSelectedCar(carData);
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setSelectedCar(null);
-    setModalOpen(false);
-  };
-
-  // Agency can rate client when: confirmed/accepted, trip ended (end_datetime in past), not already rated
-  const canShowRateClient = (booking) => {
-    const status = booking?.booking_request_status;
-    const isConfirmed = status === "confirmed" || status === "accepted";
-    const tripEnded = booking?.end_datetime && new Date(booking.end_datetime) < new Date();
-    const notRated = !booking?.client_rating;
-    return Boolean(isConfirmed && tripEnded && notRated);
-  };
-
-  const openRateClientForm = (booking) => {
-    setRateClientBooking(booking);
-    setRateForm({ rating: 0, template_selections: [], comment: "" });
-  };
-
-  const closeRateClientForm = () => {
-    setRateClientBooking(null);
-    setRateForm({ rating: 0, template_selections: [], comment: "" });
-  };
-
-  const toggleTemplateSelection = (id) => {
-    setRateForm((prev) => ({
-      ...prev,
-      template_selections: prev.template_selections.includes(id)
-        ? prev.template_selections.filter((t) => t !== id)
-        : [...prev.template_selections, id],
-    }));
-  };
-
-  const handleSubmitClientRating = async () => {
-    if (!rateClientBooking || rateForm.rating < 1 || rateForm.rating > 5) {
-      toast.error("Please select a rating (1–5 stars).");
-      return;
-    }
-    setRateSubmitting(true);
-    try {
-      await submitClientRating(rateClientBooking.id, {
-        rating: rateForm.rating,
-        template_selections: rateForm.template_selections,
-        comment: rateForm.comment.slice(0, 1000),
-      });
-      toast.success("Rating submitted successfully.");
-      closeRateClientForm();
-      await fetchBookings();
-      if (selectedCar?.bookings?.length) {
-        const updatedBookings = selectedCar.bookings.map((b) =>
-          b.id === rateClientBooking.id ? { ...b, client_rating: true } : b
-        );
-        setSelectedCar({ ...selectedCar, bookings: updatedBookings });
-      }
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        (err.response?.data?.errors && Object.values(err.response.data.errors).flat().join(" ")) ||
-        "Failed to submit rating.";
-      toast.error(msg);
-    } finally {
-      setRateSubmitting(false);
+  const goToBookingDetail = (carData) => {
+    const { car, bookings: bks } = carData;
+    if (bks?.length === 1) {
+      navigate("/Mycars-bookings/detail", { state: { bookingId: bks[0].id } });
+    } else {
+      navigate("/Mycars-bookings/detail", { state: { car, bookings: bks || [] } });
     }
   };
 
@@ -417,7 +296,7 @@ export function AgentBookingsPage() {
                 acc[carId].bookings.push(booking);
                 return acc;
               }, {});
-              openModal(Object.values(carGroups)[0]);
+              goToBookingDetail(Object.values(carGroups)[0]);
             }
           }}
         >
@@ -616,7 +495,7 @@ export function AgentBookingsPage() {
         <TimelineHeader startDate={dateRange.start} endDate={dateRange.end} />
         <div className="max-h-[600px] overflow-y-auto">
           {Object.values(groupedByCar).map(({ car, bookings }) => (
-            <CarRow key={car.id} car={car} bookings={bookings} dateRange={dateRange} onBookingClick={openModal} />
+            <CarRow key={car.id} car={car} bookings={bookings} dateRange={dateRange} onBookingClick={goToBookingDetail} />
           ))}
         </div>
         <div className="flex justify-center gap-6 p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
@@ -648,7 +527,8 @@ export function AgentBookingsPage() {
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-5 rounded-2xl shadow-2xl p-5 text-white overflow-hidden relative"
+        onClick={() => goToBookingDetail({ car: currentBooking.car, bookings: [currentBooking] })}
+        className="mb-5 rounded-2xl shadow-2xl p-5 text-white overflow-hidden relative cursor-pointer hover:opacity-95 transition-opacity"
         style={{ background: `linear-gradient(135deg, ${COLORS.darkBlue}, ${COLORS.teal}, ${COLORS.limeGreen})` }}
       >
         {/* Decorative Elements */}
@@ -1002,7 +882,7 @@ export function AgentBookingsPage() {
                         <TableRow
                           key={booking.id}
                           className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-gray-200 dark:border-gray-700"
-                          onClick={() => openModal({ car: booking.car, bookings: [booking] })}
+                          onClick={() => goToBookingDetail({ car: booking.car, bookings: [booking] })}
                         >
                           <TableCell className="font-medium text-gray-900 dark:text-white">
                             {booking.car?.make} {booking.car?.model}
@@ -1041,7 +921,7 @@ export function AgentBookingsPage() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
           >
             {Object.values(filteredGroupedByCar).map(({ car, bookings: carBookings }, index) => {
               const pendingCount = carBookings.filter((b) => b.booking_request_status === "pending").length;
@@ -1055,7 +935,7 @@ export function AgentBookingsPage() {
                   transition={{ delay: index * 0.1 }}
                   whileHover={{ y: -8, scale: 1.02 }}
                   className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-200 dark:border-gray-700 group"
-                  onClick={() => openModal({ car, bookings: carBookings })}
+                  onClick={() => goToBookingDetail({ car, bookings: carBookings })}
                 >
                   <div className="relative overflow-hidden">
                     <img
@@ -1117,419 +997,6 @@ export function AgentBookingsPage() {
             })}
           </motion.div>
         )}
-
-        {/* Modal */}
-        <AnimatePresence>
-          {modalOpen && selectedCar && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-              onClick={closeModal}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl mx-4 shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
-                style={{ maxHeight: '90vh' }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Modal Header */}
-                <div className="p-5 text-white relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}>
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-                  <div className="relative z-10 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-2xl">
-                        <Car className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold">
-                          {selectedCar.car?.make} {selectedCar.car?.model}
-                        </h2>
-                        <p className="text-sm opacity-90 flex items-center gap-2 mt-1">
-                          <Calendar className="w-4 h-4" />
-                          {selectedCar.bookings?.length || 0} booking request{selectedCar.bookings?.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1, rotate: 90 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={closeModal}
-                      className="p-2 rounded-full hover:bg-white/20 transition-colors"
-                    >
-                      <X className="w-6 h-6" />
-                    </motion.button>
-                  </div>
-                </div>
-
-                {/* Modal Content */}
-                <div className="overflow-y-auto p-5" style={{ maxHeight: 'calc(90vh - 120px)' }}>
-                  {selectedCar.bookings?.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <Users className="w-16 h-16 mx-auto mb-4" style={{ color: COLORS.teal, opacity: 0.3 }} />
-                      <p className="text-gray-500 dark:text-gray-400 text-lg">No bookings for this car yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      {selectedCar.bookings?.map((booking, index) => {
-                        const client = booking.client;
-                        const profile = client?.profile || {};
-                        const config = getStatusConfig(booking.booking_request_status);
-                        const StatusIcon = config.icon;
-
-                        return (
-                          <motion.div
-                            key={booking.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700"
-                          >
-                            {/* Booking Header */}
-                            <div className="flex justify-between items-start mb-5">
-                              <div className="flex items-center gap-4">
-                                <div className="relative">
-                                  <img
-                                    src={client?.profile_picture 
-                                      ? `/api/storage/${client.profile_picture}` 
-                                      : "/default-avatar.png"}
-
-                                    alt={client?.username || "Client"}
-                                    className="w-14 h-14 rounded-2xl object-cover border-4 border-white dark:border-gray-700 shadow-lg"
-                                  />
-                                  {profile?.trusted_by_app && (
-                                    <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full border-4 border-white dark:border-gray-700 flex items-center justify-center shadow-lg" style={{ background: COLORS.darkBlue }}>
-                                      <Shield className="w-3 h-3 text-white" />
-                                    </div>
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="font-bold text-xl text-gray-900 dark:text-white flex items-center gap-2">
-                                      {client?.first_name || "N/A"} {client?.last_name || ""}
-                                      {client?.verified_by_admin && (
-                                        <BadgeCheck className="w-5 h-5" style={{ color: COLORS.teal }} />
-                                      )}
-                                    </h3>
-                                  </div>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    @{client?.username || "Unknown"} • Booked {formatDateShort(booking.created_at)}
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2" style={{ background: config.bgColor, borderColor: config.color }}>
-                                <StatusIcon className="w-5 h-5" style={{ color: config.textColor }} />
-                                <span className="font-bold text-sm" style={{ color: config.textColor }}>{config.label}</span>
-                              </div>
-                            </div>
-
-                            {/* Booking Details Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                              {/* Rental Period */}
-                              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="p-2 rounded-lg" style={{ background: COLORS.tealDim }}>
-                                    <CalendarDays className="w-4 h-4" style={{ color: COLORS.teal }} />
-                                  </div>
-                                  <span className="font-bold text-gray-900 dark:text-white">Rental Period</span>
-                                </div>
-                                <div className="space-y-1.5 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Start:</span>
-                                    <span className="font-semibold">{formatDateTime(booking.start_datetime)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">End:</span>
-                                    <span className="font-semibold">{formatDateTime(booking.end_datetime)}</span>
-                                  </div>
-                                  <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
-                                    <span className="text-gray-600 dark:text-gray-400">Duration:</span>
-                                    <span className="font-bold" style={{ color: COLORS.teal }}>
-                                      {calculateDuration(booking.start_datetime, booking.end_datetime)} days
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Price & Location */}
-                              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="p-2 rounded-lg" style={{ background: COLORS.limeGreenDim }}>
-                                    <DollarSign className="w-4 h-4" style={{ color: COLORS.limeGreen }} />
-                                  </div>
-                                  <span className="font-bold text-gray-900 dark:text-white">Payment Details</span>
-                                </div>
-                                <div className="space-y-1.5 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Total (client paid):</span>
-                                    <span className="font-bold text-lg" style={{ color: COLORS.limeGreen }}>${booking.total_booking_price ?? "0.00"}</span>
-                                  </div>
-                                  {booking.app_fees_amount != null && (
-                                    <>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-600 dark:text-gray-400">App fee:</span>
-                                        <span className="font-semibold text-gray-700 dark:text-gray-300">${booking.app_fees_amount}</span>
-                                      </div>
-                                      <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
-                                        <span className="text-gray-600 dark:text-gray-400">Your net:</span>
-                                        <span className="font-bold" style={{ color: COLORS.teal }}>
-                                          ${(parseFloat(booking.total_booking_price || 0) - (booking.app_fees_amount || 0)).toFixed(2)}
-                                        </span>
-                                      </div>
-                                    </>
-                                  )}
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Pickup:</span>
-                                    <span className="font-semibold text-right truncate max-w-[160px]">
-                                      {booking.pickup_location || "N/A"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Dropoff:</span>
-                                    <span className="font-semibold text-right truncate max-w-[160px]">
-                                      {booking.dropoff_location || "N/A"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Client Information Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                              {[
-                                { label: "Email", value: client?.email, icon: Mail },
-                                { label: "Phone", value: client?.phone_number, icon: Phone },
-                                { label: "City", value: client?.city, icon: MapPin },
-                                { label: "Profession", value: profile?.profession, icon: Briefcase },
-                              ].map((item, i) => (
-                                <div key={i} className="bg-white dark:bg-gray-700 p-2.5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <item.icon className="w-3 h-3 text-gray-400" />
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
-                                  </div>
-                                  <p className="font-semibold text-sm truncate text-gray-800 dark:text-gray-200">
-                                    {item.value || "N/A"}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Additional Info */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                              {[
-                                { label: "Age", value: profile?.age },
-                                { label: "Gender", value: client?.gender },
-                                { label: "Salary", value: profile?.avg_salary },
-                                { label: "License", value: profile?.license_number },
-                              ].map((item, i) => (
-                                <div key={i} className="bg-white dark:bg-gray-700 p-2.5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{item.label}</p>
-                                  <p className="font-semibold text-sm truncate text-gray-800 dark:text-gray-200">
-                                    {item.value || "N/A"}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Rating */}
-                            {profile?.average_rating && (
-                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl mb-4 border" style={{ background: COLORS.limeGreenDim, borderColor: COLORS.limeGreen }}>
-                                <Star className="w-5 h-5 fill-current" style={{ color: COLORS.limeGreen }} />
-                                <span className="font-bold" style={{ color: COLORS.limeGreen }}>
-                                  {profile.average_rating} Average Rating
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Rate client (agency) – after trip ended, confirmed, not yet rated */}
-                            {booking.client_rating && (
-                              <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-4 border" style={{ background: COLORS.limeGreenDim, borderColor: COLORS.limeGreen }}>
-                                <CheckCircle2 className="w-5 h-5" style={{ color: COLORS.limeGreen }} />
-                                <span className="font-semibold" style={{ color: COLORS.limeGreen }}>Rating submitted</span>
-                              </div>
-                            )}
-                            {!booking.client_rating && canShowRateClient(booking) && (
-                              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mb-4">
-                                <motion.button
-                                  type="button"
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openRateClientForm(booking);
-                                  }}
-                                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-                                  style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
-                                >
-                                  <Star className="w-5 h-5" />
-                                  Rate client
-                                </motion.button>
-                              </div>
-                            )}
-
-                            {/* Action Buttons */}
-                            {booking.booking_request_status === "pending" && (
-                              <div className="flex gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAcceptBooking(booking.id);
-                                  }}
-                                  disabled={processingBookingId === booking.id}
-                                  className="flex-1 py-2.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                                  style={{ background: `linear-gradient(135deg, ${COLORS.limeGreen}, ${COLORS.teal})` }}
-                                >
-                                  <Check className="w-5 h-5" />
-                                  {processingBookingId === booking.id ? "Processing..." : "Accept Booking"}
-                                </motion.button>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRejectBooking(booking.id);
-                                  }}
-                                  disabled={processingBookingId === booking.id}
-                                  className="flex-1 py-2.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <XCircle className="w-5 h-5" />
-                                  {processingBookingId === booking.id ? "Processing..." : "Reject Booking"}
-                                </motion.button>
-                              </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Rate client dialog */}
-        <Dialog open={!!rateClientBooking} onOpenChange={(open) => !open && closeRateClientForm()}>
-          <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2" style={{ color: COLORS.darkBlue }}>
-                <Star className="w-5 h-5" style={{ color: COLORS.teal }} />
-                Rate client
-                {rateClientBooking?.client && (
-                  <span className="font-normal text-gray-600 dark:text-gray-400">
-                    — {rateClientBooking.client.first_name} {rateClientBooking.client.last_name}
-                  </span>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              {/* Star rating (required) */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Rating <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <motion.button
-                      key={star}
-                      type="button"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setRateForm((prev) => ({ ...prev, rating: star }))}
-                      className={`p-2 rounded-lg border-2 transition-colors ${
-                        rateForm.rating >= star
-                          ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                          : "border-gray-200 dark:border-gray-600 hover:border-amber-300"
-                      }`}
-                    >
-                      <Star
-                        className={`w-6 h-6 ${
-                          rateForm.rating >= star ? "fill-amber-400 text-amber-400" : "text-gray-400"
-                        }`}
-                      />
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Template tags (optional) */}
-              {agentTemplates.length > 0 && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Tags (optional)
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {agentTemplates.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => toggleTemplateSelection(t.id)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium border-2 transition-colors ${
-                          rateForm.template_selections.includes(t.id)
-                            ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
-                            : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
-                        }`}
-                        style={
-                          rateForm.template_selections.includes(t.id)
-                            ? { borderColor: COLORS.teal, background: COLORS.tealDim, color: COLORS.teal }
-                            : {}
-                        }
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Comment (optional, max 1000) */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Comment (optional, max 1000 characters)
-                </label>
-                <textarea
-                  value={rateForm.comment}
-                  onChange={(e) => setRateForm((prev) => ({ ...prev, comment: e.target.value.slice(0, 1000) }))}
-                  placeholder="e.g. Very good renter. Would rent to again."
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {rateForm.comment.length}/1000
-                </p>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={closeRateClientForm}
-                  className="flex-1 py-2.5 px-4 rounded-xl font-semibold border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSubmitClientRating}
-                  disabled={rateSubmitting || rateForm.rating < 1}
-                  className="flex-1 py-2.5 px-4 rounded-xl font-bold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.darkBlue})` }}
-                >
-                  {rateSubmitting ? "Submitting…" : "Submit rating"}
-                </motion.button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

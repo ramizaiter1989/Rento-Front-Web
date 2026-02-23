@@ -36,12 +36,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear both token keys for compatibility
       localStorage.removeItem("token");
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");
-      // You can redirect automatically if you want:
-      // window.location.href = "/login";
+      window.dispatchEvent(new Event("auth-logout"));
     }
 
     return Promise.reject(error);
