@@ -372,7 +372,7 @@ export default function AdminRealUserDataPage() {
     try {
       const params = { page, per_page: USERS_PER_PAGE };
       if (roleFilter && roleFilter !== "all") params.role = roleFilter;
-      if (searchQuery?.trim()) params.search = searchQuery.trim();
+      // if (searchQuery?.trim()) params.search = searchQuery.trim();
       const res = await getUsers(params);
       const payload = res.data?.users || res.data;
       let data = payload?.data || [];
@@ -653,15 +653,33 @@ export default function AdminRealUserDataPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    let list = users;
-    if (realStatusFilter === "all") return list;
+    let list = [...users];
 
-    list = list.filter((u) => {
-      const status = getUserStatusType(u);
-      return status === realStatusFilter;
-    });
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim();
+
+      //If numeric  search by ID only
+      if (/^\d+$/.test(query)) {
+        return list.filter((u) => u.id === Number(query));
+      }
+
+      // Otherwise search by text
+      const q = query.toLowerCase();
+      list = list.filter((u) =>
+        u.username?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.phone_number?.toLowerCase().includes(q) ||
+        u.first_name?.toLowerCase().includes(q) ||
+        u.last_name?.toLowerCase().includes(q)
+      );
+    }
+
+    if (realStatusFilter !== "all") {
+      list = list.filter((u) => getUserStatusType(u) === realStatusFilter);
+    }
+
     return list;
-  }, [users, realStatusFilter]);
+  }, [users, realStatusFilter, searchQuery]);
   const displayName = (u) =>
     u?.first_name && u?.last_name
       ? `${u.first_name} ${u.last_name}`
@@ -675,10 +693,12 @@ export default function AdminRealUserDataPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, phone, username..."
+            placeholder="Search by ID, name, email, phone, username..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }} onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="pl-9"
           />
         </div>
@@ -742,9 +762,8 @@ export default function AdminRealUserDataPage() {
           <button
             type="button"
             onClick={() => setViewMode("users")}
-            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              viewMode === "users" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${viewMode === "users" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <Users className="h-4 w-4" />
             By Users
@@ -752,9 +771,8 @@ export default function AdminRealUserDataPage() {
           <button
             type="button"
             onClick={() => setViewMode("realData")}
-            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              viewMode === "realData" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${viewMode === "realData" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <List className="h-4 w-4" />
             By Real User Data
@@ -823,16 +841,16 @@ export default function AdminRealUserDataPage() {
                     ? cStatus === "verified"
                       ? "border-emerald-400 bg-emerald-50/60"
                       : cStatus === "pending"
-                      ? "border-amber-400 bg-amber-50/60"
-                      : "border-sky-400 bg-sky-50/60"
+                        ? "border-amber-400 bg-amber-50/60"
+                        : "border-sky-400 bg-sky-50/60"
                     : "border-red-300 bg-red-50/40";
 
                   const completionBadge = isComplete
                     ? cStatus === "verified"
                       ? { className: "bg-emerald-100 border-emerald-500 text-emerald-800", label: "Verified" }
                       : cStatus === "pending"
-                      ? { className: "bg-amber-100 border-amber-500 text-amber-800", label: "Pending" }
-                      : { className: "bg-sky-100 border-sky-500 text-sky-800", label: "Waiting for Admin" }
+                        ? { className: "bg-amber-100 border-amber-500 text-amber-800", label: "Pending" }
+                        : { className: "bg-sky-100 border-sky-500 text-sky-800", label: "Waiting for Admin" }
                     : { className: "bg-red-100 border-red-500 text-red-800", label: "Profile Incomplete" };
 
                   const hasIdFront = !!u.id_card_front;
@@ -976,8 +994,8 @@ export default function AdminRealUserDataPage() {
                                 row.status === "approved"
                                   ? "bg-emerald-100 text-emerald-800"
                                   : row.status === "pending"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-red-100 text-red-800"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-red-100 text-red-800"
                               }
                             >
                               {row.status}
@@ -1060,123 +1078,123 @@ export default function AdminRealUserDataPage() {
       )}
 
       {viewMode === "users" && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Users — select one to fill real user data
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No users found</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredUsers.map((user) => {
-                const status = getUserStatusType(user);
-                const isVerified = status === USER_STATUS.VERIFIED;
-                const isWaitingAdmin = status === USER_STATUS.WAITING_ADMIN;
-                const isProfileIncomplete = status === USER_STATUS.PROFILE_INCOMPLETE;
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Users — select one to fill real user data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">No users found</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredUsers.map((user) => {
+                  const status = getUserStatusType(user);
+                  const isVerified = status === USER_STATUS.VERIFIED;
+                  const isWaitingAdmin = status === USER_STATUS.WAITING_ADMIN;
+                  const isProfileIncomplete = status === USER_STATUS.PROFILE_INCOMPLETE;
 
-                const cardClasses = [
-                  "overflow-hidden border-2 transition-shadow rounded-xl",
-                  isVerified && "border-emerald-400 bg-emerald-50/80 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
-                  isWaitingAdmin && "border-sky-400 bg-sky-50/80 shadow-[0_0_10px_rgba(14,165,233,0.5)]",
-                  isProfileIncomplete && "border-red-400 bg-red-50/80 shadow-[0_0_10px_rgba(239,68,68,0.5)]",
-                  lastUpdatedUserId === user.id && "ring-2 ring-emerald-400",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
+                  const cardClasses = [
+                    "overflow-hidden border-2 transition-shadow rounded-xl",
+                    isVerified && "border-emerald-400 bg-emerald-50/80 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
+                    isWaitingAdmin && "border-sky-400 bg-sky-50/80 shadow-[0_0_10px_rgba(14,165,233,0.5)]",
+                    isProfileIncomplete && "border-red-400 bg-red-50/80 shadow-[0_0_10px_rgba(239,68,68,0.5)]",
+                    lastUpdatedUserId === user.id && "ring-2 ring-emerald-400",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
 
-                const statusLabel =
-                  isVerified
-                    ? "Verified by admin"
-                    : isWaitingAdmin
-                    ? "Profile complete — waiting for admin"
-                    : "Profile not complete";
+                  const statusLabel =
+                    isVerified
+                      ? "Verified by admin"
+                      : isWaitingAdmin
+                        ? "Profile complete — waiting for admin"
+                        : "Profile not complete";
 
-                const statusBadgeClass =
-                  isVerified
-                    ? "bg-emerald-100 border-emerald-500 text-emerald-800"
-                    : isWaitingAdmin
-                    ? "bg-sky-100 border-sky-500 text-sky-800"
-                    : "bg-red-100 border-red-500 text-red-800";
+                  const statusBadgeClass =
+                    isVerified
+                      ? "bg-emerald-100 border-emerald-500 text-emerald-800"
+                      : isWaitingAdmin
+                        ? "bg-sky-100 border-sky-500 text-sky-800"
+                        : "bg-red-100 border-red-500 text-red-800";
 
-                return (
-                  <Card key={user.id} className={cardClasses}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <img
-                        src={getProfileImg(user)}
-                        alt=""
-                        className="h-12 w-12 rounded-full object-cover ring-2 ring-muted"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = DEFAULT_AVATAR;
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold truncate">{displayName(user)}</p>
-                        <p className="text-xs text-muted-foreground">ID: {user.id}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Joined:{" "}
-                          {user.created_at
-                            ? new Date(user.created_at).toLocaleDateString("en-GB")
-                            : "—"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-1 text-sm mb-3">
-                      <p className="truncate">
-                        <span className="text-muted-foreground">Name: </span>
-                        {user.first_name && user.last_name
-                          ? `${user.first_name} ${user.last_name}`
-                          : "—"}
-                      </p>
-                      <p className="truncate">
-                        <span className="text-muted-foreground">Phone: </span>
-                        {user.phone_number || "—"}
-                      </p>
-                      <p className="truncate">
-                        <span className="text-muted-foreground">Username: </span>
-                        {user.username || "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <span className="flex flex-col gap-1">
-                        <Badge variant="outline" className={`w-fit px-2 py-0.5 text-[11px] font-medium ${statusBadgeClass}`}>
-                          {statusLabel}
-                        </Badge>
-                        {isVerified && (
-                          <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
-                            <UserCheck className="h-3.5 w-3.5" /> Real data filled
+                  return (
+                    <Card key={user.id} className={cardClasses}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <img
+                            src={getProfileImg(user)}
+                            alt=""
+                            className="h-12 w-12 rounded-full object-cover ring-2 ring-muted"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = DEFAULT_AVATAR;
+                            }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold truncate">{displayName(user)}</p>
+                            <p className="text-xs text-muted-foreground">ID: {user.id}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Joined:{" "}
+                              {user.created_at
+                                ? new Date(user.created_at).toLocaleDateString("en-GB")
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-sm mb-3">
+                          <p className="truncate">
+                            <span className="text-muted-foreground">Name: </span>
+                            {user.first_name && user.last_name
+                              ? `${user.first_name} ${user.last_name}`
+                              : "—"}
+                          </p>
+                          <p className="truncate">
+                            <span className="text-muted-foreground">Phone: </span>
+                            {user.phone_number || "—"}
+                          </p>
+                          <p className="truncate">
+                            <span className="text-muted-foreground">Username: </span>
+                            {user.username || "—"}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <span className="flex flex-col gap-1">
+                            <Badge variant="outline" className={`w-fit px-2 py-0.5 text-[11px] font-medium ${statusBadgeClass}`}>
+                              {statusLabel}
+                            </Badge>
+                            {isVerified && (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
+                                <UserCheck className="h-3.5 w-3.5" /> Real data filled
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={() => openModal(user)}
-                        style={{
-                          background: `linear-gradient(to right, ${COLORS.darkBlue}, ${COLORS.teal})`,
-                        }}
-                        className="text-white shadow-sm hover:shadow-md"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Fill Real Data
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                          <Button
+                            size="sm"
+                            onClick={() => openModal(user)}
+                            style={{
+                              background: `linear-gradient(to right, ${COLORS.darkBlue}, ${COLORS.teal})`,
+                            }}
+                            className="text-white shadow-sm hover:shadow-md"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Fill Real Data
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {viewMode === "users" && meta.last_page > 1 && (
@@ -1280,95 +1298,95 @@ export default function AdminRealUserDataPage() {
                 {/* ID Card & License Images with Download / Replace */}
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Hover over images to magnify. Use buttons below each image to download or replace.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        ID Card — Front
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <DocCardWithActions
-                        title="ID Card Front"
-                        path={userDetails?.id_card_front}
-                        userId={selectedUser?.id}
-                        imageType="id_card_front"
-                        onReplaced={(data) => {
-                          if (data?.user) setUserDetails((prev) => ({ ...prev, id_card_front: data.user.id_card_front }));
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        ID Card — Back
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <DocCardWithActions
-                        title="ID Card Back"
-                        path={userDetails?.id_card_back}
-                        userId={selectedUser?.id}
-                        imageType="id_card_back"
-                        onReplaced={(data) => {
-                          if (data?.user) setUserDetails((prev) => ({ ...prev, id_card_back: data.user.id_card_back }));
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        Driver License
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <DocCardWithActions
-                        title="Driver License"
-                        path={userDetails?.client?.driver_license}
-                        userId={selectedUser?.id}
-                        imageType="driver_license"
-                        onReplaced={(data) => {
-                          if (data?.user?.client) {
-                            setUserDetails((prev) => ({
-                              ...prev,
-                              client: { ...prev.client, driver_license: data.user.client.driver_license },
-                            }));
-                          }
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Profile Picture */}
-                <div className="mt-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        Profile Picture
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="max-w-[200px]">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4" />
+                          ID Card — Front
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
                         <DocCardWithActions
-                          title="Profile Picture"
-                          path={userDetails?.profile_picture}
+                          title="ID Card Front"
+                          path={userDetails?.id_card_front}
                           userId={selectedUser?.id}
-                          imageType="profile_picture"
+                          imageType="id_card_front"
                           onReplaced={(data) => {
-                            if (data?.user) setUserDetails((prev) => ({ ...prev, profile_picture: data.user.profile_picture }));
+                            if (data?.user) setUserDetails((prev) => ({ ...prev, id_card_front: data.user.id_card_front }));
                           }}
                         />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4" />
+                          ID Card — Back
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <DocCardWithActions
+                          title="ID Card Back"
+                          path={userDetails?.id_card_back}
+                          userId={selectedUser?.id}
+                          imageType="id_card_back"
+                          onReplaced={(data) => {
+                            if (data?.user) setUserDetails((prev) => ({ ...prev, id_card_back: data.user.id_card_back }));
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4" />
+                          Driver License
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <DocCardWithActions
+                          title="Driver License"
+                          path={userDetails?.client?.driver_license}
+                          userId={selectedUser?.id}
+                          imageType="driver_license"
+                          onReplaced={(data) => {
+                            if (data?.user?.client) {
+                              setUserDetails((prev) => ({
+                                ...prev,
+                                client: { ...prev.client, driver_license: data.user.client.driver_license },
+                              }));
+                            }
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Profile Picture */}
+                  <div className="mt-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4" />
+                          Profile Picture
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="max-w-[200px]">
+                          <DocCardWithActions
+                            title="Profile Picture"
+                            path={userDetails?.profile_picture}
+                            userId={selectedUser?.id}
+                            imageType="profile_picture"
+                            onReplaced={(data) => {
+                              if (data?.user) setUserDetails((prev) => ({ ...prev, profile_picture: data.user.profile_picture }));
+                            }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
 
                 {/* Real User Data Form Fields — user data above each */}
